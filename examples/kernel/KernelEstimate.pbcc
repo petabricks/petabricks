@@ -1,15 +1,17 @@
 #ifndef KERNELESTIMATE_PBCC
 #define KERNELESTIMATE_PBCC
 
-#include "LinearSolvePosDef.pbcc"
+#include "../linearsolve/LinearSolvePosDef.pbcc"
 #include "utils.pbcc"
 
 %{
 
-inline double kernel(ConstMatrixRegion1D x0, ConstMatrixRegion1D x1, double h)
+inline ElementT kernel(ConstMatrixRegion1D x0, ConstMatrixRegion1D x1, ElementT h)
 {
+  x0.useOnCpu();
+  x1.useOnCpu();
   int i, dim = x0.count();
-  double temp, sum = 0;
+  ElementT temp, sum = 0;
   for (i = 0; i < dim; i++) {
     temp = (x0.cell(i) - x1.cell(i));
     sum += temp * temp;
@@ -37,38 +39,26 @@ to OUT[n]
 // H is the bandwidth of the kernel
 transform KernelEstimate
 from TRAINX[d,n], TRAINY[1,n], TESTX[d,m], H, LAMBDA
-through A[n,1], K[n,n], K2[n,n], TRAINY2[n,1]
+through A[n,1], K[n,n]
 to ESTIMATEY[m]
 {
   K.cell(i,j) from (TRAINX.row(i) xi,
                     TRAINX.row(j) xj,
-                    H h)
+                    H h, LAMBDA lambda)
   {
-    return kernel(xi, xj, h);
+      ElementT temp = kernel(xi, xj, h);
+      return (i == j) ? temp + lambda : temp;
   }
 
-  K2.cell(i,j) from (K.cell(i,j) k, LAMBDA lambda)
+  to (A a) from (K k, TRAINY trainY, LAMBDA lambda)
   {
-    if (i == j) {
-      return k + lambda;
-    } else {
-      return k;
-    }
-  }
-
-  TRAINY2.cell(i,0) from (TRAINY.cell(0,i) trainY, LAMBDA lambda)
-  {
-    return lambda * trainY;
-  }
-
-  to (A a) from (K2 k2, TRAINY2 trainY2)
-  {
-    LinearSolvePosDef(a, k2, trainY2);
+    LinearSolvePosDef(a, k, trainY);
+    Scale2D(a, lambda);
   }
 
   ESTIMATEY.cell(i) from (TRAINX trainX, TESTX.row(i) testX, A a, H h)
   {
-    double result;
+    ElementT result;
     MatrixRegion1D ke = MatrixRegion1D::allocate(n);
     KernelEvaluate(ke, testX, trainX, h);
     DotProduct(result, ke, a.row(0));

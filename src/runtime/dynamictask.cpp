@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #include "petabricksruntime.h"
 
 #include "dynamicscheduler.h"
@@ -41,13 +56,28 @@ void DynamicTask::enqueue()
   {
     JLOCKSCOPE(_lock);
     preds=_numPredecessors;
-    if(preds==0)
-      _state=S_READY;
-    else
-      _state=S_PENDING;
+    if(_state==S_NEW) {
+      if(preds==0)
+        _state=S_READY;
+      else
+        _state=S_PENDING;
+    }else if(_state==S_REMOTE_NEW){
+      if(preds==0)
+        _state=S_REMOTE_READY;
+      else
+        _state=S_REMOTE_PENDING;
+    }else{
+      JASSERT(false)(_state);
+    }
   }
   if(preds==0) {
-    inlineOrEnqueueTask();
+    if(_state == S_READY){
+      inlineOrEnqueueTask();
+    }else if(_state == S_REMOTE_READY){
+      remoteScheduleTask();
+    }else{
+      JASSERT(false)(_state);
+    }
   }
 }
 #endif // PBCC_SEQUENTIAL
@@ -60,7 +90,7 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
 {
   if(!that) return;
   JASSERT(that!=this).Text("task cant depend on itself");
-  JASSERT(_state==S_NEW)(_state).Text(".dependsOn must be called before enqueue()");
+  JASSERT(_state==S_NEW || _state==S_REMOTE_NEW)(_state).Text(".dependsOn must be called before enqueue()");
   that->_lock.lock();
   if(that->_state == S_CONTINUED){
     that->_lock.unlock();
@@ -88,37 +118,54 @@ void petabricks::DynamicTask::decrementPredecessors(bool isAborting){
   bool shouldEnqueue = false;
   {
     JLOCKSCOPE(_lock);
-    if(--_numPredecessors==0 && _state==S_PENDING){
+    --_numPredecessors;
+    if(_numPredecessors==0 && _state==S_PENDING){
       _state = S_READY;
+      shouldEnqueue = true;
+    }
+    if(_numPredecessors==0 && _state==S_REMOTE_PENDING){
+      _state = S_REMOTE_READY;
       shouldEnqueue = true;
     }
   }
   if (shouldEnqueue) {
     if (isAborting) {
       runWrapper(true);
-    } else {
+    } else if (_state==S_READY) {
       inlineOrEnqueueTask();
+    } else if (_state==S_REMOTE_READY) {
+      remoteScheduleTask();
+    } else {
+      JASSERT(false);
     }
   }
 }
 
-
 void petabricks::DynamicTask::runWrapper(bool isAborting){
-  JASSERT(_state==S_READY && _numPredecessors==0)(_state)(_numPredecessors);
+  JASSERT(((_state==S_READY && _type==TYPE_CPU) || (_state==S_REMOTE_READY && _type==TYPE_OPENCL)) && _numPredecessors==0)(_state)(_numPredecessors);
 
   if (!isAborting) {
+#ifdef DISTRIBUTED_CACHE
+    if(!isNullTask()) {
+      WorkerThread::self()->cache()->invalidate();
+    }
+#endif
     _continuation = run();
   } else {
     _continuation = NULL;
   }
 
+  completeTaskDeps(isAborting);
+}
+
+void petabricks::DynamicTask::completeTaskDeps(bool isAborting){
   std::vector<DynamicTask*> tmp;
 
   {
     JLOCKSCOPE(_lock);
     _dependents.swap(tmp);
     if(_continuation) _state = S_CONTINUED;
-    else             _state = S_COMPLETE;
+    else              _state = S_COMPLETE;
   }
 
   if(_continuation){
@@ -179,10 +226,11 @@ void DynamicTask::inlineOrEnqueueTask()
 #endif
   {
     WorkerThread* self = WorkerThread::self();
-#ifdef DEBUG
-    JASSERT(self!=NULL);
-#endif
-    self->pushLocal(this);
+    if(self!=NULL) {
+      self->pushLocal(this);
+    }else{
+      DynamicScheduler::cpuScheduler().injectWork(this);
+    }
   }
 }
 

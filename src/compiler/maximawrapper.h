@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef PETABRICKSMAXIMAWRAPPER_H
 #define PETABRICKSMAXIMAWRAPPER_H
 
@@ -80,6 +95,10 @@ public:
     return runCommandSingleOutput("fullratsimp(expand(" + eq->toString() + "))");
   }
 
+  FormulaPtr toFloat(const FormulaPtr& eq) {
+    return runCommandSingleOutput("ev("+ eq->toString() + ",float)");
+  }
+  
   FormulaPtr subst(const std::string& with, const std::string& what, const FormulaPtr& eq){
     return runCommandSingleOutput("subst("+with+", "+what+"," + eq->toString() + ")");
   }
@@ -160,6 +179,12 @@ public:
     return rslt==YES;
   }
 
+  bool comparePessimistically(const FormulaPtr& a, const char* op, const FormulaPtr& b){
+    tryCompareResult rslt = tryCompare(a,op,b);
+    //True on YES, false on NO or UNKNOWN
+    return rslt==YES;
+  }
+  
   tryCompareResult tryCompare(const FormulaPtr& a, const char* op, const FormulaPtr& b){
     std::string aStr = a->toString();
     std::string bStr = b->toString();

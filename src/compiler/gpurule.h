@@ -1,9 +1,33 @@
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef PETABRICKSGPURULE_H
 #define PETABRICKSGPURULE_H
 
 #include "pbc.h"
-
-#ifdef HAVE_OPENCL
 
 #include "syntheticrule.h"
 #include "userrule.h"
@@ -12,6 +36,8 @@
 #include "iterationorders.h"
 #include "maximawrapper.h"
 #include "transform.h"
+
+#include <set>
 
 namespace petabricks
 {
@@ -27,8 +53,20 @@ class GpuRule : public SyntheticRule {
 
     // Overridden functions
 
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
+  void generateKernel(Transform& trans, CodeGenerator& o, bool local);
 
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
+
+  void generateCallCode(const std::string& nodename,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor,
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        int gpuCopyOut);
+  //TODO: remove this
   void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
   void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
 
@@ -64,6 +102,11 @@ class GpuRule : public SyntheticRule {
   bool isRecursive() const;
   bool hasWhereClause() const;
   FormulaPtr getWhereClause() const;
+
+  bool isEnabledGpuRule() { return !isDisabled(); }
+  int getAssociatedId() { return _rule->id(); }
+  
+  static std::set<int> _done;
  private:
   UserRule* _rule;
   RIRBlockCopyRef _bodyirOpenCL;
@@ -71,5 +114,4 @@ class GpuRule : public SyntheticRule {
 
 }
 
-#endif
 #endif

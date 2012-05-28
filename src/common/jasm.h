@@ -1,22 +1,29 @@
-/***************************************************************************
- *   Copyright (C) 2006-2009 by Jason Ansel                                *
- *   jansel@csail.mit.edu                                                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 
 #ifndef JALIBJASM_H
 #define JALIBJASM_H
@@ -35,9 +42,22 @@
 #define _PADDING(n, l) __PADDING(n, l)
 #define PADDING(n) _PADDING(n, __LINE__)
 
+#define USE(x) (void)(x)
+
+#ifdef HAVE_BUILTIN_EXPECT
+#define LIKELY(x)       __builtin_expect((x),1)
+#define UNLIKELY(x)     __builtin_expect((x),0)
+#else
+#define LIKELY(x)       (x)
+#define UNLIKELY(x)     (x)
+#endif
+
 namespace jalib {
 
+
 typedef volatile long AtomicT;
+
+INLINE ATTRIBUTE(cold) void cold(){}
 
 #if defined(__i386__) || defined(__x86_64__)
 /**
@@ -146,8 +166,9 @@ inline long fetchAndStore(long *p, long val)
 
 #elif defined(__sparc__)
 
+template<typename T>
 inline bool
-cas(volatile long *m, long old_val, long new_val)
+compareAndSwap(volatile T *m, T old_val, T new_val)
 {
 	asm volatile("cas [%2], %3, %0\n\t"
 			     : "=&r" (new_val)
@@ -163,7 +184,7 @@ template<long v> long atomicAdd(AtomicT *p)
   do {
     old_val = *p;
     new_val = old_val + v;
-  } while (!cas(p, old_val, new_val));
+  } while (!compareAndSwap(p, old_val, new_val));
 
   return new_val;
 }

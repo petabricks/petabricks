@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #include "workerthread.h"
 
 #include "dynamicscheduler.h"
@@ -21,7 +36,7 @@
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
-  
+
 #ifdef DEBUG
 #  define DEBUGONLY(args...) args
 #else
@@ -80,10 +95,18 @@ petabricks::WorkerThread::WorkerThread(DynamicScheduler& ds)
 #ifdef WORKERTHREAD_ONDECK
   _ondeck = NULL;
 #endif
+#ifdef DISTRIBUTED_CACHE
+  _cache = new WorkerThreadCache();
+#endif
   DEBUGONLY(_isWorking=false);
 }
 petabricks::WorkerThread::~WorkerThread(){
   _pool.remove(this);
+}
+
+
+void petabricks::WorkerThread::markUtilityThread() {
+  setSelf(NULL);
 }
 
 int petabricks::WorkerThread::threadRandInt() const {
@@ -95,18 +118,20 @@ int petabricks::WorkerThread::threadRandInt() const {
   }
   return retVal;
 }
-  
+
 void petabricks::WorkerThread::popAndRunOneTask(int stealLimit)
 {
   DynamicTask *task;
 
   //try from the local deque
   task = popLocal();
-  
+
   //try stealing a bunch of times
   while(task == NULL && stealLimit-->0){
     WorkerThread* victim = _pool.getRandom(this);
-    task = victim->steal();
+    if (victim != NULL) {
+      task = victim->steal();
+    }
   }
 
   //if we got something, run it
@@ -156,6 +181,9 @@ void petabricks::WorkerThreadPool::remove(WorkerThread* thread){
 }
 
 petabricks::WorkerThread* petabricks::WorkerThreadPool::getRandom(const WorkerThread* caller){
+#ifdef DEBUG
+  JASSERT(caller!=NULL);
+#endif
   WorkerThread* rv;
   do {
     rv=_pool[caller->threadRandInt()%_count];
@@ -186,7 +214,7 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
   JASSERT(self!=NULL);
   WorkerThreadPool& pool = self->pool();
   DynamicTask* t=NULL;
-  
+
   jalib::atomicDecrement(&_numLive);
 
   //cancel all our pending tasks
@@ -212,7 +240,7 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
       }
     }
   }
-  
+
   //drain off all our abort tasks
   while((t=self->popLocal())!=NULL){
     JASSERT(t==this);
@@ -230,7 +258,7 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
  //else
  //  _lock.wait();
  //_lock.unlock();
-  
+
   //either exit or throw
   if(_shutdown && self!=&theMainWorkerThread){
     //pthread_exit(0);
@@ -242,7 +270,7 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
 
 void petabricks::WorkerThreadPool::debugPrint() const {
   std::cerr << "thread status: " << std::endl;
-  
+
   for(int i=0; i<_count; ++i){
     const WorkerThread* t = _pool[i];
     if(t == 0){
@@ -257,13 +285,14 @@ void petabricks::WorkerThreadPool::debugPrint() const {
   }
 }
 
-void petabricks::WorkerThreadPool::debugPrint(jalib::JAssert& o) const {
+void petabricks::WorkerThreadPool::debugPrint(jalib::JAssert& ) const {
+#if 0
   if(!o.IsFatal())
     return;
   o.Prefix();
   o << "WorkerThread status:";
   o.EndLine();
-  
+
   for(int i=0; i<_count; ++i){
     const WorkerThread* t = _pool[i];
     o.Prefix();
@@ -279,19 +308,26 @@ void petabricks::WorkerThreadPool::debugPrint(jalib::JAssert& o) const {
   }
   o.Prefix();
   o.EndLine();
+#endif
 }
 
 
 extern "C" int threadstatus() {
-  petabricks::WorkerThread::self()->pool().debugPrint();
-  return petabricks::DynamicScheduler::cpuScheduler().numThreads();
+  if(petabricks::WorkerThread::self()!=0) {
+    petabricks::WorkerThread::self()->pool().debugPrint();
+    return petabricks::DynamicScheduler::cpuScheduler().numThreads();
+  }else{
+    return 0;
+  }
 }
 
 namespace{
   void onJassert(jalib::JAssert& o) {
-    petabricks::WorkerThread::self()->pool().debugPrint(o);
+    if(petabricks::WorkerThread::self()!=0) {
+      petabricks::WorkerThread::self()->pool().debugPrint(o);
+    }
   }
 }
-int _ignored = jalib::JAssert::onBegin(&onJassert);
+//int _ignored = jalib::JAssert::onBegin(&onJassert);
 
 

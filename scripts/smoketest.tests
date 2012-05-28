@@ -14,12 +14,34 @@ convolution2/ConvFFTW		Rand1D Rand1D
 convolution2/ConvLinAlg		Rand1D Rand1D
 convolution2/ConvLoops     Rand1D Rand1D
 convolution2/Convolution   Rand1D Rand1D
+convolution/convolutionSeparable Rand2Da Kernel5
 convolution/ConvolutionFFT Rand1D Rand1D
 convolution/Convolution    Rand1D Rand1D
 kclustering/kmeans         KmeansRandInput /dev/null
-matrixapproximation/matrixapprox   MatApproxRand2D
+kernel/nwkde               nwkde/data nwkde/x nwkde/y nwkde/indices nwkde/data nwkde/x nwkde/indices nwkde/dirFlags nwkde/kernelWidths nwkde/split nwkde/maskWidth
+#kernel/nwkdeVA             nwkde/data nwkde/x nwkde/y nwkde/indices nwkde/data nwkde/x nwkde/indices nwkde/dirFlags nwkde/split nwkde/maskWidth
+trisolve/TriSolveLL        Zero0D Rand2Da Rand2Db
+trisolve/TriSolveLL        One0D Rand2Da Rand2Db
+trisolve/TriSolveLU        Zero0D Rand2Da Rand2Db
+trisolve/TriSolveLU        One0D Rand2Da Rand2Db
+trisolve/TriSolveRL        Zero0D Rand2Da Rand2Db
+trisolve/TriSolveRL        One0D Rand2Da Rand2Db
+trisolve/TriSolveRU        Zero0D Rand2Da Rand2Db
+trisolve/TriSolveRU        One0D Rand2Da Rand2Db
+LUDense/LUTest             Rand2Da
+LUDense/LUTest             Rand2DLong
+LUDense/LUTest             Rand2DWide
+linearsolve/LeastSquares   Rand2Da Rand2Db
+linearsolve/LeastSquares   Rand2DLong Rand2Da
+linearsolve/LinearSolve    Rand2Da Rand2Db
+linearsolve/LinearSolvePosDef      Rand2DPosDef Rand2Db
+matrixapprox/matrixapprox  MatApproxRand2D
 multiply/multiply          Rand2Da Rand2Db
 multiply/strassen          Rand2Da Rand2Db
+multiply/triMultiply       Zero0D Zero0D Rand2Da Rand2Db
+multiply/triMultiply       Zero0D  One0D Rand2Da Rand2Db
+multiply/triMultiply        One0D Zero0D Rand2Da Rand2Db
+multiply/triMultiply        One0D  One0D Rand2Da Rand2Db
 multigrid/Poisson2DDirect  Rand2Da Rand2Db
 multigrid/Poisson2DJacobi  Rand2Da Rand2Db One0D
 multigrid/Poisson2DJacobi  Rand2Da Rand2Db Ten0D
@@ -38,9 +60,13 @@ multigrid/Helmholtz3DRefMG         Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 H
 multigrid/Helmholtz3DRefFMG        Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 Helmholtz3DB1 Helmholtz3DB2 Helmholtz3DRHS One0D Two0D One0D One0D
 multigrid/Helmholtz3DRefFMG        Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 Helmholtz3DB1 Helmholtz3DB2 Helmholtz3DRHS One0D Two0D One0D Ten0D
 preconditioner/preconditioner	   PrecondX PrecondA PrecondB
+QR/QRTest                  Rand2Da
+QR/QRTest                  Rand2DLong
+QR/QRTest                  Rand2DWide
 simple/add                 Rand2Da Rand2Db
 simple/bufferrotate        Rand1D
 simple/bufferrotate2       Rand1D
+simple/cholesky            Rand2DPosDef
 simple/copy                Rand2Da
 simple/matrixrotate        Rand2Da
 simple/rollingsum          Rand1D
@@ -50,10 +76,14 @@ sort/Mergesort             Rand1Dodd
 sort/Mergesort2            Rand1Dodd
 sort/Quicksort             Rand1Dodd
 sort/Radixsort             Rand1Dodd
+sort/Selectionsort         Rand1Dodd
 sort/Sort                  Rand1D
 sort/Sort                  Rand1Dodd
+sort2/Bitonicsort          Rand1D
+sort2/Bitonicsort          Rand1Dodd
 regression/accuracymetric  Rand1D
 regression/assign0d
+regression/backwards       Rand1D
 regression/calltx          Rand2Da
 regression/cycledep        Rand1D
 regression/coordflip       Rand1D
@@ -63,7 +93,7 @@ regression/coscheduled3    Rand1D
 regression/duplicate       Rand1D
 regression/fileprefix      Rand2Da
 regression/floattunables   Rand2Da
-regression/floattunables2  One0D 
+regression/floattunables2  One0D
 regression/function        One0D One0D
 regression/generators      Rand1D Rand1D
 regression/matrixversions  Rand2Da
@@ -83,6 +113,17 @@ regression/txconstants     Rand2Da Rand0D
 regression/upleftdep       Rand2Da
 regression/whereclause     Rand2Da
 #regression/whereclause2    Rand2Da
+versions/1_noDeps.pbcc     Small1D
+versions/2bis_tempDep.pbcc Small1D
+versions/2_tempDep.pbcc    Small1D
+versions/3_tempSpaDep.pbcc Small1D
+versions/4bis_tempMultSpa.pbcc  Small1D
+versions/4_tempMultSpa.pbcc     Small1D
+versions/5bis_multTempSpa.pbcc  Small1D
+versions/5_multTempSpa.pbcc     Small1D
+versions/Project3Don2Dx.pbcc  	SparseSmall3D
+versions/Project3Don2Dy.pbcc	SparseSmall3D
+versions/Project3Don2Dz.pbcc	SparseSmall3D
 
 
 #this one is broken right now:

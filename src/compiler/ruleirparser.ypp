@@ -1,15 +1,36 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 %{
+
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 #include "ruleir.h"
 #include "formula.h"
 #include "common/jconvert.h"
@@ -17,8 +38,7 @@
 #include <stdio.h>
 #include <map>
 
-
-#include "ruleirparser.h"
+#include "libpbcompiler_a-ruleirparser.h"
 
 using namespace petabricks;
 
@@ -74,7 +94,7 @@ extern int ruleirlex(YYSTYPE * yylval_param,YYLTYPE * yylloc_param);
 %type <expr> Op ExtraOps
 %type <expr> Lit
 %type <expr> Ident
-%type <expr> ExprElement Expr RootExpr 
+%type <expr> ExprElement Expr RootExpr OptExpr
 %type <expr> Call Paren
 %type <expr> Args OptArgs
 
@@ -126,7 +146,7 @@ LoopStmt: TOK_FORENOUGH Stmt {
   $$=REFALLOC(RIRLoopStmt($2))->initForEnough();
 };
 
-LoopStmt: TOK_FOR '(' Expr ';' Expr ';' Expr ')' Stmt {
+LoopStmt: TOK_FOR '(' OptExpr ';' OptExpr ';' OptExpr ')' Stmt {
   $$=REFALLOC(RIRLoopStmt($9));
   $$->addExpr($3);
   $$->addExpr($5);
@@ -193,6 +213,10 @@ CaseStmt: TOK_DEFAULT ':' {
 RawStmt: TOK_RAW {
   $$=REFALLOC(RIRRawStmt($1));
 };
+
+
+OptExpr: Expr {($$=$1);}
+       | Nil  {($$=REFALLOC(RIRChainExpr()));};
 
 Expr: Expr ExprElement     {($$=$1)->addSubExpr($2);}
     | ExprElement          {($$=REFALLOC(RIRChainExpr()))->addSubExpr($1);};

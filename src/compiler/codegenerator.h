@@ -1,18 +1,34 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef PETABRICKSCODEGENERATOR_H
 #define PETABRICKSCODEGENERATOR_H
 
 #include "formula.h"
+#include "pbc.h"
 #include "trainingdeps.h"
 
 #include "common/jconvert.h"
@@ -43,7 +59,7 @@ public:
     //t->_parent = this;
     return t;
   }
- 
+
   void writeTo(std::ostream& o) {
     o << "// :::: " << _name << "\n";
     StreamTrees::iterator i;
@@ -51,7 +67,7 @@ public:
       (*i)->writeTo(o);
     o << _os.str();
   }
-  
+
   template<typename T>
   StreamTree& operator<<(const T& t) {
     _os << t;
@@ -59,6 +75,12 @@ public:
   }
 
   operator std::ostream& () { return _os; }
+
+  std::string str() {
+    std::ostringstream tmp;
+    writeTo(tmp);
+    return tmp.str();
+  }
 
 private:
   std::string  _name;
@@ -89,7 +111,7 @@ public:
 
   void incIndent(){++_indent;}
   void decIndent(){--_indent;}
-  
+
   CodeGenerator(const StreamTreePtr& root, const TrainingDepsPtr& cg);
   CodeGenerator(CodeGenerator& that);
   virtual ~CodeGenerator(){}
@@ -176,6 +198,7 @@ public:
   }
 
   TrainingDeps& cg() { return *_cg; }
+  TrainingDepsPtr cgPtr() { return _cg; }
 
   void beginClass(const std::string& name, const std::string& base);
   void endClass();
@@ -183,11 +206,13 @@ public:
   void continuationPoint();
   void continuationRequired(const std::string& prereq);
   std::string nextContName(const std::string& base);
-  
+
   void continueLabel(const std::string& fn){
     continueJump(fn);
     endFunc();
     beginFunc("petabricks::DynamicTaskPtr", fn);
+    if(_rf != RuleFlavor::INVALID)
+      beginUserCode(_rf);
   }
   void continueJump(const std::string& fn){
     write("return "+fn+"();");
@@ -212,6 +237,14 @@ public:
   }
   bool inClass() const { return _curClass.size()>0; }
 
+  void beginUserCode(RuleFlavor rf) {
+    _rf = rf;
+    write("using namespace petabricks::"+rf.string()+";");
+  }
+  void endUserCode(){
+    _rf = RuleFlavor::INVALID;
+  }
+
   void constructorBody(const std::string& s){_curConstructorBody=s;}
 
   void staticMember() { hos() << "static "; }
@@ -227,14 +260,14 @@ public:
   }
 
   ///
-  /// Create a parallel code generator 
+  /// Create a parallel code generator
   /// (for writing other function bodies before current function is finished)
   CodeGenerator& forkhelper();
 
   ///
   /// Write the bodies from any calles to forkhelp
   void mergehelpers();
-  
+
   //void outputFileTo(std::ostream& o){
   //  o << theFilePrefix().str();
   //  o << "\n\n// Defines: //////////////////////////////////////////////////////\n\n";
@@ -276,6 +309,7 @@ public:
 
   void callSpatial(const std::string& methodname, const SimpleRegion& region);
   void mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region);
+  void mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, int gpuCopyOut);
 
 
   StreamTreePtr startSubfile(const std::string& name) {
@@ -283,6 +317,8 @@ public:
     _ocur = _bcur->add(new StreamTree(name+" subfile main"));
     return _bcur;
   }
+
+  void generateMigrationFunctions();
 protected:
   void indent();
 public:
@@ -302,6 +338,7 @@ protected:
   int            _indent;
   TrainingDepsPtr _cg;
   CodeGenerators _helpers;
+  RuleFlavor     _rf;
 };
 
 }

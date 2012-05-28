@@ -168,6 +168,8 @@ accuracy_metric PackAcc
 %{
   void bubbleup(const MatrixRegion1D& heap, const MatrixRegion1D& bins, IndexT cur){
     if(cur==0) return;
+    heap.useOnCpu();
+    bins.useOnCpu();
     IndexT parent=cur/2;
     if(bins.cell(heap.cell(cur)) < bins.cell(heap.cell(parent))){
       std::swap(heap.cell(cur), heap.cell(parent));
@@ -176,6 +178,8 @@ accuracy_metric PackAcc
   }
   
   void bubbledown(const MatrixRegion1D& heap, const MatrixRegion1D& bins, IndexT cur){
+    heap.useOnCpu();
+    bins.useOnCpu();
     IndexT left=cur*2;
     IndexT right=cur*2+1;
     ElementT val=bins.cell(heap.cell(cur));
@@ -211,6 +215,8 @@ accuracy_metric PackAcc
   to(Bins bin, Assignments asgn, Heap heap) from(Objects obj) {
     Zero(bin);
     Range(heap);
+    bin.useOnCpu();
+    heap.useOnCpu();
     IndexT heapSize = 1;
     for(int i=0; i<n; ++i){
       int j=heap.cell(0);
@@ -240,6 +246,8 @@ accuracy_metric PackAcc
   to(Bins bin, Assignments asgn, Heap heap) from(Objects obj) {
     Zero(bin);
     Range(heap);
+    bin.useOnCpu();
+    heap.useOnCpu();
     IndexT heapSize = 1;
     for(int i=0; i<n; ++i){
       int bestHeapZ = -1;
@@ -295,6 +303,9 @@ accuracy_metric PackAcc
 %{
 
 void MFFDInner(const MatrixRegion1D& bins, const MatrixRegion1D& a, const MatrixRegion1D& os){
+  bins.useOnCpu();
+  a.useOnCpu();
+  os.useOnCpu();
   const IndexT n = os.count();
   int A_bins = 0;
   int i;

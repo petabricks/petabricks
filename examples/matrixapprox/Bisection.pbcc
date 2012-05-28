@@ -1,0 +1,117 @@
+#ifndef BISECTION_PBCC
+#define BISECTION_PBCC
+
+transform BisectionGen
+to IN[n,n], K
+{
+  K from() { return PetabricksRuntime::randInt(1,n); }
+  IN.cell(i,j) from() { return PetabricksRuntime::randDouble(); }
+}
+
+// Find eigenvalues and eigenvectors of input matrix IN (symmetric) by LAPACK Bisection routine
+transform Bisection
+from IN[n,n], K
+to Eigenvalue[n], Eigenvector[n,n]
+generator BisectionGen
+{
+
+  to ( Eigenvalue eig, Eigenvector Vec) from (IN in, K k)
+  {
+    char uplo ='U';
+    char range = 'I';
+    char order = 'B'; 
+    char side ='L';
+    char  trans='N';
+    int size=n;
+    int lwork=-1;
+    int info = 0;
+    int il=1;
+    int iu=k;
+    int m;
+    int nsplit;
+    int nsquared=n*n;
+    ElementT vl;
+    ElementT vu;
+    ElementT abstol=0;
+
+    // allocate and initialize matrices
+    ElementT *A = new ElementT[nsquared];
+    ElementT *Z = new ElementT[nsquared];
+    ElementT *D = new ElementT[n];
+    ElementT *E = new ElementT[n-1];
+    ElementT *tau = new ElementT[n-1];
+    ElementT *work = new ElementT[1];
+    int *iwork = new int[3*n];
+    ElementT *W = new ElementT[n];
+    int *iblock = new int[n];
+    int *isplit = new int[n];
+    int *ifail = new int[n];
+
+    // get input matrix in column major format
+    int index = 0;
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        A[index++] = in.cell(i, j);
+      }
+    }
+
+	
+
+    // convert input matrix IN to a tridiagonal matrix A
+    sytrd_wrap(&uplo, &size, A, &size, D, E, tau, work, &lwork, &info);
+    lwork=work[0];
+    delete [] work;
+    work = new ElementT[lwork];
+    sytrd_wrap(&uplo, &size, A, &size, D, E, tau, work, &lwork, &info);
+
+    info=0;
+    // call LAPACK bisection routine for tridiagonal matrix
+    delete [] work;
+    work = new ElementT[4*n];
+    stebz_wrap(&range, &order, &size, &vl, &vu, &il, &iu, &abstol, D, E, &m, &nsplit, W, iblock, isplit, work, iwork, &info);
+
+
+    // call LAPACK dstein routine for eigenvectors
+    delete [] work;
+    work = new ElementT[5*n];
+    delete [] iwork;
+    iwork = new int[n];
+    stein_wrap(&size, D, E, &m, W, iblock, isplit, Z, &size, work, iwork, ifail, &info);
+
+    // apply orthogonal matrix to eigenvectors returned by DSTEIN
+    info=0;
+    lwork=-1;
+    ormtr_wrap(&side, &uplo, &trans, &size, &m, A, &size, tau, Z, &size, work, &lwork, &info);
+    lwork=work[0];
+    delete [] work;
+    work = new ElementT[lwork];  
+    ormtr_wrap(&side, &uplo, &trans, &size, &m, A, &size, tau, Z, &size, work, &lwork, &info);
+
+    // copy eigenvalues to output
+    for (int i = 0; i < n; i++) {
+        eig.cell(i) = W[i];
+    }
+    // copy eigenvectors to output
+    index = 0;
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        Vec.cell(i,j) = Z[index++];
+      }
+    }   
+	
+
+    delete [] A;
+    delete [] D;
+    delete [] E;
+    delete [] tau;
+    delete [] work;
+    delete [] iwork;
+    delete [] W;
+    delete [] iblock;
+    delete [] isplit;
+    delete [] ifail;
+  }
+
+}
+
+#endif // BISECTION_PBCC

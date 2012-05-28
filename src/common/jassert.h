@@ -1,22 +1,29 @@
-/***************************************************************************
- *   Copyright (C) 2006-2009 by Jason Ansel                                *
- *   jansel@csail.mit.edu                                                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 
 /**  USAGE EXAMPLE:
  *
@@ -63,9 +70,12 @@
 #ifndef JASSERT_H
 #define JASSERT_H
 
+#include "jasm.h"
+
 #include <errno.h>
 #include <iostream>
 #include <sstream>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -92,10 +102,15 @@ namespace jalib{
       JAssert& Text ( const std::string& msg ){ return Text(msg.c_str()); }
       ///
       /// constructor: sets members
-      JAssert ( bool exitWhenDone );
+      ATTRIBUTE(cold) JAssert ( bool exitWhenDone );
       ///
       /// destructor: exits program if exitWhenDone is set
-      ~JAssert();
+      ATTRIBUTE(cold) INLINE ~JAssert(){
+        if(LIKELY(_exitWhenDone))
+          dtorExit();
+        else
+          dtorUnlock();
+      }
       ///
       /// termination point for crazy macros
       JAssert& JASSERT_CONT_A;
@@ -111,13 +126,16 @@ namespace jalib{
                          , const char* file
                          , const char* line
                          , const char* func
-                         , const jalib::SrcPosTaggable* srcpos);
+                         , const jalib::SrcPosTaggable* srcpos) ATTRIBUTE(cold);
 
       JAssert& VarName(const char* name);
       JAssert& Prefix();
       JAssert& EndLine(){ return Print('\n'); }
 
       bool IsFatal() const { return _exitWhenDone; }
+    private:
+      void dtorExit() ATTRIBUTE(noreturn) ATTRIBUTE(nothrow);
+      static void dtorUnlock();
     private:
       ///
       /// if set true (on construction) call exit() on destruction
@@ -147,13 +165,13 @@ namespace jalib{
 
 #ifndef JASSERT_FAST
   template <>
-  inline JAssert& JAssert::Print( const std::string& t ){
+  ATTRIBUTE(cold) inline JAssert& JAssert::Print( const std::string& t ) {
     jassert_safe_print ( t.c_str() );
     return *this;
   }
 
   template <>
-  inline JAssert& JAssert::Print( const char* const& t ){
+  ATTRIBUTE(cold) inline JAssert& JAssert::Print( const char* const& t ){
     jassert_safe_print( t );
     return *this;
   }
@@ -162,6 +180,7 @@ namespace jalib{
 
 }//jalib
   
+
 //helpers:
 #define JASSERT_ERRNO          (strerror(errno))
 #define JASSERT_INIT()         JASSERT_PRINT("")
@@ -190,7 +209,7 @@ namespace jalib{
 #define JASSERT_CONT_B(term) JASSERT_CONT(A,term)
 
 //actual macros follow
-#define JASSERT_NOP if(true){}else jalib::JAssert(false).JASSERT_CONT_A
+#define JASSERT_NOP if(1){}else jalib::JAssert(false).JASSERT_CONT_A
 
 #ifdef DEBUG
 #define JTRACE(msg) jalib::JAssert(false).JASSERT_CONTEXT("TRACE",msg).JASSERT_CONT_A
@@ -204,21 +223,22 @@ namespace jalib{
 
 #define JNOTE(msg) \
     jalib::JAssert(false).JASSERT_CONTEXT("NOTE",msg).JASSERT_CONT_A
-#define JWARNING(term) if((term)){}else \
+#define JWARNING(term) if(LIKELY(term)){}else \
     jalib::JAssert(false).JASSERT_CONTEXT("WARNING","JWARNING(" #term ") failed").JASSERT_CONT_A
-#define JASSERT(term)  if((term)){}else \
+#define JASSERT(term)  if(LIKELY(term)){}else \
     jalib::JAssert(true).JASSERT_CONTEXT("ERROR","JASSERT(" #term ") failed").JASSERT_CONT_A
 
 #ifdef UNSAFE
 #undef  JWARNING
-#define JWARNING(t) if((t)) JASSERT_NOP
+#define JWARNING(t) if(LIKELY(t)) JASSERT_NOP
 #undef  JASSERT
-#define JASSERT(t)  if((t)) JASSERT_NOP
+#define JASSERT(t)  if(LIKELY(t)) JASSERT_NOP
 #undef  JNOTE
 #define JNOTE(m)  JASSERT_NOP
 #endif
 
-#define UNIMPLEMENTED() JASSERT(false).Text("Unimplemented");
+#define UNIMPLEMENTED() do { jalib::cold(); JASSERT(false).Text("Unimplemented"); exit(1); }while(0)
+#define UNREACHABLE()   do { jalib::cold(); JASSERT(false).Text("Unreachable"); exit(1); }while(0)
 
 #define JASSERT_STATIC(term) extern char JASSERT_CAT(_jassert_static_,__LINE__) [ 1 - 2*( (term)==0 ) ]
 

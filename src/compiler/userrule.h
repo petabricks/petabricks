@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef PETABRICKSUSERRULE_H
 #define PETABRICKSUSERRULE_H
 
@@ -87,28 +102,29 @@ public:
   /// Add RuleDescriptors to output corresponding to the extrema of the applicable region in dimension
   void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension, const RulePtr& rule);
 
-  ///
-  /// Generate seqential code to declare this rule
-  void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
+  
+  void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
+  void generateDeclCodeSequential(Transform& trans, CodeGenerator& o);
+  void generateDeclCodeOpenCl(Transform& trans, CodeGenerator& o);
 
-  ///
-  /// Generate seqential code to declare this rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
-    generateTrampCodeSimple(trans, o, E_RF_STATIC);
-    generateTrampCodeSimple(trans, o, E_RF_DYNAMIC);
-#ifdef HAVE_OPENCL
-    if( isOpenClRule() )
-      generateTrampCodeSimple(trans, o, E_RF_OPENCL);
-#endif
-  }
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+  
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
-#ifdef HAVE_OPENCL
+  void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+  void generateOpenCLCallCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+  void generateOpenCLPrepareCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o);
+  void generateOpenCLCopyInCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o, RegionPtr region);
+  void generateOpenCLRunCode(Transform& trans, CodeGenerator& o);
+  void generateOpenCLCopyOutCode(std::string& codename, CodeGenerator& o, RegionPtr region);
   ///
   /// Generate an OpenCL program implementing this rule
-  void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef );
-#endif
+  void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef, bool local=false);
+  void collectGpuLocalMemoryData();
+  bool canUseLocalMemory() {
+    return _minCoordOffsets.size() > 0;
+  }
+  void generateLocalBuffers(CLCodeGenerator& clo);
 
   ///
   /// Generate seqential code to invoke this rule
@@ -116,7 +132,10 @@ public:
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
+                        RuleFlavor flavor,
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        int gpuCopyOut); 
 
   ///
   /// Return function the name of this rule in the code
@@ -162,12 +181,27 @@ public:
 
   FormulaPtr getSizeOfRuleIn(int d){
     for(size_t i=0; i<_to.size(); ++i){
-      if(d < (int)_to[i]->dimensions()){
+      if(_to[i]->isExistingDimension(d)){
         return _to[i]->getSizeOfRuleIn(d);
+      }
+    }
+    for(size_t i=0; i<_to.size(); ++i){
+      if(_to[i]->isRemovedDimension(d)){
+        return _to[i]->getSizeOfRuleInRemovedDimension(d);
       }
     }
     JASSERT(false)(d)(_id);
     return 0;
+  }
+
+  size_t getMaxOutputDimension(){
+    size_t max = 0;
+    for(size_t i = 0; i < _to.size(); ++i) {
+      size_t d = _to[i]->dimensions();
+      if(d > max)
+        max = d;
+    }
+    return max;
   }
 
   bool isSingleElement() const {
@@ -218,11 +252,55 @@ public:
 
   RIRBlockCopyRef getBody( ) const
   {
-    return _bodyirStatic;
+    return _bodyir[RuleFlavor::SEQUENTIAL];
   }
 
-  void buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional);
+  void buildApplicableRegion(Transform& trans,
+                             SimpleRegionPtr& ar, 
+                             bool allowOptional);
+                                     
+  virtual void removeDimensionFromMatrix(const MatrixDefPtr matrix, 
+                                          const size_t dimension);
+  
+  virtual void fixVersionedRegionsType();
+  
+  virtual RegionList getSelfDependentRegions();
+  
+  virtual RegionList getNonSelfDependentRegions();
+
+  void buildFromBoundingBox();
+  
+  void trimDependency(DependencyDirection& dep,
+                      const ChoiceDepGraphNode& from,
+                      const ChoiceDepGraphNode& to);
+  
 private:
+  void computeDataDependencyVector();
+  CoordinateFormula computeDDVAsDifference(const RegionPtr inputRegion,
+                                           const RegionPtr outputRegion
+                                          ) const;
+  void computeDDVForGivenOutput(const RegionPtr outputRegion);
+  
+  void removeDimensionFromRegionList(RegionList& list,
+                                     const MatrixDefPtr matrix, 
+                                     const size_t dimension);
+  
+  void removeDimensionFromMatrixDependencyMap(MatrixDependencyMap& map,
+                                              const MatrixDefPtr matrix,
+                                              const size_t dimension);                                
+                                              
+  void removeDimensionFromDefinitions(const size_t dimension);
+
+  ///
+  /// Set gpu buffer flag to matrices
+  void prepareBuffers();
+
+  bool passBuildGpuProgram(Transform& trans);
+
+  std::map<std::string, std::string> _nameMap;
+  std::map<std::string, FormulaList> _minCoordOffsets;
+  std::map<std::string, FormulaList> _maxCoordOffsets;
+
   RuleFlags _flags;
   RegionList _from;
   RegionList _to;
@@ -231,19 +309,20 @@ private:
   FormulaList _definitions;
   std::string _bodysrc;
   jalib::SrcPosTaggable _bodysrcPos;
-  RIRBlockCopyRef _bodyirStatic;
-  RIRBlockCopyRef _bodyirDynamic;
-#ifdef HAVE_OPENCL
-  RIRBlockCopyRef _bodyirOpenCL;
-#endif
+  RIRBlockCopyRef _bodyir[RuleFlavor::_COUNT];
+  RIRBlockCopyRef _bodyirLocalMem;
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr _recursiveHint;
   std::string _label;
   ConfigItems _duplicateVars;
   RulePtr _gpuRule;
+
+ 
+  typedef std::map<MatrixDefPtr, SimpleRegionPtr> MatrixToRegionMap;
+  MatrixToRegionMap _fromBoundingBox;
+
 };
 
 }
-
 #endif

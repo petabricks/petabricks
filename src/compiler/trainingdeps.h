@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef PETABRICKSTRAININGDEPS_H
 #define PETABRICKSTRAININGDEPS_H
 
@@ -17,6 +32,7 @@
 #include "common/jtunable.h"
 
 #include "rule.h"
+#include "heuristicmanager.h"
 
 #include <map>
 #include <sstream>
@@ -96,6 +112,23 @@ public:
     _callgraph[caller].push_back(callee);
   }
 
+  void addHeuristics(const HeuristicMap& heuristics) {
+    for(HeuristicMap::const_iterator i=heuristics.begin(), e=heuristics.end();
+        i != e;
+        ++i) {
+      const std::string name = i->first;
+      const HeuristicPtr& heuristic = i->second;
+      addHeuristic(name, heuristic->formula()->toCppString());
+    }
+  }
+  
+  void addHeuristic(const std::string name, const std::string formula) {
+    _os << "  <heuristic";
+    _os << " name=\"" << name << "\"";
+    _os << " formula=\"" << jalib::escapeXML(formula) << "\"";
+    _os << " />\n";
+  }
+  
   void dumpTo(std::ostream& o){
     o << "<traininginfo>\n";
     o << _os.str();

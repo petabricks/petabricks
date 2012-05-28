@@ -11,7 +11,6 @@ from X[n], Y[n], TEMPX1[n], TEMPY1[n], SZ, OFFSET, DELTA
 through TEMPX2[n], TEMPY2[n]
 to OUTX[n], OUTY[n]
 {
-  recursive
   to (OUTX outx, OUTY outy, TEMPX2 tempx2, TEMPY2 tempy2) from  (X x, Y y, TEMPX1 tempx1, TEMPY1 tempy1, SZ sz, OFFSET offset, DELTA delta)
   {
     int N2 = sz/2;          // half the number of points in FFT
@@ -32,6 +31,8 @@ to OUTX[n], OUTY[n]
       FFTRecursion(outx, outy, x, y, tempx2, tempy2, N2, offset+delta, d2);
       Copy1D(tempx2,outx);
       Copy1D(tempy2,outy);
+      tempx2.useOnCpu();
+      tempy2.useOnCpu();
       
       for(k=0; k<N2; k++)
       {

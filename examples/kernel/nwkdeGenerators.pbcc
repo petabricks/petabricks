@@ -1,0 +1,94 @@
+#ifndef NWKDEGENERATORS_PBCC
+#define NWKDEGENERATORS_PBCC
+
+#include "nwkde.h"
+#include "../simple/copy.pbcc"
+
+/* Hard code most of the generated values  Only the wind data is
+ * loaded from a file (to cut the number of file loads).
+ */
+transform NWKDEGenerator
+to TRAINDATA[4,8750], TRAINX[2,8], TRAINY[2], TRAININDICES[n],
+   TESTDATA[4,8750], TESTX[2,8], TESTINDICES[n],
+   DIRFLAGS[4], SPLIT, MASKWIDTH
+{
+    to (TRAINDATA trainData, TRAINX trainX,
+        TRAINY trainY, TRAININDICES trainIndices,
+        TESTDATA testData, TESTX testX, TESTINDICES testIndices,
+        DIRFLAGS dirFlags, SPLIT split, MASKWIDTH maskWidth)
+    from ()
+    {
+        if (n > 8748) {
+            fprintf(stderr, "n too large for generator\n");
+            PetabricksRuntime::abort();
+        }
+
+        MatrixRegion2D a;
+        a = MatrixIO(TESTDIR "trainData.pba", "r").read2D();
+        Copy2D(trainData, a);
+
+        trainX.cell(0,0) = 0;
+        trainX.cell(0,1) = 1;
+        trainX.cell(0,2) = 2;
+        trainX.cell(0,3) = 3;
+        trainX.cell(0,4) = 2;
+        trainX.cell(0,5) = 3;
+        trainX.cell(0,6) = 2;
+        trainX.cell(0,7) = 3;
+
+        trainX.cell(1,0) = -1;
+        trainX.cell(1,1) = -1;
+        trainX.cell(1,2) = -1;
+        trainX.cell(1,3) = -1;
+        trainX.cell(1,4) = 0;
+        trainX.cell(1,5) = 0;
+        trainX.cell(1,6) = 1;
+        trainX.cell(1,7) = 1;
+
+        trainY.cell(0) = 0;
+        trainY.cell(1) = 0;
+
+        for (int i = 0; i < n; ++i) {
+            trainIndices.cell(i) = i+1;
+        }
+
+        Copy2D(testData, trainData);
+        Copy2D(testX, trainX);
+        Copy1D(testIndices, trainIndices);
+
+        dirFlags.cell(0) = 0;
+        dirFlags.cell(1) = 1;
+        dirFlags.cell(2) = 0;
+        dirFlags.cell(3) = 1;
+
+        split = 10;
+        maskWidth = 12;
+    }
+}
+
+/* Similar to NWKDEGenerator, but also generates kernelWidths */
+transform NWKDEGenerator2
+to TRAINDATA[4,8750], TRAINX[2,8], TRAINY[2], TRAININDICES[n],
+   TESTDATA[4,8750], TESTX[2,8], TESTINDICES[n],
+   DIRFLAGS[4], KERNELWIDTHS[4], SPLIT, MASKWIDTH
+{
+    to (TRAINDATA trainData, TRAINX trainX,
+        TRAINY trainY, TRAININDICES trainIndices,
+        TESTDATA testData, TESTX testX, TESTINDICES testIndices,
+        DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+        MASKWIDTH maskWidth)
+    from ()
+    {
+        // set everything except kernelWidths
+        NWKDEGenerator(trainData, trainX, trainY, trainIndices, testData,
+                       testX, testIndices, dirFlags, split, maskWidth);
+
+        // set kernelWidths
+        kernelWidths.cell(0) =   2.4211;
+        kernelWidths.cell(1) = 236.1655;
+        kernelWidths.cell(2) =   1.6228;
+        kernelWidths.cell(3) =  36.4703;
+    }
+}
+
+#endif // NWKDEGENERATORS_PBCC

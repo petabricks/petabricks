@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef PETABRICKSRULE_H
 #define PETABRICKSRULE_H
 
@@ -26,6 +41,7 @@
 
 namespace petabricks {
 
+class ChoiceDepGraphNode;
 class CodeGenerator;
 class DependencyDirection;
 class FormulaList;
@@ -47,7 +63,10 @@ struct RulePriCmp
 {
   bool operator()(const RulePtr& r1, const RulePtr& r2) const;
 };
-typedef std::set<RulePtr, RulePriCmp> RuleSet;
+
+class RuleSet : public std::set<RulePtr, RulePriCmp> {
+  void removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension);
+};
 
 /**
  * Priority/rotation flags for a Rule
@@ -83,6 +102,16 @@ public:
 };
 
 /**
+ * Class for describing the data dependencies of various instances of the same
+ * matrix inside a rule
+ */
+class DataDependencyVectorMap : public jalib::JPrintable, 
+                                public std::multimap<MatrixDefPtr, 
+                                                CoordinateFormula> {
+  void print(std::ostream& o) const;
+};
+
+/**
  * Base class for rules, both UserRule and SyntheticRule
  */
 class RuleInterface : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
@@ -100,6 +129,10 @@ public:
   virtual bool canProvide(const MatrixDefPtr& m) const = 0;
   virtual bool isSingleElement() const = 0;
 
+  virtual void trimDependency(DependencyDirection& dep,
+                              const ChoiceDepGraphNode& from,
+                              const ChoiceDepGraphNode& to) = 0;
+
   virtual void collectDependencies(StaticScheduler& scheduler) = 0;
   virtual void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension, const RulePtr&) = 0;
   
@@ -107,9 +140,20 @@ public:
                                 Transform& trans,
                                 CodeGenerator& o,
                                 const SimpleRegionPtr& region,
-                                RuleFlavor flavor) = 0; 
-  virtual void generateDeclCodeSimple(Transform& trans, CodeGenerator& o) = 0;
-  virtual void generateTrampCodeSimple(Transform& trans, CodeGenerator& o) = 0;
+                                RuleFlavor flavor,
+                                std::vector<RegionNodeGroup>& regionNodesGroups,
+                                int nodeID,
+                                int gpuCopyOut) = 0;
+  void generateCallCode(const std::string& nodename,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor) {
+    std::vector<RegionNodeGroup> empty;
+    generateCallCode(nodename, trans, o, region, flavor, empty, 0, 0);
+  }
+  virtual void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
+  virtual void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
   
   virtual void markRecursive() = 0;
   virtual const FormulaPtr& recursiveHint() const = 0;
@@ -136,7 +180,8 @@ public:
   
   void printIdentifier(std::ostream& o) const { o <<_id << " "; }
   int id() const { return _id; }
-  
+  virtual int getAssociatedId() { return _id; }
+  virtual bool isEnabledGpuRule() { return false; }
   
   const SimpleRegionPtr& applicableRegion() const { return _applicableRegion; }
   
@@ -156,10 +201,32 @@ public:
 
   bool isDisabled() const { return _isDisabled; }
   void disableRule() { _isDisabled = true; }
+  
+  DataDependencyVectorMap& getDataDependencyVectorMap() {return _dataDependencyVectorMap; }
+  
+  ///Remove the specified dimension from every reference to the given matrix 
+  ///that appears inside this rule
+  virtual void removeDimensionFromMatrix(const MatrixDefPtr, const size_t) {}
+  
+  ///Fix the type of all the versioned regions associated with this rule
+  virtual void fixVersionedRegionsType() {}
+  
+  ///Get the list of regions that the rule reads and modifies
+  virtual RegionList getSelfDependentRegions() { return RegionList(); }
+  
+  ///Get the list of regions that the rule only reads or writes
+  virtual RegionList getNonSelfDependentRegions() { return RegionList(); }
+
+  virtual RegionList getFromRegions( ) const { return RegionList(); }
+  
 protected:
   int _id;
   SimpleRegionPtr _applicableRegion;
   bool _isDisabled;
+  DataDependencyVectorMap _dataDependencyVectorMap; /**< Data dependency vector.
+                                                     * It contains only the deps
+                                                     * for regions that come 
+                                                     * from "through" matrixes*/
 };
 
 

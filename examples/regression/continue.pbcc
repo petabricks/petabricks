@@ -1,0 +1,19 @@
+#include "../simple/norm.pbcc"
+
+transform Continue
+from IN[n,n]
+to A[n,n]
+{
+    to (A a) from (IN in)
+    {
+        IndexT i;
+        for (i = 0; i < n; ++i) {
+            printf("i = %d\n", i);
+            if (i >= n-1) {
+                printf("continue\n");
+                continue;
+            }
+            Norm1D(a.cell(i, i), a.column(i), 2.0);
+        }
+    }
+}

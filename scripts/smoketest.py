@@ -1,10 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import os
 import pbutil
 import progress
 import re
-import subprocess 
+import subprocess
 import sys
 import configtool
 import time
@@ -14,23 +14,27 @@ from xml.dom.minidom import parse
 CHECK=True
 
 check_exclude=[
-         "convolution/Convolution",           # Difference
-         "multiply/strassen",                 # Difference, why???
-         "regression/whereclause",            # Difference, why???
-         
-         "simple/matrixrotate",               # NewProgramCrash
-         "multiply/multiply",                 # NewProgramCrash
-         "regression/params",                 # AlwaysCrashes
+         "convolution/Convolution",       # Difference
+         "multiply/strassen",             # Difference, why???
+         "regression/whereclause",        # Difference, why???
+
+         "simple/matrixrotate",           # NewProgramCrash
+         "multiply/multiply",             # NewProgramCrash
+         "regression/params",             # AlwaysCrashes
 
          "convolution2/ConvFFTRecursion",
          "convolution2/Convolution",
          "convolution2/ConvLinAlg",
 
-         "kclustering/kmeans",                # (Variable accuracy)
-         "matrixapproximation/matrixapprox",  # (Variable accuracy)
-         "regression/accuracymetric",         # (Variable accuracy)
-         "preconditioner/preconditioner",     # (Variable accuracy)
+         "kclustering/kmeans",            # (Variable accuracy)
+         "matrixapprox/matrixapprox",     # (Variable accuracy)
+         "regression/accuracymetric",     # (Variable accuracy)
+         "preconditioner/preconditioner", # (Variable accuracy)
+         "kernel/nwkdeVA",                # (Variable accuracy)
 
+         "kernel/nwkde",                  # floating-point precision errors
+
+         "regression/floattunables",
          "regression/floattunables2",
     ]
 
@@ -47,12 +51,26 @@ def run(cmd):
   return forkrun(cmd).wait()
 
 
+def diffFiles(a, b):
+  '''true if files differ'''
+  try:
+    af=open(a)
+    bf=open(b)
+    rv = (af.read() != bf.read())
+    af.close()
+    bf.close()
+    return rv
+  except Exception, e:
+    print "ERROR: ",e
+    return True
+
+
 def checkBenchmark(b):
   if b in check_exclude or not CHECK:
     return True
 
   import sgatuner, warnings, tunerwarnings
-  
+
   warnings.resetwarnings()
   warnings.simplefilter('error',  tunerwarnings.TunerWarning)
   warnings.simplefilter('ignore', DeprecationWarning)
@@ -79,7 +97,7 @@ def testBenchmark(b):
 
   if not os.path.isfile(bin):
     return False
-  
+
   #build cmd
   hash=name
   iofiles=[]
@@ -87,7 +105,7 @@ def testBenchmark(b):
     iofiles.append(resolveInputPath(x))
     hash+=" "+os.path.basename(x)
   outfile="./testdata/.output/"+re.sub("[ /.]",'_',hash)
-  iofiles.append(outfile)
+  iofiles.append(outfile+".latest")
 
   try:
     cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile, '--reset']
@@ -108,34 +126,99 @@ def testBenchmark(b):
     return False
 
   def test():
+    if isFloatingPoint() and os.path.exists(outfile+".float"):
+      ext = ".float"
+      print "FLOAT"
+    else:
+      ext = ""
+
+    #run cpu config
     cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile]
     cmd.extend(iofiles)
+    t1=time.time()
     rv = run(cmd)
+    t2=time.time()
     if rv != 0:
       print "run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
       return False
 
-    checkcmd=["git","diff","--exit-code", outfile]
-    rv = run(checkcmd)
-    if rv != 0:
+    if diffFiles(outfile+ext, outfile+".latest"):
       time.sleep(0.1) #try letting the filesystem settle down
-      rv = run(checkcmd)
-      if rv != 0:
+      if diffFiles(outfile+ext, outfile+".latest"):
         print "run FAILED (wrong output)"
         return False
     
-    print "run PASSED"
+    print "run PASSED (took %.2fs)" % (t2-t1)
+
+    if (not haveOpenCL()) or (not os.path.exists(outfile+".gpucfg")):
+      return True
+
+    #run gpu config
+    cmd=[bin, '--fixedrandom', '--config=%s.gpucfg'%outfile]
+    cmd.extend(iofiles)
+    t1=time.time()
+    rv = run(cmd)
+    t2=time.time()
+    if rv != 0:
+      print "gpu FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
+      return False
+
+    if diffFiles(outfile+ext, outfile+".latest"):
+      time.sleep(0.1) #try letting the filesystem settle down
+      if diffFiles(outfile+ext, outfile+".latest"):
+        print "gpu FAILED (wrong output)"
+        return False
+    
+    print "gpu PASSED (took %.2fs)" % (t2-t1)
     return True
 
   return test()
+
+def isFloatingPoint():
+  for line in open("./src/config.h"):
+    if "MATRIX_ELEMENT_T" in line and "float" in line:
+       return True
+  return False
+	
+def haveOpenCL():
+  for line in open("./src/config.h"):
+    if "HAVE_OPENCL" in line:
+      if "/*" in line:
+        return False
+      else:
+        return True
+  return False
+
+
+
+
+
+
 
 
 if 'nocheck' in sys.argv[1:]:
   sys.argv[1:] = filter(lambda x: x!='nocheck', sys.argv[1:])
   CHECK = False
 
+from optparse import OptionParser
+parser = OptionParser(usage="usage: smoketest.py [options]")
+parser.add_option("--learning", action="store_true", dest="learning", default=False, help="enable heuristics learning")
+parser.add_option("--heuristics",            type="string", help="name of the file containing the set of heuristics to use. Automatically enables --learning", default=None)
+
+(options, args) = parser.parse_args()
+
+if options.heuristics:
+  options.learning = True
+
+if options.learning:
+  print "Learning of heuristics is ACTIVE"
+  if options.heuristics:
+    print "Using heuristics file: "+ str(options.heuristics)
+  else:
+    print "Using only heuristics in the database"
+  
 t1=time.time()
-results,b=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:], testBenchmark, postfn=checkBenchmark)
+results,b=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", args, testBenchmark, postfn=checkBenchmark, learning=options.learning, heuristicSetFileName=options.heuristics, noLearningList=check_exclude)
 t2=time.time()
 
 

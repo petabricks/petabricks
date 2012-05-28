@@ -1,18 +1,34 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef PETABRICKSMATRIXDEF_H
 #define PETABRICKSMATRIXDEF_H
 
 #include "formula.h"
+#include "pbc.h"
 
 #include "common/jconvert.h"
 #include "common/jprintable.h"
@@ -30,6 +46,7 @@
 
 namespace petabricks {
 class CodeGenerator;
+class CLCodeGenerator;
 class Transform;
 class MatrixDef;
 class FreeVars;
@@ -69,6 +86,8 @@ public:
 
   size_t numDimensions() const { return _size.size(); }
   
+  Type type() const { return (Type)_type; }
+  
   FormulaPtr getSizeOfDimension( size_t n ) const { 
     JASSERT(n < numDimensions())(n)(numDimensions());
     return _size[n]; 
@@ -85,41 +104,58 @@ public:
 
   void exportConstants(Transform&);
 
-  std::string matrixTypeName() const{
-    return "MatrixRegion"+jalib::XToString(numDimensions())+"D";
+// std::string matrixTypeName(RuleFlavor rf) const{
+//   return rf.string()+"::MatrixRegion"+jalib::XToString(numDimensions())+"D";
+// }
+//
+// std::string constMatrixTypeName(RuleFlavor rf) const{
+//   return rf.string()+"::ConstMatrixRegion"+jalib::XToString(numDimensions())+"D";
+// }
+//
+// 
+// std::string sliceTypeName(RuleFlavor rf) const{
+//   return rf.string()+"::MatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
+// }
+//
+// std::string constSliceTypeName(RuleFlavor rf) const{
+//   return rf.string()+"::ConstMatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
+// }
+
+  std::string typeName(RuleFlavor rf, bool isConst=false, int slices = 0) const{
+    std::string constness = isConst ? "Const" : "";
+    return rf.string()+"::"+constness+genericTypeName(slices);
+  }
+  std::string genericTypeName(int slices = 0) const{
+    return "MatrixRegion"+jalib::XToString(numDimensions()-slices)+"D";
   }
 
-  std::string constMatrixTypeName() const{
-    return "ConstMatrixRegion"+jalib::XToString(numDimensions())+"D";
-  }
 
   
-  std::string sliceTypeName() const{
-    return "MatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
-  }
+  std::string allocateStr(RuleFlavor rf) const;
+  std::string genericAllocateStr() const;
 
-  std::string constSliceTypeName() const{
-    return "ConstMatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
-  }
-
-  
-  std::string allocateStr() const;
-
-  void argDeclRW(std::vector<std::string>& args, bool byRef=false) const;
-  void argDeclRO(std::vector<std::string>& args, bool byRef=false) const;
-  void genAllocTmpCode(CodeGenerator& o);
+  void argDecl(std::vector<std::string>& args, RuleFlavor rf, bool isConst, bool byRef=false) const;
+  void genAllocTmpCode(CodeGenerator& o, RuleFlavor rf);
   void generateCodeSimple(CodeGenerator& o);
-  void readFromFileCode(CodeGenerator& o, const std::string& fn);
+  void readFromFileCode(CodeGenerator& o, const std::string& fn, RuleFlavor rf);
   void writeToFileCode(CodeGenerator& o, const std::string& fn);
-  void varDeclCodeRO(CodeGenerator& o);
-  void varDeclCodeRW(CodeGenerator& o);
+  void varDeclCode(CodeGenerator& o, RuleFlavor rf, bool isConst);
 
   void extractDefines(FreeVars& defined, CodeGenerator& o);
+  void extractCLDefines(FreeVars& defined, CLCodeGenerator& clo, unsigned int dims, std::map<std::string, std::string> &map);
   void verifyDefines(CodeGenerator& o);
-  void allocateTemporary(CodeGenerator& o, bool setOnly, bool reallocAllowed);
+  void allocateTemporary(CodeGenerator& o, RuleFlavor rf, bool setOnly, bool reallocAllowed);
 
   void addType(Type t){  _type |= t; }
   bool isAllInput() const { return _type == T_FROM; }
+  
+  void removeDimension(size_t dim) {
+    _size.erase(_size.begin() + dim);
+  }
+  
+  FormulaList& getSize() { return _size; }
+  
+  
 private:
   std::string _name;
   FormulaList _version;

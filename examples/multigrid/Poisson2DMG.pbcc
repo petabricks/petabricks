@@ -105,7 +105,6 @@ generator POISSON2D_GENERATOR
 
     //solve recursively on coarser grids
 
-    recursive(n)
     to (Y y) from(X x, B b) {
 #ifdef DEBUG
         printf("recursive case called for n = %d (%d iterations)\n",

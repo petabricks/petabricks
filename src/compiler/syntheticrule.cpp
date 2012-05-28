@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #include "syntheticrule.h"
 
 #include "codegenerator.h"
@@ -19,46 +34,49 @@
 void petabricks::SyntheticRule::compileRuleBody(Transform&, RIRScope&){}
 void petabricks::SyntheticRule::initialize(Transform&){}
 
-petabricks::RuleFlags::PriorityT petabricks::SyntheticRule::priority() const { 
-  return RuleFlags::PRIORITY_DEFAULT; 
+petabricks::RuleFlags::PriorityT petabricks::SyntheticRule::priority() const {
+  return RuleFlags::PRIORITY_DEFAULT;
 }
-bool petabricks::SyntheticRule::isRecursive() const { 
+bool petabricks::SyntheticRule::isRecursive() const {
   return true;
 }
-bool petabricks::SyntheticRule::hasWhereClause() const { 
-  return false; 
+bool petabricks::SyntheticRule::hasWhereClause() const {
+  return false;
 }
-petabricks::FormulaPtr petabricks::SyntheticRule::getWhereClause() const { 
-  return NULL; 
+petabricks::FormulaPtr petabricks::SyntheticRule::getWhereClause() const {
+  return NULL;
 }
 
 std::string petabricks::SyntheticRule::getLabel() const {
   return "synthetic";
 }
 
-bool petabricks::SyntheticRule::canProvide(const MatrixDefPtr&) const { 
-  UNIMPLEMENTED(); 
+bool petabricks::SyntheticRule::canProvide(const MatrixDefPtr&) const {
+  UNIMPLEMENTED();
   return false;
 }
 
-void petabricks::SyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList&, const MatrixDefPtr&, int, const RulePtr&) { 
-  UNIMPLEMENTED(); 
-}
-
-void petabricks::SyntheticRule::generateCallCode(const std::string&,
-                                                 Transform&,
-                                                 CodeGenerator&,
-                                                 const SimpleRegionPtr&,
-                                                 RuleFlavor){
-}
-
-void petabricks::SyntheticRule::generateDeclCodeSimple(Transform&, CodeGenerator&) {}
-void petabricks::SyntheticRule::generateTrampCodeSimple(Transform&, CodeGenerator&) {}
-
-void petabricks::SyntheticRule::markRecursive() { 
+void petabricks::SyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList&, const MatrixDefPtr&, int, const RulePtr&) {
   UNIMPLEMENTED();
 }
-const petabricks::FormulaPtr& petabricks::SyntheticRule::recursiveHint() const { 
+//
+// void petabricks::SyntheticRule::generateCallCode(const std::string&,
+//                                                  Transform&,
+//                                                  CodeGenerator& o,
+//                                                  const SimpleRegionPtr&,
+//                                                  RuleFlavor,
+//                                                  std::vector<RegionNodeGroup>&,
+//                                                  int, int){
+//   o.comment("synthetic generateCallCode");
+// }
+//
+void petabricks::SyntheticRule::generateDeclCode(Transform&, CodeGenerator&, RuleFlavor) {}
+//void petabricks::SyntheticRule::generateTrampCode(Transform&, CodeGenerator&, RuleFlavor) {}
+
+void petabricks::SyntheticRule::markRecursive() {
+  UNIMPLEMENTED();
+}
+const petabricks::FormulaPtr& petabricks::SyntheticRule::recursiveHint() const {
   return FormulaPtr::null();
 }
 void petabricks::SyntheticRule::print(std::ostream& os) const {
@@ -76,16 +94,19 @@ void petabricks::WrapperSyntheticRule::generateCallCode(const std::string& name,
                                             Transform& trans,
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
-                                            RuleFlavor flavor){
-  _rule->generateCallCode(name, trans, o, region, flavor);
+                                            RuleFlavor flavor,
+                                            std::vector<RegionNodeGroup>& regionNodesGroups,
+                                            int nodeID,
+                                            int gpuCopyOut){
+  _rule->generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut);
 }
 
-void petabricks::WrapperSyntheticRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
-  _rule->generateTrampCodeSimple(trans, o);
+void petabricks::WrapperSyntheticRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
+  _rule->generateTrampCode(trans, o, rf);
 }
 
 
-bool petabricks::WrapperSyntheticRule::isSingleElement() const { 
+bool petabricks::WrapperSyntheticRule::isSingleElement() const {
   return _rule->isSingleElement();
 }
 
@@ -99,29 +120,29 @@ petabricks::FormulaPtr petabricks::WrapperSyntheticRule::getSizeOfRuleIn(int d) 
   return _rule->getSizeOfRuleIn(d);
 }
 
-void petabricks::WrapperSyntheticRule::collectDependencies(StaticScheduler& scheduler) { 
+void petabricks::WrapperSyntheticRule::collectDependencies(StaticScheduler& scheduler) {
   _rule->collectDependencies(scheduler);
 }
 
-petabricks::RuleFlags::PriorityT petabricks::WrapperSyntheticRule::priority() const { 
+petabricks::RuleFlags::PriorityT petabricks::WrapperSyntheticRule::priority() const {
   return _rule->priority();
 }
-bool petabricks::WrapperSyntheticRule::isRecursive() const { 
+bool petabricks::WrapperSyntheticRule::isRecursive() const {
   return _rule->isRecursive();
 }
-bool petabricks::WrapperSyntheticRule::hasWhereClause() const { 
+bool petabricks::WrapperSyntheticRule::hasWhereClause() const {
   return _rule->hasWhereClause();
 }
-petabricks::FormulaPtr petabricks::WrapperSyntheticRule::getWhereClause() const { 
+petabricks::FormulaPtr petabricks::WrapperSyntheticRule::getWhereClause() const {
   return _rule->getWhereClause();
 }
-bool petabricks::WrapperSyntheticRule::canProvide(const MatrixDefPtr& md) const { 
+bool petabricks::WrapperSyntheticRule::canProvide(const MatrixDefPtr& md) const {
   return _rule->canProvide(md);
 }
-void petabricks::WrapperSyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList& rdl, const MatrixDefPtr& md, int i, const RulePtr& rule) { 
+void petabricks::WrapperSyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList& rdl, const MatrixDefPtr& md, int i, const RulePtr& rule) {
   _rule->getApplicableRegionDescriptors(rdl, md, i, rule);
 }
-const petabricks::FormulaPtr& petabricks::WrapperSyntheticRule::recursiveHint() const { 
+const petabricks::FormulaPtr& petabricks::WrapperSyntheticRule::recursiveHint() const {
   return _rule->recursiveHint();
 }
 
@@ -138,35 +159,46 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
                                             Transform& trans,
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
-                                            RuleFlavor flavor){
+                                            RuleFlavor flavor,
+                                            std::vector<RegionNodeGroup>&,
+                                            int,
+                                            int){
   SRCPOSSCOPE();
   switch(flavor) {
-  case E_RF_STATIC:
-    o.callSpatial(codename()+TX_STATIC_POSTFIX, region);
+  case RuleFlavor::SEQUENTIAL:
+    o.callSpatial(codename()+"_"+flavor.str(), region);
     break;
-  case E_RF_DYNAMIC:
-    o.mkSpatialTask(name, trans.instClassName(), codename()+TX_STATIC_POSTFIX, region);
+  case RuleFlavor::WORKSTEALING:
+  case RuleFlavor::DISTRIBUTED:
+    o.mkSpatialTask(name, trans.instClassName(), codename()+"_"+flavor.str(), region);
     break;
   default:
     UNIMPLEMENTED();
   }
 }
 
-void petabricks::WhereExpansionRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
-  //for now static only:
+void petabricks::WhereExpansionRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   IterationDefinition iterdef(*this, getSelfDependency() , false);
   std::vector<std::string> packedargs = iterdef.packedargs();
-  o.beginFunc("petabricks::DynamicTaskPtr", codename()+TX_STATIC_POSTFIX, packedargs);
+  o.beginFunc("petabricks::DynamicTaskPtr", codename()+"_"+flavor.str(), packedargs);
+  if(RuleFlavor::SEQUENTIAL != flavor) {
+    o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
+    o.write("DynamicTaskPtr _last = NULL;");
+  }
   iterdef.unpackargs(o);
   iterdef.genLoopBegin(o);
-  genWhereSwitch(trans,o);
+  genWhereSwitch(trans, o, flavor);
   iterdef.genLoopEnd(o);
-  o.write("return NULL;");
+  if(RuleFlavor::SEQUENTIAL != flavor){
+    o.write("_spawner->dependsOn(_last);");
+    o.write("return _spawner;");
+  }
+  else o.write("return NULL;");
   o.endFunc();
 }
 
 
-void petabricks::WhereExpansionRule::genWhereSwitch(Transform& trans, CodeGenerator& o){
+void petabricks::WhereExpansionRule::genWhereSwitch(Transform& trans, CodeGenerator& o, RuleFlavor rf){
   RuleSet::iterator i;
   for(i=_rules.begin(); i!=_rules.end(); ++i){
     for(int d=0; d<(*i)->dimensions(); ++d){
@@ -181,8 +213,8 @@ void petabricks::WhereExpansionRule::genWhereSwitch(Transform& trans, CodeGenera
     else
       o.elseIf(wc->toCppString());
 
-    (*i)->generateTrampCellCodeSimple(trans, o, E_RF_STATIC);
-    
+    (*i)->generateTrampCellCodeSimple(trans, o, rf);
+
     for(int d=0; d<(*i)->dimensions(); ++d){
       o._undefine((*i)->getOffsetVar(d)->toString());
     }
@@ -198,7 +230,7 @@ void petabricks::WhereExpansionRule::genWhereSwitch(Transform& trans, CodeGenera
 }
 
 
-bool petabricks::WhereExpansionRule::isSingleElement() const { 
+bool petabricks::WhereExpansionRule::isSingleElement() const {
   return false;
 }
 
@@ -227,10 +259,10 @@ petabricks::FormulaPtr petabricks::WhereExpansionRule::getSizeOfRuleIn(int d) {
 }
 
 std::string petabricks::WhereExpansionRule::codename() const {
-  return "whereExpansion"+jalib::XToString(_id); 
+  return "whereExpansion"+jalib::XToString(_id);
 }
 
-void petabricks::WhereExpansionRule::collectDependencies(StaticScheduler& scheduler) { 
+void petabricks::WhereExpansionRule::collectDependencies(StaticScheduler& scheduler) {
   RuleSet::const_iterator i;
   for(i=_rules.begin(); i!=_rules.end(); ++i)
     (*i)->collectDependencies(scheduler);
@@ -248,16 +280,19 @@ void petabricks::DuplicateExpansionRule::generateCallCode(const std::string& nam
                                             Transform& trans,
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
-                                            RuleFlavor flavor){
+                                            RuleFlavor flavor,
+                                            std::vector<RegionNodeGroup>& regionNodesGroups,
+                                            int nodeID,
+                                            int gpuCopyOut){
   SRCPOSSCOPE();
   size_t old = _rule->setDuplicateNumber(_dup);
-  WrapperSyntheticRule::generateCallCode(name, trans, o, region, flavor);
+  WrapperSyntheticRule::generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut);
   _rule->setDuplicateNumber(old);
 }
 
-void petabricks::DuplicateExpansionRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::DuplicateExpansionRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
   size_t old = _rule->setDuplicateNumber(_dup);
-  WrapperSyntheticRule::generateTrampCodeSimple(trans, o);
+  WrapperSyntheticRule::generateTrampCode(trans, o, rf);
   _rule->setDuplicateNumber(old);
 }
 
@@ -274,14 +309,17 @@ void petabricks::CallInSequenceRule::generateCallCode(const std::string& name,
                                             Transform& trans,
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
-                                            RuleFlavor flavor){
+                                            RuleFlavor flavor,
+                                            std::vector<RegionNodeGroup>& regionNodesGroups,
+                                            int nodeID,
+                                            int gpuCopyOut){
   SRCPOSSCOPE();
-  if(flavor != E_RF_STATIC)
+  if(flavor != RuleFlavor::SEQUENTIAL)
     o.write("{ DynamicTaskPtr __last;");
   RuleList::iterator i;
   for(i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->generateCallCode(name, trans, o, region, flavor);
-    if(flavor != E_RF_STATIC) {
+    (*i)->generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut);
+    if(flavor != RuleFlavor::SEQUENTIAL) {
       if(i!=_rules.begin()) {
         o.write(name+"->dependsOn(__last);");
         o.write("__last->enqueue();");
@@ -289,14 +327,16 @@ void petabricks::CallInSequenceRule::generateCallCode(const std::string& name,
       o.write("__last = "+name+";");
     }
   }
-  if(flavor != E_RF_STATIC)
+  if(flavor != RuleFlavor::SEQUENTIAL)
     o.write("}");
 }
 
-void petabricks::CallInSequenceRule::generateTrampCodeSimple(Transform& /*trans*/, CodeGenerator& /*o*/) { UNIMPLEMENTED(); }
-  
+void petabricks::CallInSequenceRule::generateTrampCode(Transform& /*trans*/, CodeGenerator& /*o*/, RuleFlavor){
+  UNIMPLEMENTED();
+}
+
 bool petabricks::CallInSequenceRule::isSingleElement() const { UNIMPLEMENTED(); return false; }
-  
+
 int petabricks::CallInSequenceRule::dimensions() const { UNIMPLEMENTED(); return -1; }
 petabricks::FormulaPtr petabricks::CallInSequenceRule::getSizeOfRuleIn(int /*d*/) { UNIMPLEMENTED(); return 0; }
 

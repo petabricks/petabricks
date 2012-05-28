@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 from configtool import ConfigFile, defaultConfigFile
 import pbutil
 import tempfile, os, math, warnings, random, sys, subprocess, time
@@ -7,12 +7,15 @@ import storagedirs
 import tunerwarnings 
 import platform
 import numpy
+from copy import deepcopy
 from storagedirs import timers
 from scipy import stats
+from collections import defaultdict
 from tunerconfig import config, OperatorSelectionMethod
 from tunerwarnings import ComparisonFailed, InconsistentOutput
-from mutators import MutateFailed
+import mutators
 warnings.simplefilter('ignore', DeprecationWarning)
+numpy.seterr(all="ignore")
 
 def getMemoryLimitArgs():
   limit = []
@@ -52,7 +55,8 @@ class CrashException(Exception):
       print 'set config.pause_on_crash=False to disable this message'
       print '-'*60
       print
-      raw_input('press any key to continue')
+      import progress
+      progress.pause('press any key to continue')
 
 def debug_logcmd(cmd):
   #print ' '.join(cmd)
@@ -221,7 +225,7 @@ class ResultsDB:
   def __getitem__(self, n):
     try:
       return self.nToResults[n]
-    except:
+    except KeyError:
       self.nToResults[n]=Results()
       return self[n]
   
@@ -232,7 +236,10 @@ class ResultsDB:
     return "ResultsDB(%s, {"%repr(self.metric)+\
            ', '.join(map(lambda x: "%d: %s"%(x[0], repr(x[1])), self.nToResults.iteritems()))+\
            "})"
-
+           
+  def __len__(self):
+    return len(self.nToResults)
+    
   def totalTests(self):
     return sum(map(len, self.nToResults.values()))
 
@@ -243,7 +250,7 @@ class ResultsDB:
 class Candidate:
   nextCandidateId=0
   '''A candidate algorithm in the population'''
-  def __init__(self, cfg, infoxml, mutators=[]):
+  def __init__(self, cfg, infoxml, mutators=[], pop=None):
     self.config      = ConfigFile(cfg)
     self.metrics     = [ResultsDB(x) for x in config.metrics]
     self.mutators    = list(mutators)
@@ -258,6 +265,7 @@ class Candidate:
       self.mutatorScores[m] = 0
     
     Candidate.nextCandidateId += 1
+    self.pop         = pop # population this candidate is a member of
 
 
   def discardResults(self, n):
@@ -269,16 +277,7 @@ class Candidate:
     return "Candidate%d"%self.cid
 
   def clone(self):
-    '''
-    this creates ResultDB *references*, not copies
-    so new results will be added to both algs
-    use clearResults to remove the copies
-    '''
-    t=Candidate(self.config, self.infoxml, self.mutators)
-    for i in xrange(len(self.metrics)):
-      for n in self.metrics[i].keys():
-        t.metrics[i][n] = self.metrics[i][n]
-    return t
+    return Candidate(deepcopy(self.config), self.infoxml, self.mutators, self.pop)
 
   def clearResultsAbove(self, val):
     for i in xrange(len(self.metrics)):
@@ -320,7 +319,7 @@ class Candidate:
           c.mutate(n, mutatorFilter)
         assert c.lastMutator != None
         break
-      except MutateFailed:
+      except mutators.MutateFailed:
         if z==config.mutate_retries-1:
           warnings.warn(tunerwarnings.MutateFailed(c, z, n))
         continue
@@ -490,7 +489,10 @@ class Candidate:
     self.lastMutator.mutate(self, n)
 
   def reasonableLimit(self, n):
-    return self.metrics[config.timing_metric_idx][n].reasonableLimit()
+    if self.numTests(n)>0:
+      return self.metrics[config.timing_metric_idx][n].reasonableLimit()
+    else:
+      return None
 
   def resultsStr(self, n, baseline=None):
     s=['trials: %2d'%self.numTests(n)]
@@ -510,7 +512,22 @@ class Candidate:
   def numTotalTests(self):
     return self.metrics[config.timing_metric_idx].totalTests()
 
+  def performance(self, n):
+    if len(self.metrics[config.timing_metric_idx][n]) == 0:
+      return (2**31)
+    return self.metrics[config.timing_metric_idx][n].mean()
+
+  def accuracy(self, n):
+    if len(self.metrics[config.accuracy_metric_idx][n]) == 0:
+      return -(2**31)
+    return self.metrics[config.accuracy_metric_idx][n].mean()
+
+
   def hasAccuracy(self, n, target):
+    if len(self.metrics[config.accuracy_metric_idx][n]) == 0:
+      return False
+    if target is None:
+      return True
     return self.metrics[config.accuracy_metric_idx][n].mean() >= target
 
   def cfgfile(self):
@@ -609,7 +626,7 @@ class CandidateTester:
 
   def nextTester(self):
     return CandidateTester(self.app, (self.n-config.offset)*2, self.args)
-  
+
   def testN(self, candidate, trials, limit=None):
     for x in xrange(trials - candidate.numTests(self.n)):
       self.test(candidate, limit)
@@ -635,9 +652,9 @@ class CandidateTester:
   def checkOutputHash(self, candidate, i, value):
     if self.inputs[i].outputHash is None:
       self.inputs[i].outputHash = value
-      self.inputs[i].firstCanidate = candidate
+      self.inputs[i].firstCandidate = candidate
     elif self.inputs[i].outputHash != value:
-      warnings.warn(InconsistentOutput(self.inputs[i].firstCanidate, candidate, self.inputs[i].pfx))
+      warnings.warn(InconsistentOutput(self.inputs[i].firstCandidate, candidate, self.inputs[i].pfx))
 
   def test(self, candidate, limit=None):
     self.testCount += 1
@@ -647,6 +664,7 @@ class CandidateTester:
       warnings.warn(tunerwarnings.TooManyTrials(testNumber+1))
     cmd = list(self.cmd)
     cmd.append("--config="+cfgfile)
+    #cmd.append("--noisolation")
     cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(testNumber)))
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)

@@ -1,6 +1,10 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 
 import sys, os
+
+ODIR = "scripts"
+if not os.path.isdir(ODIR):
+  ODIR = "."
 
 
 #####################################################
@@ -46,6 +50,11 @@ class Arg:
 states = (
    ('oblivious','exclusive'),
    ('comment','exclusive'),
+
+   ('define','exclusive'),
+   ('defmacro','inclusive'),
+   ('defws','exclusive'),
+   ('defobl','exclusive'),
 )
 
 # Reserved Words
@@ -87,9 +96,13 @@ reserved = {
 # Tokens
 tokens = ['ID', 'LBRACE', 'RBRACE', 'CLBRACE', 'CRBRACE', 'LSQBRACE', 'RSQBRACE', 'LPAREN', 'RPAREN', 'LCHEV', 'RCHEV', 'COMMA', 'SEMICOLON', 'LINECOMMENT', 'BLOCKCOMMENT', 'LCOMMENT', 'RCOMMENT', 'REMARK', 'STRING',  'OTHER', 'LINE'] + list(reserved.values())
 
+# All States
+t_INITIAL_oblivious_comment_define_defobl_ignore = ' \t\r'
+t_defws_ignore = ''
 
-# Both States
-t_ANY_ignore = ' \t\r'
+def t_INITIAL_oblivious_comment_newline(t): 
+  r'\n+'
+  t.lexer.lineno += t.value.count("\n")
 
 def t_ANY_LINECOMMENT(t):
   r'//.*'
@@ -100,6 +113,18 @@ def t_ANY_LCOMMENT(t):
   t.lexer.push_state('comment')
   pass
 
+def t_ANY_REMARK(t):
+  r'(\#[^ \n]*)'
+  t.type = reserved.get(t.value,'REMARK')    # Check for reserved wordsself.
+  if t.type == 'DEFINE' or t.type == 'UNDEF' :
+    t.lexer.push_state('define')
+  return t
+
+def t_ANY_error(t):
+  print_error("Illegal character '%s'" % t.value[0], t.lexer.lineno)
+  t.lexer.skip(1)
+
+# comment State
 def t_comment_RCOMMENT(t):
   r'\*/'
   t.lexer.pop_state()
@@ -109,19 +134,36 @@ def t_comment_BLOCKCOMMENT(t):
   r'[^\n]'
   pass
 
-def t_ANY_newline(t): 
-  r'\n+'
-  t.lexer.lineno += t.value.count("\n")
+# define State
 
-def t_ANY_REMARK(t):
-  r'(\#[^ \n]*)'
-  t.type = reserved.get(t.value,'REMARK')    # Check for reserved wordsself.
+def t_define_ID(t):
+  r'[a-zA-Z_][a-zA-Z_0-9]*'
+  t.type = reserved.get(t.value,'ID')    # Check for reserved words
+  t.lexer.pop_state()
+  t.lexer.push_state('defws')
   return t
 
-def t_ANY_error(t):
-  print_error("Illegal character '%s'" % t.value[0], t.lexer.lineno)
-  t.lexer.skip(1)
+def t_defws_LINE(t):
+  r'[ \t\r]+'
+  t.lexer.pop_state()
+  t.lexer.push_state('defobl')
 
+def t_defws_LPAREN(t):
+  r'\('
+  t.lexer.push_state('defmacro')
+  return t
+
+def t_defmacro_RPAREN(t):
+  r'\)'
+  t.lexer.pop_state()
+  return t
+
+def t_defws_defobl_newline(t): 
+  r'\n+'
+  t.lexer.lineno += t.value.count("\n")
+  t.lexer.pop_state()
+
+t_defobl_LINE = r'([^/\n] | [/][^/])+'
 
 # oblivious State
 t_oblivious_LINE = r'([^\{\}/\n] | [/][^/])+'
@@ -246,43 +288,39 @@ def p_define_base(p):
 
 def p_define(p):
   'define : DEFINE ID'
-  current_dict = define_dict_list[-1]
-  current_dict[p[2]] = ""
+  if not define_on[-1]:
+    return
+  define_dict[p[2]] = ""
 
 def p_define_macro(p):
-  'define : DEFINE ID LPAREN id_list RPAREN expression'
-  current_dict = macro_dict_list[-1]
+  'define : DEFINE ID LPAREN id_list RPAREN LINE'
+  if not define_on[-1]:
+    return
   template = generate_template(p[4], p[6])
   template = (template[0], template[1], 'expression')
-  if p[2] not in current_dict or current_dict[p[2]] != template:
-    current_dict[p[2]] = template
-  else:
-    print_error("illegal to redefine " + p[2], p.lineno(1))
-
-def p_define_macro_block(p):
-  'define : DEFINE ID LPAREN id_list RPAREN LBRACE LINE RBRACE'
-  current_dict = macro_dict_list[-1]
-  template = generate_template(p[4], p[7])
-  template = (template[0], template[1], 'block')
-  current_dict[p[2]] = template
+  if p[2] not in macro_dict or macro_dict[p[2]] != template:
+    macro_dict[p[2]] = template
+  #else:
+    #print_error("illegal to redefine " + p[2], p.lineno(1))
 
 def p_define_const(p):
-  'define : DEFINE ID expression'
-  current_dict = define_dict_list[-1]
-  current_dict[p[2]] = p[3]
+  'define : DEFINE ID LINE'
+  if not define_on[-1]:
+    return
+  define_dict[p[2]] = p[3]
 
 def p_define_un(p):
   '''define : UNDEF ID
 	    | UNDEF ID LPAREN id_list RPAREN
-	    | UNDEF ID LPAREN id_list RPAREN expression
-	    | UNDEF ID expression'''
-  current_dict = define_dict_list[-1]
-  if p[2] in current_dict:
-    del current_dict[p[2]]
+	    | UNDEF ID LPAREN id_list RPAREN LINE
+	    | UNDEF ID LINE'''
+  if not define_on[-1]:
+    return
+  if p[2] in define_dict:
+    del define_dict[p[2]]
 
-  current_dict = macro_dict_list[-1]
-  if p[2] in current_dict:
-    del current_dict[p[2]]
+  if p[2] in macro_dict:
+    del macro_dict[p[2]]
 
 def p_id_list(p):
   'id_list : ID COMMA id_list'
@@ -295,6 +333,7 @@ def p_id_list_base(p):
 #----------------------------------------------------
 # ifdef ifndef if elif				   
 #----------------------------------------------------
+neg = False
 
 def p_ifdefs(p):
   'ifdefs : ifdef'
@@ -314,13 +353,19 @@ def p_ifdef(p):
     p[0] = p[4]
 
 def p_ifndef(p):
-  '''ifdef : IFNDEF cond_id petabricks elif_block
-	   | IFNDEF cond_id body elif_block
-	   | IFNDEF cond_id transform_headers elif_block'''
+  '''ifdef : ifndef cond_id petabricks elif_block
+	   | ifndef cond_id body elif_block
+	   | ifndef cond_id transform_headers elif_block'''
   if p[2]: # true when define
     p[0] = p[4]
   else:
     p[0] = p[3]
+
+def p_ifndef_key(p):
+  'ifndef : IFNDEF'
+  p[0] = p[1]
+  global neg
+  neg = True
 
 def p_if(p):
   '''ifdef : IF cond_number petabricks elif_block
@@ -332,39 +377,72 @@ def p_if(p):
     p[0] = p[4]
 
 def p_elif_block(p):
-  '''elif_block : ELIF cond_number petabricks elif_block
-	        | ELIF cond_number body elif_block
-		| ELIF cond_number transform_headers elif_block'''
+  '''elif_block : elif cond_number petabricks elif_block
+                | elif cond_number body elif_block
+                | elif cond_number transform_headers elif_block'''
   if p[2]: # true when != 0
     p[0] = p[3]
   else:
     p[0] = p[4]
 
 def p_elif_block_else(p):
-  '''elif_block : ELSE petabricks ENDIF
-		| ELSE body ENDIF
-		| ELSE transform_headers ENDIF'''
+  '''elif_block : else petabricks endif
+                | else body endif
+                | else transform_headers endif'''
   p[0] = p[2]
 
 def p_elif_block_endif(p):
-  'elif_block : ENDIF'
+  'elif_block : endif'
   p[0] = []
 
 def p_cond_id(p):
   'cond_id : ID'
-  p[0] = p[1] in define_dict_list[-1]
+  p[0] = p[1] in define_dict
+  append_define_on(p[0])
 
 def p_cond_id_line(p):
   'cond_id : LINE'
-  p[0] = p[1] in define_dict_list[-1]
+  p[0] = p[1] in define_dict
+  append_define_on(p[0])
 
 def p_cond_number(p):
   'cond_number : OTHER'
   p[0] = int(p[1])
+  append_define_on(p[0] != 0)
 
 def p_cond_number_line(p):
   'cond_number : LINE'
   p[0] = int(p[1])
+  append_define_on(p[0] != 0)
+
+def p_elif(p):
+  'elif : ELIF'
+  p[0] = p[1]
+  define_on.pop()
+
+def p_else(p):
+  'else : ELSE'
+  p[0] = p[1]
+  last = define_on.pop()
+  append_define_on(not last)
+
+def p_endif(p):
+  'endif : ENDIF'
+  p[0] = p[1]
+  define_on.pop()
+
+# helper function
+def append_define_on(x):
+  if not define_on[-1]:
+    define_on.append(False)
+    return
+
+  global neg
+  if neg:
+    define_on.append(not x)
+  else:
+    define_on.append(x)
+  neg = False
 
 #----------------------------------------------------
 # transform				   
@@ -505,8 +583,8 @@ def p_transform_headers_ifdef(p):
   p[0] = p[1]
 
 def p_transform_headers_base(p):
-  'transform_headers : empty'
-  p[0] = []
+  'transform_headers : transform_header'
+  p[0] = [p[1]]
 
 def p_transform_header_noarg(p):
   'transform_header : MEMORIZED'
@@ -598,7 +676,8 @@ def p_num_list_string(p):
   p[0] = p[1] + ',' + p[3]
 
 def p_num_list_string_base(p):
-  'num_list_string : OTHER'
+  '''num_list_string : OTHER
+                     | ID'''
   p[0] = p[1]
 
 def p_matrix_list(p):
@@ -864,23 +943,22 @@ def generate_template(args, expression):
 """ Replace all defined constants & macros in string s
     Return the resulted string """
 def replace_all_define(s, lineno):
-  current_define = define_dict_list[-1]
-  current_macro = macro_dict_list[-1]
-  
-  # Replace defined macros
-  for macro in current_macro:
-    i = s.find(macro)
-    while i != -1:
-      s,i = replace_macro(macro, current_macro[macro], s, i, lineno)
-      i = s.find(macro,i)
+  replace = True
+  while replace:
+    replace = False
+    # Replace defined macros
+    for macro in macro_dict:
+      i = s.find(macro)
+      while i != -1:
+        s,i,replace = replace_macro(macro, macro_dict[macro], s, i, lineno)
+        i = s.find(macro,i)
 
-  # Replace defined constants
-  for define in current_define:
-    i = s.find(define)
-    while i != -1:
-      s,i = replace_definition(define, current_define[define], s, i, lineno)
-      i = s.find(define,i)
-
+    # Replace defined constants
+    for define in define_dict:
+      i = s.find(define)
+      while i != -1:
+        s,i,replace = replace_definition(define, define_dict[define], s, i, lineno)
+        i = s.find(define,i)
 
   return s
 
@@ -890,9 +968,9 @@ def replace_definition(define, extended_def, s, head_index, lineno):
   next = skip_isolated_word(s, head_index, define)
   if next != -1:
     s = s[:head_index] + extended_def + s[next:]
-    return (s,next)
+    return (s,next,True)
   else:
-    return (s,head_index+len(define))
+    return (s,head_index+len(define),False)
 
 """ Replace the macro at the given index in string s with expanded code
     Return (the resulted string, index after macro) """
@@ -901,11 +979,11 @@ def replace_macro(macro, (no_args, expanded, t), s, head_index, lineno):
 
   # If macro is not isolated word, return.
   if next == -1:
-    return (s,head_index+len(macro))
+    return (s,head_index+len(macro),False)
 
   # If there is no '(' after macor, return.
   if next >= len(s) or s[next] != '(':
-    return (s,next)
+    return (s,next,False)
 
   index = next + 1 #skip '('
 
@@ -940,7 +1018,7 @@ def replace_macro(macro, (no_args, expanded, t), s, head_index, lineno):
   if t == 'block':
     expanded = expanded.strip(' ;')
 
-  return (s[0:head_index] + expanded + s[index:], index)
+  return (s[0:head_index] + expanded + s[index:], index, True)
 
 
 #####################################################
@@ -950,10 +1028,9 @@ def replace_macro(macro, (no_args, expanded, t), s, head_index, lineno):
 # Global variable
 parsed_set = set()
 queue = []
-define_dict_list = []
-macro_dict_list = []
-define_dict_map = {}
-macro_dict_map = {}
+define_dict = {}
+macro_dict = {}
+define_on = [True]
 
 current_file = ""
 current_line = 0
@@ -964,7 +1041,6 @@ def relpath(filename):
   current = os.path.abspath("") + '/'
   common = os.path.commonprefix([current, filename])
   current = current[len(common):]
-  filename = filename[len(common):]
 
   count = current.count('/')
   out = ""
@@ -1043,16 +1119,6 @@ def convert_ast_to_string(ast):
 
 def update_cleanup():
   queue.pop()
-  current_dict = define_dict_list.pop()
-  if len(define_dict_list) > 0:
-    parent_dict = define_dict_list[-1]
-    for key in current_dict.keys():
-      parent_dict[key] = current_dict[key]
-
-    current_dict = macro_dict_list.pop()
-    parent_dict = macro_dict_list[-1]
-    for key in current_dict.keys():
-      parent_dict[key] = current_dict[key]
 
 """ Parse a content in a given file into ast. """
 def parse_file_to_ast(file_path):
@@ -1065,53 +1131,35 @@ def parse_file_to_ast(file_path):
   full_path_string = os.path.abspath(os.path.join(current_dir, file_path))
 
   if full_path_string in parsed_set:
-    current_dict = define_dict_list[-1]
-    include_dict = define_dict_map[full_path_string]
-    for key in include_dict.keys():
-      current_dict[key] = include_dict[key]
-
-    current_dict = macro_dict_list[-1]
-    include_dict = macro_dict_map[full_path_string]
-    for key in include_dict.keys():
-      current_dict[key] = include_dict[key]
     return []
 
   parsed_set.add(full_path_string)
   queue.append(full_path_string)
-  define_dict_list.append({})
-  macro_dict_list.append({})
-  define_dict_map[full_path_string] = {}
-  macro_dict_map[full_path_string] = {}
 
   import ply.lex as lex
   import ply.yacc as yacc
 
   lex.lex(nowarn=1)
-  yacc.yacc(debug=False)
+  yacc.yacc(debug=False, tabmodule="_preprocessor", outputdir=ODIR)
 
   reader = open(full_path_string, 'r')
   input_string = reader.read()
   reader.close()
   ast = yacc.parse(input_string)
 
-  define_dict_map[full_path_string] = define_dict_list.pop()
-  macro_dict_map[full_path_string] = macro_dict_list.pop()
-  queue.pop()
-  #update_cleanup()
+  update_cleanup()
   return ast
 
 def get_define(file_path):
   current_dir = os.path.dirname(queue[-1])
   full_path_string = os.path.abspath(os.path.join(current_dir, file_path))
   queue.append(full_path_string)
-  define_dict_list.append({})
-  macro_dict_list.append({})
 
   import ply.lex as lex
   import ply.yacc as yacc
 
   lex.lex(nowarn=1)
-  yacc.yacc(debug=False)
+  yacc.yacc(debug=False, tabmodule="_preprocessor", outputdir=ODIR)
 
   reader = open(full_path_string, 'r')
   input_string = reader.read()
@@ -1124,31 +1172,6 @@ def get_define(file_path):
 
   update_cleanup()
   return ast
-
-'''def get_signatures(file_path):
-  current_dir = os.path.dirname(queue[-1])
-  full_path_string = os.path.abspath(os.path.join(current_dir, file_path))
-  queue.append(full_path_string)
-  define_dict_list.append({})
-  macro_dict_list.append({})
-
-  import ply.lex as lex
-  import ply.yacc as yacc
-
-  lex.lex(nowarn=1)
-  yacc.yacc(debug=False)
-
-  reader = open(full_path_string, 'r')
-  input_string = reader.read()
-  reader.close()
-
-  global signature
-  signature = True
-  ast = yacc.parse(input_string)
-  signature = False
-
-  update_cleanup()
-  return ast'''
 
 
 def main(argv=sys.argv):
@@ -1172,12 +1195,10 @@ def test_lex():
 
   lex.lex()
   lex.input('''
-template<W(1,5)>
-transform Merge
-from IN[n]
-to OUT[n]
-{
-}
+#define A
+#define POISSON2D_BINS 1,3,5,7,9
+#define SUM(out, x, y) { out = x + y; }
+#define Y 10
 ''')
   while 1:
     tok = lex.token()
@@ -1187,4 +1208,4 @@ to OUT[n]
 if __name__ == "__main__":
   main()
   #test_lex()
-
+  

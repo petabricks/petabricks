@@ -1,16 +1,32 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #include "testisolation.h"
 #include "dynamicscheduler.h"
+#include "gpumanager.h"
 
 #include <limits>
 #include <string.h>
@@ -76,7 +92,7 @@ JASSERT_STATIC(sizeof COOKIE_DONE == sizeof COOKIE_DISABLETIMEOUT);
 JASSERT_STATIC(sizeof COOKIE_DONE == sizeof COOKIE_RESTARTTIMEOUT);
 
 petabricks::SubprocessTestIsolation::SubprocessTestIsolation(double to) 
-  : _pid(-1), _fd(-1), _rv(RUNNING_RV), _timeout(to), _timeoutEnabled(true), _start(jalib::JTime::null())
+  : _pid(-1), _fd(-1), _rv(RUNNING_RV), _timeout(to), _timeoutEnabled(false), _start(jalib::JTime::null())
 {
   if(_timeout < std::numeric_limits<double>::max()-TIMEOUT_GRACESEC)
     _timeout += TIMEOUT_GRACESEC;
@@ -91,30 +107,47 @@ petabricks::TestIsolation* petabricks::SubprocessTestIsolation::masterProcess() 
   return theMasterProcess;
 }
 
-bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
+bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads, int reexecchild) {
   JASSERT(theMasterProcess==NULL);
   _modifications.clear();
+#ifdef HAVE_OPENCL
+  GpuManager::shutdown();
+#endif
   DynamicScheduler::cpuScheduler().shutdown();
   int fds[2];
   //JASSERT(pipe(fds) == 0);
-  JASSERT(socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == 0);
-  JASSERT((_pid=fork()) >=0);
+  if(reexecchild<0)  {
+    JASSERT(socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == 0);
+    JASSERT((_pid=fork()) >=0);
+  }else{
+    _pid=0;
+  }
   if(_pid>0){
     //parent
     _fd=fds[0];
     close(fds[1]);
     _rv = RUNNING_RV;
-    _timeoutEnabled = true;
+    _timeoutEnabled = false;
     _start = jalib::JTime::now();
+    //JTRACE("parent");
     return false;
   }else{
     //child
-    _fd=fds[1];
-    close(fds[0]);
-    DynamicScheduler::cpuScheduler().startWorkerThreads(workerThreads);
+    //JTRACE("child")(reexecchild);
+    if(reexecchild<0) {
+      _fd=fds[1];
+      close(fds[0]);
+      PetabricksRuntime::reexecTestIsolation(fds[1]);
+    }else{
+      _fd = reexecchild;
+    }
+    GpuManager::start();
     _settestprocflags();
+    PetabricksRuntime::startWorkerThreads(workerThreads);
     jalib::JTunable::setModificationCallback(this); 
     theMasterProcess=this;
+    //JTRACE("child starting");
+    restartTimeout();
     return true;
   }
 }
@@ -141,6 +174,7 @@ void petabricks::SubprocessTestIsolation::endTest(TestResult& result) {
   fsync(_fd);
   fsync(fileno(stdout));
   fsync(fileno(stderr));
+  //GpuManager::shutdown();
   //DynamicScheduler::cpuScheduler().shutdown();
   _exit(SUCCESS_RV);
 }
@@ -167,7 +201,7 @@ inline static void _settimeout(int& timeout, double sec){
 void petabricks::SubprocessTestIsolation::recvResult(TestResult& result) {
   TimeoutT timeout;
   int ready;
-  _settimeout(timeout, _timeout);
+  _settimeout(timeout, std::numeric_limits<int>::max());
 
   struct pollfd fds[1];
   fds[0].fd = _fd;
@@ -176,6 +210,7 @@ void petabricks::SubprocessTestIsolation::recvResult(TestResult& result) {
 
   for(;;){
     _settimeout(timeout, timeleft());
+    //JTRACE("timeout")(timeout);
     ready = poll(fds, sizeof(fds)/sizeof(struct pollfd), timeout);
     JASSERT(ready>=0)(ready);
 
@@ -247,7 +282,7 @@ double petabricks::SubprocessTestIsolation::timeleft() const {
   if(!running())
       return 0;
   if(_timeoutEnabled)
-    return _timeout - (jalib::JTime::now() - _start);
+    return _timeout - (jalib::JTime::now() - _start) + 0.02;
   return std::numeric_limits<double>::max();
 }
 
@@ -343,8 +378,9 @@ int  petabricks::SubprocessTestIsolation::rv(){
   return CRASH_RV;
 }
 
-bool petabricks::DummyTestIsolation::beginTest(int workerThreads) {
+bool petabricks::DummyTestIsolation::beginTest(int workerThreads, int reexecchild) {
   DynamicScheduler::cpuScheduler().startWorkerThreads(workerThreads);
+  JASSERT(reexecchild<0);
   return true;
 }
 

@@ -1,23 +1,40 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef PETABRICKSFORMULA_H
 #define PETABRICKSFORMULA_H
 
 #include <set>
 #include <vector>
+#include <cstdlib>
 
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
 #include "common/srcpos.h"
+#include "common/jassert.h"
 
 namespace petabricks {
 
@@ -153,6 +170,11 @@ public:
   FormulaPtr negative() const;
 
   virtual char opType() const;
+  
+  virtual FormulaPtr clone() const = 0;
+  virtual double value() const {  JTRACE("Formula.value()")(toCppString());
+                                  UNIMPLEMENTED(); abort(); }
+  
 protected:
   /// Set of all free variables in the tree
   FreeVarsPtr _freeVars;
@@ -170,8 +192,27 @@ public:
   FormulaVariable(const char* name);
   FormulaVariable(const std::string& name);
   void print(std::ostream& o) const;
+  FormulaPtr clone() const { return FormulaPtr(new FormulaVariable(*this)); }
 private:
   std::string _name;
+};
+
+/**
+ * Node in a formula tree representing a conditional
+ */
+class FormulaIf : public Formula {
+public:
+  FormulaIf(const FormulaPtr& cond, const FormulaPtr& thenClause, const FormulaPtr& elseClause=FormulaPtr());
+  void print(std::ostream& o) const;
+  virtual FormulaPtr clone() const { FormulaPtr newCond = _cond->clone();
+                                     FormulaPtr newThen = _then->clone();
+                                     FormulaPtr newElse = _else->clone();
+                                     return FormulaPtr(new FormulaIf(newCond, newThen, newElse));
+                                   }
+private:
+  FormulaPtr _cond;
+  FormulaPtr _then;
+  FormulaPtr _else;
 };
 
 /**
@@ -186,6 +227,8 @@ public:
   static FormulaPtr zero()   { return new FormulaLiteral( 0); }
   FormulaLiteral(T v);
   void print(std::ostream& o) const;
+  virtual FormulaPtr clone() const { return FormulaPtr(new FormulaLiteral(*this)); }
+  virtual double value() const { return _value; }
 private:
   T _value;
 };
@@ -219,6 +262,21 @@ public:
 
   virtual char opType() const;
 
+  virtual FormulaPtr clone() const {
+    FormulaPtr newLeft = _left->clone();
+    FormulaPtr newRight= _right->clone();
+    FormulaBinop<OP>* newFormula= new FormulaBinop<OP>(newLeft, newRight);
+    return FormulaPtr(newFormula);
+  }
+  
+  virtual double value() const { if(OP == '-' && (_left->value() == 0)) {
+                                   return -_right->value();
+                                 }
+                                 
+                                 //All other cases
+                                 UNIMPLEMENTED();
+                                 abort();
+                               }
 private:
   FormulaPtr _left;
   FormulaPtr _right;

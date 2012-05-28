@@ -1,0 +1,99 @@
+#ifndef TRIMATRIXMULTIPLYADD_PBCC
+#define TRIMATRIXMULTIPLYADD_PBCC
+
+#include "../simple/copy.pbcc"
+
+// For each of the below, pass UPFLAG=1 for A upper-triangular, 0 otherwise.
+//                           UNITFLAG=1 for A unit-diagonal, 0 otherwise.
+
+// In-place triangular matrix multiply add: C = alpha * A * C + beta * C,
+// where A is triangular
+transform TriMatrixMultiplyAddInPlace
+from UPFLAG, UNITFLAG, ALPHA, A[m,m], BETA
+to C[n,m]
+{
+    // serial version
+    to (C c)
+    from (UPFLAG upFlag, UNITFLAG unitFlag, ALPHA alpha, A a, BETA beta)
+    {
+        IndexT i, j, k, i0, iInc;
+        i0   = (upFlag ? 0 : m-1);
+        iInc = (upFlag ? 1 : -1 );
+        for (IndexT idx = 0, i = i0; idx < m; ++idx, i += iInc) {
+            for (j = 0; j < n; ++j) {
+                ElementT temp = c.cell(j,i) * beta;
+                temp += alpha * (unitFlag ? 1.0 : a.cell(i,i)) * c.cell(j,i);
+                for (k = (upFlag ? i+1 : 0); k < (upFlag ? m : i); ++k) {
+                    temp += alpha * a.cell(k,i) * c.cell(j,k);
+                }
+                c.cell(j,i) = temp;
+            }
+        }
+    }
+}
+
+// In-place triangular matrix multiply: C = A * C, where A is triangular
+transform TriMatrixMultiplyInPlace
+from UPFLAG, UNITFLAG, A[m,m]
+to C[n,m]
+{
+    to (C c) from (UPFLAG upFlag, UNITFLAG unitFlag, A a)
+    {
+        TriMatrixMultiplyAddInPlace(c, upFlag, unitFlag, 1.0, a, 0.0);
+    }
+}
+
+// Triangular matrix multiply add: C = alpha * A * B + beta * C, where A is
+// triangular.  Note: B and C should not point to the same matrix
+transform TriMatrixMultiplyAdd
+from UPFLAG, UNITFLAG, ALPHA, A[m,m], B[n,m], BETA
+to C[n,m]
+{
+    // element-wise version
+    to (C.cell(j,i) c)
+    from (UPFLAG upFlag, UNITFLAG unitFlag, ALPHA alpha, A a, B b, BETA beta)
+    {
+        c *= beta;
+        c += alpha * (unitFlag ? 1.0 : a.cell(i,i)) * b.cell(j,i);
+        for (IndexT k = (upFlag ? i+1 : 0); k < (upFlag ? m : i); ++k) {
+            c += alpha * a.cell(k,i) * b.cell(j,k);
+        }
+    }
+
+    // serial version
+    to (C c)
+    from (UPFLAG upFlag, UNITFLAG unitFlag, ALPHA alpha, A a, B b, BETA beta)
+    {
+        IndexT i, j, k;
+        for (i = 0; i < m; ++i) {
+            for (j = 0; j < n; ++j) {
+                c.cell(j,i) *= beta;
+                c.cell(j,i) += alpha * (unitFlag ? 1.0 : a.cell(i,i)) *
+                               b.cell(j,i);
+                for (k = (upFlag ? i+1 : 0); k < (upFlag ? m : i); ++k) {
+                    c.cell(j,i) += alpha * a.cell(k,i) * b.cell(j,k);
+                }
+            }
+        }
+    }
+}
+
+// Triangular left matrix multiply: C = A * B, where A is triangular.
+// Note: B and C should not point to the same matrix.
+transform TriMatrixMultiply
+from UPFLAG, UNITFLAG, A[m,m], B[n,m]
+to C[n,m]
+{
+    to (C c) from (UPFLAG upFlag, UNITFLAG unitFlag, A a, B b)
+    {
+        TriMatrixMultiplyAdd(c, upFlag, unitFlag, 1.0, a, b, 0.0);
+    }
+
+    to (C c) from (UPFLAG upFlag, UNITFLAG unitFlag, A a, B b)
+    {
+        Copy2D(c, b);
+        TriMatrixMultiplyInPlace(c, upFlag, unitFlag, a);
+    }
+}
+
+#endif // TRIMULTIPLYADD_PBCC

@@ -7,6 +7,7 @@
 #include "Radixsort.pbcc"
 #include "Parallel_Mergesort.pbcc"
 #include "Mergesort.pbcc"
+#include "Selectionsort.pbcc"
 
 transform SortSubArray
 from IN[n], Pos
@@ -64,6 +65,12 @@ to OUT[n], TEMP[n]
   to (OUT out, TEMP temp) from (IN in)
   {
     InsertionsortSubArray(out, in);
+  }
+
+  rule SelectionSort
+  to (OUT out, TEMP temp) from (IN in)
+  {
+    Selectionsort(out, in);
   }
 }
 

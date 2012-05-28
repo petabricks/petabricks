@@ -1,22 +1,29 @@
-/***************************************************************************
- *   Copyright (C) 2006-2009 by Jason Ansel                                *
- *   jansel@csail.mit.edu                                                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef JALIBJREFCOUNTED_H
 #define JALIBJREFCOUNTED_H
 
@@ -31,16 +38,33 @@
 
 namespace jalib {
 
-void _JRefAbort(const char* msg);
+void _JRefAbort(const char* msg) ATTRIBUTE(noreturn);
 
 /**
  * Basic policy for JRef, normal ref counted objects
  */
-template < typename T > struct JRefPolicyShared{
+template < typename T > struct JRefPolicyFast{
   static void inc(T* o){ if(o!=NULL) o->incRefCount(); }
   static void dec(T* o){ if(o!=NULL) o->decRefCount(); }
   static void use(T*){}
 };
+
+
+/**
+ * Basic policy for JRef, normal ref counted objects
+ */
+template < typename T > struct JRefPolicyDebug{
+  static void inc(T* o){ if(o!=NULL) o->incRefCount(); }
+  static void dec(T* o){ if(o!=NULL) o->decRefCount(); }
+  static void use(T* o){
+    if(o==NULL) {
+      _JRefAbort("dereferencing a null pointer.");
+    }else if(o->refCount() <= 0){
+      _JRefAbort("accessing a deleted object!");
+    }
+  }
+};
+
 
 /**
  * Basic policy for JRef, copy on write objects
@@ -56,10 +80,11 @@ template < typename T > struct JRefPolicyCopied{
       o=t;
     }
   }
+  static void check(T*){}
 };
 
 /**
- * Policy that does no reference counting 
+ * Policy that does no reference counting
  */
 template < typename T > struct JRefPolicyLeaked {
   static void inc(T* o){}
@@ -70,7 +95,13 @@ template < typename T > struct JRefPolicyLeaked {
 /**
  * Reference to a JRefCounted
  */
-template < typename T, typename Policy = JRefPolicyShared<T> >
+template < typename T, typename Policy =
+#ifdef DEBUG
+  JRefPolicyDebug<T> 
+#else
+  JRefPolicyFast<T> 
+#endif
+>
 class JRef{
 public:
   static const JRef& null() { static JRef t; return t; }
@@ -92,14 +123,12 @@ public:
 
   //accessor
   T* operator->() const {
-    check();
     use();
     return _obj;
   }
 
   //accessor
   T& operator*()  const {
-    check();
     use();
     return *_obj;
   }
@@ -111,8 +140,8 @@ public:
     return _obj!=NULL;
   }
 
-  operator const T& () const { check(); use(); return *_obj; }
-  operator T& ()             { check(); use(); return *_obj; }
+  operator const T& () const { use(); return *_obj; }
+  operator T& ()             { use(); return *_obj; }
 
   //compare
   friend bool operator == (const JRef& a, const JRef& b) { return a._obj == b._obj; }
@@ -126,11 +155,6 @@ private: //helpers:
   void inc() const { Policy::inc(_obj); }
   void dec() const { Policy::dec(_obj); }
   void use() const { Policy::use(_obj); }
-#ifdef DEBUG
-  void check() const { if(_obj==NULL) _JRefAbort("Would have dereferenced null pointer."); }
-#else
-  void check() const {}
-#endif
 private:
   mutable T* _obj;
 };
@@ -144,21 +168,38 @@ protected:
   JRefCounted(const JRefCounted&) : _refCount(0) {}
   virtual ~JRefCounted(){}
 public:
-  inline void incRefCount() const{
+  INLINE void incRefCount() const{
+    _refcheck(0);
     atomicIncrement(&_refCount);
   }
-  inline void decRefCount() const{
+  INLINE void decRefCount() const{
+    _refcheck(1);
+    if(atomicDecrementReturn(&_refCount)==0){
 #ifdef DEBUG
-    if(_refCount<=0) _JRefAbort("negative ref count");
+      //poison ref count in debug mode
+      _refCount  = -666;
 #endif
-    if(atomicDecrementReturn(&_refCount)==0)
       delete this;
+    }
   }
-  inline long refCount() const{
+  INLINE long refCount() const{
+    _refcheck(0);
     return _refCount;
   }
-  inline void incRefCountUnsafe() const {
+  INLINE void incRefCountUnsafe() const {
+    _refcheck(0);
     ++_refCount;
+  }
+    
+private: 
+  INLINE void _refcheck(int minlegal) const {
+#ifdef DEBUG
+    if(_refCount < minlegal) {
+      _JRefAbort("negative ref count");
+    }
+#else
+    (void)minlegal;//use
+#endif
   }
 private:
   //PADDING(56);

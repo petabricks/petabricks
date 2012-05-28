@@ -1,10 +1,10 @@
-AC_INIT([petabricks], [1.99], [jansel@csail.mit.edu])
+AC_INIT([petabricks], [3.0], [jansel@csail.mit.edu])
 
 AC_CONFIG_SRCDIR([src/compiler/pbc.cpp])
 AC_CANONICAL_TARGET
 
 AM_CONFIG_HEADER([src/config.h])
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign])
 
 default_cxxflags=no
 if test "x$CXXFLAGS" = "x"; then
@@ -20,6 +20,7 @@ AC_PROG_CXX
 AC_PROG_CXXCPP
 AC_PROG_EGREP
 AC_PROG_RANLIB
+AC_PROG_LN_S
 
 AM_PROG_LEX
 if test "x$ac_cv_prog_LEX" = "x"; then
@@ -47,7 +48,7 @@ if test "$has_git" = "no"; then
   AC_MSG_WARN([failed to find 'git' in \$path, will not be able to use revision control.])
 fi
 
-AC_PATH_PROGS([PYTHON], [python2.6 python2.5 python2.4 python2 python], [no])
+AC_PATH_PROGS([PYTHON], [python2.8 python2.7 python2.6 python2.5 python2.4 python2 python], [no])
 if test "$PYTHON" = "no"; then
   AC_MSG_ERROR([failed to find 'python' in \$path, try running:`sudo apt-get install python`.])
 fi
@@ -102,14 +103,24 @@ AC_CHECK_HEADERS([openssl/md5.h],  [], [AC_MSG_ERROR([missing package libssl-dev
 AC_CHECK_HEADERS([openssl/sha.h],  [], [])
 AC_CHECK_HEADERS([cxxabi.h execinfo.h poll.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h])
 AC_CHECK_HEADERS([boost/random.hpp], [], [AC_MSG_WARN([missing boost/random, falling back to slower random number generation])])
+AC_CHECK_HEADERS([cblas.h],  [], [])
+AC_CHECK_HEADERS([Accelerate/Accelerate.h], [], [])
+AC_CHECK_HEADERS([sqlite3.h],      [], [AC_MSG_ERROR([failed to find sqlite3.h header file])])
+
+
+AC_CHECK_LIB([fftw3],      [fftw_malloc],    [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
+AC_CHECK_LIB([m],          [cos],            [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
+AC_CHECK_LIB([gfortran],   [_gfortran_compare_string], [], [])
+AC_CHECK_LIB([pthread],    [pthread_create], [], [AC_MSG_WARN([failed to find -lpthread, some benchmarks may not work])])
+AC_CHECK_LIB([rt],         [clock_gettime],  [],
+                        [AC_DEFINE([USE_GETTIMEOFDAY],[],[define if clock_gettime() doesnt work])])
+AC_CHECK_LIB([dl],	   [dlopen],   [], [])
+AC_CHECK_LIB([sqlite3],	   [sqlite3_open],   [], [AC_MSG_ERROR([failed to find -lsqlite3, unable to compile the long term learning for heuristics])])
+
+
 AC_SEARCH_LIBS([MD5_Init], [crypto ssl], [], [AC_MSG_ERROR([missing package libssl-dev])])
-AC_CHECK_LIB([m],[cos],                  [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
-AC_CHECK_LIB([fftw3], [fftw_malloc],     [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
-AC_CHECK_LIB([pthread],[pthread_create], [], [AC_MSG_WARN([failed to find -lpthread, some benchmarks may not work])])
-AC_CHECK_LIB([lapack], [dposv_],         [], [AC_MSG_WARN([failed to find -llapack, some benchmarks may not work])])
-AC_CHECK_LIB([rt], [clock_gettime],      [], [AC_DEFINE([USE_GETTIMEOFDAY],[],[define if clock_gettime() doesnt work])])
-#AC_CHECK_LIB([gslcblas],[cblas_dgemm],   [], [AC_MSG_WARN([failed to find -lgslcblas, some benchmarks may not work])]) 
-#AC_CHECK_LIB([gsl],[gsl_blas_dgemm],     [], [AC_MSG_WARN([failed to find -lgsl, some benchmarks may not work])])
+AC_SEARCH_LIBS([cblas_dgemm], [cblas blas])
+AC_SEARCH_LIBS([dposv_], [lapack])
 
 ################################################################################
 # COMPILER PROPERTIES ##########################################################
@@ -117,47 +128,69 @@ AC_CHECK_LIB([rt], [clock_gettime],      [], [AC_DEFINE([USE_GETTIMEOFDAY],[],[d
 
 AC_MSG_CHECKING([if compiler supports __thread])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__thread int x;]])],
-                  [  
+                  [
                     AC_MSG_RESULT([yes]);
-                    has_threadlocal=yes; 
+                    has_threadlocal=yes;
                     AC_DEFINE([HAVE_THREADLOCAL],[],[define if __thread works with this compiler])
                   ],
-                  [  
-                    AC_MSG_RESULT([no]); 
+                  [
+                    AC_MSG_RESULT([no]);
                     has_threadlocal=no;
                   ])
 
-AC_MSG_CHECKING([if compiler supports forced inlining])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((flatten)) void foo(){}]])],
-                  [  
-                    AC_DEFINE([INLINE],[inline __attribute__((flatten))], [keyword to force inlining])
+
+AC_MSG_CHECKING([if compiler supports __builtin_expect])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[int foo() { int x = __builtin_expect(0,0); }]])],
+                  [
+                    AC_DEFINE([HAVE_BUILTIN_EXPECT],1,[define __builtin_expect_works])
                     AC_MSG_RESULT([yes]);
                   ],
-                  [  
+                  [
+                    AC_MSG_RESULT([no]);
+                  ])
+
+AC_MSG_CHECKING([if compiler supports forced inlining])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((flatten)) __attribute__((always_inline)) void foo(){}]])],
+                  [
+                    AC_DEFINE([INLINE],[inline __attribute__((flatten)) __attribute__((always_inline))], [keyword to force inlining])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [
                     AC_DEFINE([INLINE],[inline])
-                    AC_MSG_RESULT([no]); 
+                    AC_MSG_RESULT([no]);
+                  ])
+
+AC_MSG_CHECKING([if compiler supports packed])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[struct foo{int x;} __attribute__((__packed__));]])],
+                  [
+                    AC_DEFINE([PACKED],[__attribute__((__packed__))], [keyword to force packed struct])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [
+                    AC_DEFINE([PACKED],[])
+                    AC_MSG_RESULT([no]);
                   ])
 
 AC_MSG_CHECKING([if compiler supports __restrict__])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[void foo(int *__restrict__ t);]])],
-                  [  
+                  [
                     AC_DEFINE([RESTRICT],[__restrict__], [keyword to indicate non-aliased pointers/refs])
                     AC_MSG_RESULT([yes]);
                   ],
-                  [  
+                  [
                     AC_DEFINE([RESTRICT],[])
-                    AC_MSG_RESULT([no]); 
+                    AC_MSG_RESULT([no]);
                   ])
 
 AC_MSG_CHECKING([if compiler supports __attribute__])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__attribute__((undefinedabdef)) void foo();]])],
-                  [  
+                  [
                     AC_DEFINE([ATTRIBUTE(x)],[__attribute__((x))], [macro for gcc function __attribute__s])
                     AC_MSG_RESULT([yes]);
                   ],
-                  [  
+                  [
                     AC_DEFINE([ATTRIBUTE(x)],[])
-                    AC_MSG_RESULT([no]); 
+                    AC_MSG_RESULT([no]);
                   ])
 
 ################################################################################
@@ -191,16 +224,100 @@ fi
 
 
 AC_ARG_ENABLE([timing],
-            [AS_HELP_STRING([--enable-timing],
-                            [record checkpoint/restart timing information
-                            to jtimings.csv, in working directory of
-                            dmtcp_coordinator, and to stderr.])],
-            [use_jtiming=$enableval],
-            [use_jtiming=no])
+              [AS_HELP_STRING([--enable-timing],
+                              [record timing information to jtimings.csv,
+                               and to stderr.])],
+              [use_jtiming=$enableval],
+              [use_jtiming=no])
 
 if test "$use_jtiming" = "yes"; then
   AC_DEFINE([TIMING],[],[record timing information to stderr and jtimings.csv])
 fi
+
+
+AC_ARG_ENABLE([columnmajor],
+              [AS_HELP_STRING([--enable-columnmajor],
+                              [default to column major allocations])],
+              [use_columnmajor=$enableval],
+              [use_columnmajor=no])
+
+if test "$use_columnmajor" = "yes"; then
+  AC_DEFINE([COLUMN_MAJOR],        [1], [default to column major allocations])
+fi
+
+
+
+AC_ARG_WITH([opencl],
+	[AS_HELP_STRING([--with-opencl=PATH],[build compiler and runtime with support for OpenCL-enabled GPUs.])],
+	[],
+	[with_opencl=no])
+
+AC_ARG_WITH([amdopencl],
+	[AS_HELP_STRING([--with-amdopencl=PATH],[build compiler and runtime with support for OpenCL-enabled CPUs and AMD GPUs.])],
+	[],
+	[with_amdopencl=no])
+
+AC_ARG_WITH([macopencl],
+	[AS_HELP_STRING([--with-macopencl=PATH],[build compiler and runtime with support for OpenCL on Mac OSX])],
+	[],
+	[with_macopencl=no])
+
+AC_ARG_WITH([intelopencl],
+	[AS_HELP_STRING([--with-intelopencl=PATH],[build compiler and runtime with support for OpenCL-enabled CPUs and intel GPUs.])],
+	[],
+	[with_intelopencl=no])
+
+if ! test "$with_opencl" = "no"; then
+   AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
+   AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
+   AC_DEFINE([NVIDIA],[1], [NVIDIA SDK])
+
+   CPPFLAGS="$CPPFLAGS -I$with_opencl/OpenCL/common/inc -I$with_opencl/shared/inc"
+   LIBS="$LIBS -L$with_opencl/OpenCL/common/lib/ -L$with_opencl/shared/lib -L$with_opencl/shared/lib/linux"
+
+   AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
+   AC_CHECK_LIB([shrutil_x86_64], [shrLogEx], [], [AC_MSG_ERROR([Failed to find -lshrutil_x86_64.  Check LIBRARY_PATH, or reconfigure without shrutil_x86_64.])])
+   AC_CHECK_LIB([oclUtil_x86_64], [oclGetPlatformID], [], [AC_MSG_ERROR([Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64.])])
+
+   AC_CHECK_HEADERS([oclUtils.h], [], [])
+
+elif ! test "$with_amdopencl" = "no"; then
+   AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
+   AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
+   AC_DEFINE([AMD],[1], [AMD SDK])
+
+   CPPFLAGS="$CPPFLAGS -I$with_amdopencl/samples/opencl/SDKUtil/include -I$with_amdopencl/include"
+   LIBS="$LIBS -L$with_amdopencl/lib/x86_64 -L$with_amdopencl/TempSDKUtil/lib/x86_64"
+
+   AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
+
+   AC_CHECK_HEADERS([SDKCommon.hpp SDKApplication.hpp SDKFile.hpp], [], [])
+
+elif ! test "$with_intelopencl" = "no"; then
+   AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
+   AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
+   AC_DEFINE([INTEL],[1], [INTEL SDK])
+
+   CPPFLAGS="$CPPFLAGS -I/usr/include/CL"
+   LIBS="$LIBS -L/usr/lib64/OpenCL/vendors/intel"
+
+   AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
+   
+   AC_CHECK_HEADERS([opencl.h], [], [])
+
+elif ! test "$with_macopencl" = "no"; then
+   AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
+   AC_DEFINE([MATRIX_ELEMENT_T], [float], [type for elements in the matrix])
+   AC_DEFINE([MAC],[1],[MAC OS])
+   
+   LDFLAGS="$LDFLAGS -framework OpenCL"
+
+   AC_CHECK_HEADERS([OpenCL/opencl.h], [], [])
+
+else
+   AC_DEFINE([MATRIX_ELEMENT_T],[double])
+fi
+
 
 AC_ARG_ENABLE([allocator],
             [AS_HELP_STRING([--disable-allocator],
@@ -208,39 +325,28 @@ AC_ARG_ENABLE([allocator],
             [use_jalloc=$enableval],
             [use_jalloc=$has_threadlocal],])
 
-if test "$use_jalloc" = "yes"; then
-  AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
+if test "$with_amdopencl" = "no"; then
+  if test "$use_jalloc" = "yes"; then
+    AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
+  fi
 fi
-
-AC_ARG_ENABLE([opencl],
-	[AS_HELP_STRING([--enable-opencl],[build compiler and runtime with support for OpenCL-enabled GPUs.])],
-	[use_opencl=$enableval],
-	[use_opencl=no])
-
-if test "$use_opencl" = "yes"; then
-   AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
-   AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
-   AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
-else
-   AC_DEFINE([MATRIX_ELEMENT_T],[double])
-fi
-
-
 
 
 AC_DEFINE([ACCTARGET_STR],       ["accuracyTarget"], [var name in output code for target accuracy])
+AC_DEFINE([BIN_TMPFILE],         ["bin"],     [generated file name])
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
 AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for begin coord])
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
 AC_DEFINE([DEFAULT_ACCURACY],    [1], [accuracy stand-in for fixed-accuracy rules])
 AC_DEFINE([DEVNULL],             ["/dev/null"], [null sync device path])
+AC_DEFINE([DISABLE_DISTRIBUTED], [1], [dont generate distributed code])
+AC_DEFINE([DISTRIBUTED_GC_FREQ], [1000], [after how many allocations to invoke distributed gc])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
 AC_DEFINE([GENHEADER],           ["_pbhdr.h"], [generated file name])
 AC_DEFINE([GENMISC],             ["_pbmisc"], [generated file name])
 AC_DEFINE([HASH_USE_SHA1],       [0], [set to 1 to use SHA1 instead of MD5])
 AC_DEFINE([INLINE_NULL_TASKS],   [], [run null tasks immediately when they are enqueued])
-AC_DEFINE([JASSERT_FAST],        [], [skip some copies in debug printing, conflicts with JASSERT_LOG])
 AC_DEFINE([JASSERT_USE_SRCPOS],  [],[include source line numbers in error messages])
 AC_DEFINE([LISTEN_PORT_FIRST],   [22550], [first port to try to use to listen])
 AC_DEFINE([MATRIX_INDEX_T],      [int], [type for indices into the matrix])
@@ -260,16 +366,19 @@ AC_DEFINE([TIMEOUT_GRACESEC],    [0.03], [Grace period before slow tests are kil
 AC_DEFINE([TIMEOUTKILLSIG],      [SIGKILL], [Signal used to kill processes that timeout])
 AC_DEFINE([TMPL_IMPL_PFX],       ["_tmpl"], [prefix for expanded template implementations])
 AC_DEFINE([TRANSFORM_N_STR],     ["transform_n"], [define to add a system var to transform scope])
-AC_DEFINE([TX_DYNAMIC_POSTFIX],  ["_dynamic"], [postfix for dynamic versions of transforms])
+AC_DEFINE([TX_DISTRIB_POSTFIX],  ["_distributed"], [postfix for dynamic versions of transforms])
+AC_DEFINE([TX_DYNAMIC_POSTFIX],  ["_workstealing"], [postfix for dynamic versions of transforms])
 AC_DEFINE([TX_OPENCL_POSTFIX],   ["_opencl"], [postfix for opencl versions of transforms])
-AC_DEFINE([TX_STATIC_POSTFIX],   ["_static"], [postfix for static versions of transforms])
+AC_DEFINE([TX_STATIC_POSTFIX],   ["_sequential"], [postfix for static versions of transforms])
 AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files in])
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
+AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
+AC_DEFINE([JASSERT_FAST],        [], [skip some copies in debug printing, conflicts with JASSERT_LOG])
+
 AC_DEFINE_UNQUOTED([MAXIMA_PATH],    ["$MAXIMA"], [path to maxima program])
 AC_DEFINE_UNQUOTED([REVISION_LONG],  ["$rev_long"], [git revision for HEAD at the time ./configure was run])
 AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at the time ./configure was run])
-
 
 if false; then
   #disabled by default:
@@ -277,11 +386,13 @@ if false; then
   AC_DEFINE([INPUT_PERIMETER_STR], ["input_perimeter"], [define to add a system var to transform scope])
   AC_DEFINE([INPUT_SIZE_STR],      ["input_count"],      [define to add a system var to transform scope])
   AC_DEFINE([JALIB_USE_MALLOC],    [1],[Cause the custom allocator to call malloc instead of mmap])
+  AC_DEFINE([JASSERT_FAST],        [], [skip some copies in debug printing, conflicts with JASSERT_LOG])
   AC_DEFINE([JASSERT_LOG],         [], [log traces to /tmp/jassertlog.pid])
   AC_DEFINE([MAXIMA_CACHING],      [], [cache results from maxima])
   AC_DEFINE([OUTPUT_SIZE_STR],     ["output_count"],     [define to add a system var to transform scope])
   AC_DEFINE([PBCC_SEQUENTIAL],     [], [define to run tasks inline instead of enqueuing them])
-  AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
+  AC_DEFINE([REGIONMATRIX_TEST],   [1], [always use RegionMatrix code])
+  AC_DEFINE([DISTRIBUTED_CACHE],   [], [use cache in distributed code])
 fi
 
 ################################################################################
@@ -290,7 +401,7 @@ fi
 
 compileflags="-Wall -Wextra"
 linkflags=""
-  
+
 if test "$use_jassert" = "yes"; then
   linkflags="-rdynamic"
 fi
@@ -301,11 +412,11 @@ if test "$default_cxxflags" = "yes"; then
     compileflags="-O0 -g $compileflags -fdiagnostics-show-option"
   else
     CXXFLAGS=""
-    compileflags="-O3 $compileflags"
+    compileflags="-O2 $compileflags"
   fi
   case "$target_cpu" in
     *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;
-    *)       compileflags="$compileflags -march=native -fno-rtti";;
+    *)       compileflags="$compileflags -march=native";;
   esac
 fi
 
@@ -337,7 +448,7 @@ done
 AC_DEFINE_UNQUOTED([CXX],        ["$CXX"],                  [C++ compiler used by pbc])
 AC_DEFINE_UNQUOTED([CXXCPP],     ["$CXXCPP -x c++"],        [C++ preprocessor used by pbc])
 AC_DEFINE_UNQUOTED([CXXDEFS],    ["$DEFS -DHAVE_CONFIG_H"], [C++ compiler defines used by pbc])
-AC_DEFINE_UNQUOTED([CXXFLAGS],   ["$CXXFLAGS"],             [C++ compiler flags used by pbc])
+AC_DEFINE_UNQUOTED([CXXFLAGS],   ["$CXXFLAGS $CPPFLAGS"],   [C++ compiler flags used by pbc])
 AC_DEFINE_UNQUOTED([CXXLDFLAGS], ["$LDFLAGS"],              [C++ compiler link flags used by pbc])
 AC_DEFINE_UNQUOTED([CXXLIBS],    ["$LIBS"],                 [C++ compiler libraries used by pbc])
 AC_DEFINE_UNQUOTED([NM],         ["$NM"],                   [binutils tool used by pbc])

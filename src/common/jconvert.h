@@ -1,22 +1,29 @@
-/***************************************************************************
- *   Copyright (C) 2006-2009 by Jason Ansel                                *
- *   jansel@csail.mit.edu                                                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef JCONVERT_H
 #define JCONVERT_H
 
@@ -181,6 +188,35 @@ namespace jalib
 
   ///
   /// Call func on each element in list
+  template < typename Element, typename Arg1, typename Arg2, typename Arg3, typename List >
+  inline void Map(void (Element::*func)(Arg1&, Arg2&, Arg3), Arg1& arg1, Arg2& arg2, Arg3& arg3 , List& list)
+  {
+    for( typename List::iterator i=list.begin()
+          ; i!=list.end()
+          ; ++i)
+    {
+      Element& obj = *i;
+      ((obj).*(func))(arg1, arg2, arg3);
+    }
+  }
+
+
+  ///
+  /// Call func on each element in list
+  template < typename Element, typename Arg1, typename Arg2, typename Arg3, typename List >
+  inline void Map(void (Element::*func)(Arg1&, Arg2&), Arg1& arg1, Arg2& arg2, Arg3& arg3 , List& list)
+  {
+    for( typename List::iterator i=list.begin()
+          ; i!=list.end()
+          ; ++i)
+    {
+      Element& obj = *i;
+      ((obj).*(func))(arg1, arg2, arg3);
+    }
+  }
+
+  ///
+  /// Call func on each element in list
   template < typename Element, typename List >
   inline void ConstMap(void (Element::*func)() const, const List& list){
     for( typename List::const_iterator i=list.begin()
@@ -232,6 +268,69 @@ namespace jalib
   template < typename T >
   inline T maxval(){
     return std::numeric_limits<T>::max();
+  }
+
+  ///Replaces every occurrence "str" with "withStr" in string "inStr"
+  inline std::string replace(const std::string str, const std::string withStr, const std::string inStr) {
+    size_t pos;
+    std::string result=inStr;
+    while((pos=result.find(str)) != std::string::npos) {
+      result=result.replace(pos, str.length(), withStr);
+    }
+    
+    return result;
+  }
+
+  /**
+   * Escape characters that will interfere with xml.
+   *
+   * @param sSrc The src string to escape.
+   * @return sSrc encoded for insertion into xml.
+   */
+  inline std::string escapeXML( const std::string &sSrc ) {
+      std::ostringstream sRet;
+
+      for( std::string::const_iterator iter = sSrc.begin(); iter!=sSrc.end(); iter++ )
+      {
+           unsigned char c = (unsigned char)*iter;
+
+           switch( c )
+           {
+               case '&': sRet << "&amp;"; break;
+               case '<': sRet << "&lt;"; break;
+               case '>': sRet << "&gt;"; break;
+               case '"': sRet << "&quot;"; break;
+               case '\'': sRet << "&apos;"; break;
+
+               default:
+                if ( c<32 || c>127 )
+                {
+                     sRet << "&#" << (unsigned int)c << ";";
+                }
+                else
+                {
+                     sRet << c;
+                }
+           }
+      }
+
+      return sRet.str();
+  }
+
+  /**
+   * Unescape characters that whould have interfered with xml.
+   *
+   * @param sSrc The src string to escape.
+   * @return sSrc encoded for insertion into xml.
+   */
+  inline std::string unescapeXML( const std::string &sSrc ) {
+    std::string result;
+    result = replace("&amp;", "&", sSrc);
+    result = replace("&lt;", "<", result);
+    result = replace("&gt;", ">", result);
+    result = replace("&quot;", "\"", result);
+    result = replace("&apos;", "\\", result);
+    return result;
   }
 
 }//namespace jalib

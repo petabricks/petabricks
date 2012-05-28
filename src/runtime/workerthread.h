@@ -1,19 +1,35 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef PETABRICKSWORKERTHREAD_H
 #define PETABRICKSWORKERTHREAD_H
 
 #include "dynamictask.h"
 #include "common/thedeque.h"
+#include "workerthreadcache.h"
 
 #include <pthread.h>
 #include <set>
@@ -34,6 +50,8 @@ public:
   WorkerThread(DynamicScheduler& ds);
   ~WorkerThread();
 
+  static void markUtilityThread();
+
   ///
   /// called from a remote thread, taking work
   DynamicTask* steal(){
@@ -41,12 +59,15 @@ public:
 #ifdef WORKERTHREAD_INJECT
     if(!_injectQueue.empty())
       t=_injectQueue.pop_bottom();
+    if(t==NULL) {
 #endif
-    if(t==NULL)
-      t = _deque.pop_bottom();
+    t = _deque.pop_bottom();
+#ifdef WORKERTHREAD_INJECT
+    }
+#endif
     return t;
   }
-  
+
   ///
   /// called from a remote thread, giving work
   void inject(DynamicTask* t){
@@ -56,7 +77,7 @@ public:
     JASSERT(false)(t).Text("support for WorkerThread::inject() not compiled in");
 #endif
   }
-  
+
   ///
   /// called on WorkerThread::self(), taking work
   DynamicTask* popLocal(){
@@ -75,7 +96,7 @@ public:
 #endif
     return t;
   }
-  
+
   ///
   /// called on WorkerThread::self(), giving work
   void pushLocal(DynamicTask* t){
@@ -87,18 +108,18 @@ public:
 #endif
     _deque.push_top(t);
   }
-  
+
   ///
   /// Racy count of the number of items of work left
   int workCount() const {
     //ondeck is excluded purposefully (it cant be stolen)
     return (int)_deque.size()
 #ifdef WORKERTHREAD_INJECT
-         + (int)injectQueue.size()
+         + (int)_injectQueue.size()
 #endif
     ;
   }
-  
+
   ///
   /// thread local random number generator
   int threadRandInt() const;
@@ -117,6 +138,9 @@ public:
 #ifdef DEBUG
   bool isWorking() const { return _isWorking; }
 #endif
+#ifdef DISTRIBUTED_CACHE
+  WorkerThreadCachePtr cache() const { return _cache; }
+#endif
 private:
   int _id;
 #ifdef WORKERTHREAD_ONDECK
@@ -131,6 +155,9 @@ private:
 #ifdef DEBUG
   bool _isWorking;
 #endif
+#ifdef DISTRIBUTED_CACHE
+  WorkerThreadCachePtr _cache;
+#endif
 } __attribute__ ((aligned (CACHE_LINE_SIZE)));
 
 /**
@@ -140,13 +167,13 @@ private:
 class WorkerThreadPool {
 public:
   //
-  // constructor 
+  // constructor
   WorkerThreadPool();
 
   //
   // insert a new thread into the pool in a lock-free way
   void insert(WorkerThread* thread);
-  
+
   //
   // remove a thread from the pool in a lock-free way
   void remove(WorkerThread* thread);
@@ -154,7 +181,7 @@ public:
   //
   // pick a random thread from the pool
   WorkerThread* getRandom(const WorkerThread* caller = WorkerThread::self());
-  
+
   //
   // pick a thread from the pool, using i as a hint of the location
   WorkerThread* getFixed(int i=0);

@@ -1,0 +1,1824 @@
+# 1 "transform.h"
+# 1 "<built-in>"
+# 1 "<command-line>"
+# 1 "transform.h"
+# 15 "transform.h"
+# 1 "choicegrid.h" 1
+# 15 "choicegrid.h"
+# 1 "formula.h" 1
+# 22 "formula.h"
+namespace petabricks {
+
+class CoordinateFormula;
+class Formula;
+class FormulaList;
+class FreeVars;
+typedef jalib::JRef<const Formula> FormulaPtr;
+typedef jalib::JRef<const FreeVars> FreeVarsPtr;
+typedef jalib::JRef<CoordinateFormula> CoordinateFormulaPtr;
+typedef jalib::JRef<FormulaList> FormulaListPtr;
+
+class OrderedFreeVars : public std::vector<std::string> , public jalib::JRefCounted , public jalib::SrcPosTaggable {};
+
+class FreeVar : public std::string {
+public:
+  FreeVar(const std::string& s, int flags=0) : std::string(s), _flags(flags) {}
+  FreeVar(const char* s="", int flags=0) : std::string(s), _flags(flags) {}
+
+  enum FlagT {
+    FLAG_SIZEVAR = 1<<0,
+    FLAG_SIZESPECIFICCFG = 1<<1,
+    FLAG_FROMTUNABLE = 1<<2
+  };
+
+  friend bool operator< (const FreeVar& a, const FreeVar& b){
+    return reinterpret_cast<const std::string&>(a)
+         < reinterpret_cast<const std::string&>(b);
+  }
+
+
+  bool hasFlag(FlagT f) const { return (_flags&f)!=0; }
+  void addFlag(FlagT f) { _flags |= f; }
+private:
+  int _flags;
+};
+
+
+class FreeVars : public std::set<FreeVar>, public jalib::JRefCounted, public jalib::SrcPosTaggable {
+public:
+  bool contains(const std::string& s) const{ return find(s)!=end(); }
+
+  template <typename T>
+  void eraseAll(const T& that) {
+    typename T::const_iterator i;
+    for(i=that.begin(); i!=that.end(); ++i)
+      erase(*i);
+  }
+
+  template< typename T>
+  void insertAll(const T& t) { insert(t.begin(), t.end()); }
+};
+
+
+
+
+class FormulaList : public std::vector<FormulaPtr>
+                  , public jalib::JRefCounted
+                  , public jalib::JPrintable
+                  , public jalib::SrcPosTaggable
+{
+public:
+  FormulaList();
+  FormulaList(const FormulaList& that);
+  void normalize();
+  void print(std::ostream& o) const;
+  FreeVarsPtr getFreeVariables() const;
+  void makeRelativeTo(const FormulaList& defs);
+
+  void addToEach(const FormulaPtr& x);
+
+  void subToEach(const FormulaPtr& x);
+
+  void extend(const FormulaList& fl){
+    insert(end(), fl.begin(), fl.end());
+  }
+};
+
+
+
+
+class CoordinateFormula : public FormulaList {
+public:
+};
+
+
+
+
+
+class Formula : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
+protected:
+  Formula(const FreeVarsPtr& fv) : _freeVars(fv), _size(1) {}
+public:
+
+  static FormulaPtr inf();
+
+  FreeVarsPtr getFreeVariables() const { return _freeVars; }
+
+  void getFreeVariables(FreeVars& s) const {
+    s.insert(_freeVars->begin(), _freeVars->end());
+  }
+
+  virtual void explodeEquality(FormulaPtr& l, FormulaPtr& r) const;
+
+  FormulaPtr rhs() const {
+    FormulaPtr l,r;
+    explodeEquality(l,r);
+    return r;
+  }
+  FormulaPtr lhs() const {
+    FormulaPtr l,r;
+    explodeEquality(l,r);
+    return l;
+  }
+
+
+  bool hasIntersection(const Formula& that) const;
+
+  int size() const { return _size; }
+
+  virtual std::string printAsAssumption() const;
+  virtual std::string toCppString() const;
+
+  virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const;
+
+  virtual std::string explodePrint() const;
+
+  virtual FormulaPtr ceiling() const { return this; }
+  virtual FormulaPtr floor() const { return this; }
+
+  FormulaPtr plusOne() const;
+  FormulaPtr minusOne() const;
+  FormulaPtr negative() const;
+
+  virtual char opType() const;
+protected:
+
+  FreeVarsPtr _freeVars;
+
+  int _size;
+
+};
+
+
+
+
+class FormulaVariable : public Formula {
+public:
+  static FormulaPtr mktmp();
+  FormulaVariable(const char* name);
+  FormulaVariable(const std::string& name);
+  void print(std::ostream& o) const;
+private:
+  std::string _name;
+};
+
+
+
+
+template< typename T >
+class FormulaLiteral: public Formula {
+public:
+  static FormulaPtr one() { return new FormulaLiteral( 1); }
+  static FormulaPtr two() { return new FormulaLiteral( 2); }
+  static FormulaPtr negOne() { return new FormulaLiteral(-1); }
+  static FormulaPtr zero() { return new FormulaLiteral( 0); }
+  FormulaLiteral(T v);
+  void print(std::ostream& o) const;
+private:
+  T _value;
+};
+
+typedef FormulaLiteral<int> FormulaInteger;
+typedef FormulaLiteral<double> FormulaFloat;
+typedef FormulaLiteral<bool> FormulaBool;
+
+
+
+
+template < char OP >
+class FormulaBinop: public Formula {
+public:
+  enum { CODE = OP };
+  FormulaBinop(const FormulaPtr& left, const FormulaPtr& right);
+  void print(std::ostream& o) const;
+  static const char* opStr();
+
+  virtual void explodeEquality(FormulaPtr& l, FormulaPtr& r) const;
+
+  virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const;
+
+  virtual FormulaPtr ceiling() const;
+  virtual FormulaPtr floor() const;
+
+
+  std::string toCppString() const;
+  std::string printAsAssumption() const;
+  std::string explodePrint() const;
+
+  virtual char opType() const;
+
+private:
+  FormulaPtr _left;
+  FormulaPtr _right;
+  mutable std::string _toStringCache;
+};
+
+typedef FormulaBinop<'+'> FormulaAdd;
+typedef FormulaBinop<'-'> FormulaSubtract;
+typedef FormulaBinop<'*'> FormulaMultiply;
+typedef FormulaBinop<'/'> FormulaDivide;
+typedef FormulaBinop<'^'> FormulaExponent;
+typedef FormulaBinop<'='> FormulaEQ;
+typedef FormulaBinop<'>'> FormulaGT;
+typedef FormulaBinop<'G'> FormulaGE;
+typedef FormulaBinop<'<'> FormulaLT;
+typedef FormulaBinop<'L'> FormulaLE;
+typedef FormulaBinop<'&'> FormulaAnd;
+typedef FormulaBinop<'|'> FormulaOr;
+
+}
+
+inline std::ostream& operator<<(std::ostream& o, const petabricks::FormulaList& obj){
+  jalib::JPrintable::printStlList(o, obj.begin(), obj.end(), ",");
+  return o;
+}
+# 16 "choicegrid.h" 2
+# 1 "matrixdef.h" 1
+# 31 "matrixdef.h"
+namespace petabricks {
+class CodeGenerator;
+class Transform;
+class MatrixDef;
+class FreeVars;
+typedef jalib::JRef<MatrixDef> MatrixDefPtr;
+class MatrixDefList : public std::vector<MatrixDefPtr> , public jalib::JRefCounted, public jalib::SrcPosTaggable {};
+class MatrixDefMap : public std::map<std::string, MatrixDefPtr> , public jalib::JRefCounted {};
+
+
+
+
+class MatrixDef : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
+public:
+  enum Type {
+    T_UNKNOWN = 0,
+    T_FROM = 1,
+    T_TO = 2,
+    T_THROUGH = 4
+  };
+
+
+  static const MatrixDef& oneD(){
+    FormulaList l;
+    l.push_back(FormulaInteger::one());
+    static MatrixDef tmp("_oneD",l,l);
+    return tmp;
+  }
+
+
+
+  MatrixDef(const char* name, const FormulaList& version, const FormulaList& size);
+
+  void print(std::ostream& o) const;
+
+  void initialize(Transform&);
+
+  const std::string& name() const { return _name; }
+
+  size_t numDimensions() const { return _size.size(); }
+
+  FormulaPtr getSizeOfDimension( size_t n ) const {
+    JASSERT(n < numDimensions())(n)(numDimensions());
+    return _size[n];
+  }
+
+  FormulaPtr width() const { return getSizeOfDimension(0); }
+  FormulaPtr height() const { return getSizeOfDimension(1); }
+
+  FormulaPtr getMaxValueInDimension(size_t n) const {
+    return new FormulaSubtract(getSizeOfDimension(n), FormulaInteger::one());
+  }
+
+  void exportAssumptions();
+
+  void exportConstants(Transform&);
+
+  std::string matrixTypeName() const{
+    return "MatrixRegion"+jalib::XToString(numDimensions())+"D";
+  }
+
+  std::string constMatrixTypeName() const{
+    return "ConstMatrixRegion"+jalib::XToString(numDimensions())+"D";
+  }
+
+
+  std::string sliceTypeName() const{
+    return "MatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
+  }
+
+  std::string constSliceTypeName() const{
+    return "ConstMatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
+  }
+
+
+  std::string allocateStr() const;
+
+  void argDeclRW(std::vector<std::string>& args, bool byRef=false) const;
+  void argDeclRO(std::vector<std::string>& args, bool byRef=false) const;
+  void genAllocTmpCode(CodeGenerator& o);
+  void generateCodeSimple(CodeGenerator& o);
+  void readFromFileCode(CodeGenerator& o, const std::string& fn);
+  void writeToFileCode(CodeGenerator& o, const std::string& fn);
+  void varDeclCodeRO(CodeGenerator& o);
+  void varDeclCodeRW(CodeGenerator& o);
+
+  void extractDefines(FreeVars& defined, CodeGenerator& o);
+  void extractCLDefines(FreeVars& defined, CLCodeGenerator& clo);
+  void verifyDefines(CodeGenerator& o);
+  void allocateTemporary(CodeGenerator& o, bool setOnly, bool reallocAllowed);
+
+  void addType(Type t){ _type |= t; }
+  bool isAllInput() const { return _type == T_FROM; }
+private:
+  std::string _name;
+  FormulaList _version;
+  FormulaList _size;
+  int _type;
+};
+
+}
+# 17 "choicegrid.h" 2
+# 1 "rule.h" 1
+# 15 "rule.h"
+# 1 "pbc.h" 1
+# 29 "pbc.h"
+namespace pbcConfig {
+extern std::string thePbPreprocessor;
+extern std::string theObjDir;
+}
+
+namespace petabricks
+{
+# 65 "pbc.h"
+enum RuleFlavorEnum
+{
+
+  E_RF_DYNAMIC,
+  E_RF_STATIC,
+
+
+
+};
+
+class RuleFlavor {
+public:
+  RuleFlavor(RuleFlavorEnum v) : _val(v) {}
+  operator RuleFlavorEnum() const { return _val; }
+
+
+  const char* str() const {
+    switch(*this) {
+      case E_RF_DYNAMIC: return "workstealing";
+      case E_RF_STATIC: return "sequential";
+
+
+
+      default:
+        UNIMPLEMENTED();
+        return "";
+    }
+  }
+  friend std::ostream& operator<<(std::ostream& o, const RuleFlavor& fv) {
+    return o<<fv.str();
+  }
+private:
+  RuleFlavorEnum _val;
+};
+
+}
+# 16 "rule.h" 2
+
+
+# 1 "region.h" 1
+# 24 "region.h"
+namespace petabricks {
+class RuleInterface;
+class UserRule;
+class CodeGenerator;
+class Transform;
+class SimpleRegion;
+class Region;
+class MatrixDependencyMap;
+class RIRScope;
+typedef jalib::JRef<Region> RegionPtr;
+typedef jalib::JRef<SimpleRegion> SimpleRegionPtr;
+class RegionList : public std::vector<RegionPtr> , public jalib::JRefCounted, public jalib::SrcPosTaggable {
+public:
+  void makeRelativeTo(const FormulaList& defs);
+};
+
+class SimpleRegion : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
+public:
+  SimpleRegion(){}
+  SimpleRegion(const CoordinateFormula& min, const CoordinateFormula& max)
+    :_minCoord(min), _maxCoord(max)
+  {}
+
+  SimpleRegion(const MatrixDef& matrix){
+    for(size_t i=0; i<matrix.numDimensions(); ++i){
+      _minCoord.push_back(FormulaInteger::zero());
+      _maxCoord.push_back(matrix.getSizeOfDimension(i));
+    }
+  }
+
+  void print(std::ostream& o) const;
+
+  SimpleRegionPtr intersect(const SimpleRegion& that) const;
+  SimpleRegionPtr regionUnion(const SimpleRegion& that) const;
+
+  bool hasIntersect(const SimpleRegion& that) const;
+
+  size_t dimensions() const { return _minCoord.size(); }
+
+  const CoordinateFormula& minCoord() const { return _minCoord; }
+  const CoordinateFormula& maxCoord() const { return _maxCoord; }
+  CoordinateFormula& minCoord() { return _minCoord; }
+  CoordinateFormula& maxCoord() { return _maxCoord; }
+
+  void addDimension(const FormulaPtr& min, const FormulaPtr& max){
+    _minCoord.push_back(min);
+    _maxCoord.push_back(max);
+  }
+
+  void offsetMaxBy(const FormulaPtr& val){
+    for(CoordinateFormula::iterator i=_maxCoord.begin(); i!=_maxCoord.end(); ++i)
+      *i = new FormulaAdd(*i, val);
+    _maxCoord.normalize();
+  }
+
+  std::vector<std::string> argnames() const {
+    std::vector<std::string> args;
+    for( CoordinateFormula::const_iterator i=minCoord().begin()
+         ; i!=minCoord().end()
+         ; ++i)
+    {
+      args.push_back((*i)->toString());
+    }
+    for( CoordinateFormula::const_iterator i=maxCoord().begin()
+         ; i!=maxCoord().end()
+         ; ++i)
+    {
+      args.push_back((*i)->toString());
+    }
+    return args;
+  }
+
+  size_t size() const { return dimensions(); }
+protected:
+  CoordinateFormula _minCoord;
+  CoordinateFormula _maxCoord;
+};
+
+class Region : public SimpleRegion {
+public:
+  enum RegionType {
+    REGION_INVALID,
+    REGION_CELL,
+    REGION_ROW,
+    REGION_COL,
+    REGION_BOX,
+    REGION_SLICE,
+    REGION_ALL
+  };
+
+  Region(const char* fromMatrix, const FormulaList& version, const char* type, const FormulaList& bounds);
+
+  void print(std::ostream& o) const;
+
+  void setName(const char*);
+  void initialize(Transform&);
+  void validate();
+  CoordinateFormula calculateCenter() const;
+
+  static RegionType strToRegionType(const std::string& str);
+
+  void makeRelativeTo(const FormulaList& defs){
+    _minCoord.makeRelativeTo(defs);
+    _maxCoord.makeRelativeTo(defs);
+  }
+
+  std::string genTypeStr(bool isConst) const;
+  std::string generateSignatureCode(bool isConst) const;
+  std::string generateAccessorCode(bool allowOptional=true) const;
+
+  SimpleRegionPtr getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList& defs, bool isOutput);
+
+  void collectDependencies(const Transform& tx, const RuleInterface& rule, MatrixDependencyMap& map) const;
+
+  void addAssumptions() const;
+
+  FormulaPtr getSizeOfRuleIn(int d) const;
+
+  MatrixDefPtr matrix() const { return _fromMatrix; }
+
+
+
+  FormulaList diff(const Transform&, const RuleInterface&) const;
+
+  bool isSingleElement() const { return _originalType==REGION_CELL && dimensions()>0; }
+
+  const std::string& name() const { return _name; }
+
+  bool isAll() const { return _originalType == REGION_ALL; }
+
+  void assertNotInput();
+
+  void setOptionalDefault(const FormulaPtr& f){
+    if(f->toString()=="OPTIONAL")
+      _optionalDefault = new FormulaVariable("petabricks::the_missing_val()");
+    else
+      _optionalDefault = f;
+  }
+  bool isOptional() const { return _optionalDefault; }
+  const FormulaPtr& optionalDefault() const { return _optionalDefault; }
+
+  FormulaList getOriginalBounds() const
+  {
+    return _originalBounds;
+  }
+
+  RegionType getRegionType() const
+  {
+    return _originalType;
+  }
+
+  void addArgToScope(RIRScope& scope) const;
+private:
+  std::string _name;
+  std::string _fromMatrixName;
+  FormulaPtr _version;
+  RegionType _originalType;
+  FormulaList _originalBounds;
+  MatrixDefPtr _fromMatrix;
+  FormulaPtr _optionalDefault;
+};
+
+}
+# 19 "rule.h" 2
+# 27 "rule.h"
+namespace petabricks {
+
+class CodeGenerator;
+class DependencyDirection;
+class FormulaList;
+class IterationOrderList;
+class MatrixDependencyMap;
+class RIRScope;
+class RuleDescriptor;
+class RuleInterface;
+class StaticScheduler;
+class Transform;
+class UserRule;
+typedef jalib::JRef<RuleInterface> RulePtr;
+class RuleList : public std::vector<RulePtr>, public jalib::JRefCounted, public jalib::SrcPosTaggable {};
+typedef std::vector<RuleDescriptor> RuleDescriptorList;
+typedef std::vector<RuleDescriptorList> RuleDescriptorListList;
+typedef jalib::JRef<MatrixDependencyMap> MatrixDependencyMapPtr;
+
+struct RulePriCmp
+{
+  bool operator()(const RulePtr& r1, const RulePtr& r2) const;
+};
+typedef std::set<RulePtr, RulePriCmp> RuleSet;
+
+
+
+
+class RuleFlags {
+public:
+  RuleFlags() : priority(PRIORITY_DEFAULT), rotations(NOROTATE), isRecursive(false), isReturnStyle(true) {}
+
+  typedef int PriorityT;
+  enum { PRIORITY_PRIMARY = 0
+       , PRIORITY_DEFAULT = 1
+       , PRIORITY_SECONDARY = 2
+       , PRIORITY_MAX = 1024};
+
+  typedef int RotationT;
+  enum {
+    NOROTATE = 0,
+    ROTATE_90 = 1,
+    ROTATE_180 = 2,
+    ROTATE_270 = 4,
+    MIRROR_X = 8,
+    MIRROR_Y = 16,
+    ROTATE = ROTATE_90 | ROTATE_180 | ROTATE_270,
+    MIRROR = MIRROR_X | MIRROR_Y
+  };
+
+  void print(std::ostream& o) const;
+
+  PriorityT priority;
+  RotationT rotations;
+  bool isRecursive;
+  bool isReturnStyle;
+};
+
+
+
+
+class RuleInterface : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
+public:
+  RuleInterface();
+
+
+
+  virtual void initialize(Transform&) = 0;
+  virtual void performExpansion(Transform&) = 0;
+  virtual void compileRuleBody(Transform& tx, RIRScope& s) = 0;
+
+  virtual RuleFlags::PriorityT priority() const = 0;
+  virtual bool isRecursive() const = 0;
+  virtual bool canProvide(const MatrixDefPtr& m) const = 0;
+  virtual bool isSingleElement() const = 0;
+
+  virtual void collectDependencies(StaticScheduler& scheduler) = 0;
+  virtual void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension, const RulePtr&) = 0;
+
+  virtual void generateCallCode(const std::string& nodename,
+                                Transform& trans,
+                                CodeGenerator& o,
+                                const SimpleRegionPtr& region,
+                                RuleFlavor flavor) = 0;
+  virtual void generateDeclCodeSimple(Transform& trans, CodeGenerator& o) = 0;
+  virtual void generateTrampCodeSimple(Transform& trans, CodeGenerator& o) = 0;
+
+  virtual void markRecursive() = 0;
+  virtual const FormulaPtr& recursiveHint() const = 0;
+
+  virtual bool hasWhereClause() const = 0;
+  virtual FormulaPtr getWhereClause() const = 0;
+
+  virtual std::string getLabel() const = 0;
+
+
+
+  FormulaPtr trimImpossible(const FormulaList& l);
+
+
+
+
+
+
+  FormulaPtr getOffsetVar(int dimension, const char* extra=NULL) const;
+
+
+
+  int offsetVarToDimension(const std::string& dimension, const char* extra=NULL) const;
+
+  void printIdentifier(std::ostream& o) const { o <<_id << " "; }
+  int id() const { return _id; }
+
+
+  const SimpleRegionPtr& applicableRegion() const { return _applicableRegion; }
+
+
+  virtual int dimensions() const = 0;
+  virtual FormulaPtr getSizeOfRuleIn(int d) = 0;
+  virtual void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor) = 0;
+
+  virtual DependencyDirection getSelfDependency() const = 0;
+
+  bool isDuplicated() const { return duplicateCount()>1; }
+  virtual size_t duplicateCount() const { return 1; }
+
+  virtual size_t setDuplicateNumber(size_t c){ JASSERT(c==0); return 0; }
+  virtual size_t getDuplicateNumber() { return 0; }
+
+
+  bool isDisabled() const { return _isDisabled; }
+  void disableRule() { _isDisabled = true; }
+protected:
+  int _id;
+  SimpleRegionPtr _applicableRegion;
+  bool _isDisabled;
+};
+
+
+
+
+
+class RuleDescriptor {
+public:
+  enum Type { RULE_BEGIN, RULE_END };
+
+
+
+  RuleDescriptor(Type t, const RulePtr& r, const MatrixDefPtr& m, const FormulaPtr& f)
+    : _type(t), _rule(r), _matrix(m), _formula(f)
+  {}
+
+
+
+  bool operator< (const RuleDescriptor& that) const;
+
+
+
+  const RulePtr& rule() const { return _rule; }
+
+
+
+  bool isBegin() const { return _type == RULE_BEGIN; };
+
+
+
+  bool isEnd() const { return _type == RULE_END; };
+
+  FormulaPtr getPosition() const { return _formula; }
+
+
+
+  bool isSamePosition(const FormulaPtr& that) const;
+
+  void print(std::ostream& o) const {
+    o << _formula << "{";
+    if(isBegin())
+      o << "begin";
+    else
+      o << "end";
+    o << "_" << _rule->id() << "} ";
+  }
+
+private:
+  Type _type;
+  RulePtr _rule;
+  MatrixDefPtr _matrix;
+  FormulaPtr _formula;
+};
+
+}
+# 18 "choicegrid.h" 2
+# 26 "choicegrid.h"
+namespace petabricks {
+class CodeGenerator;
+class ChoiceGrid;
+typedef jalib::JRef<ChoiceGrid> ChoiceGridPtr;
+typedef std::vector<ChoiceGridPtr> ChoiceGridList;
+class ChoiceGridIndex : public std::map<SimpleRegionPtr, ChoiceGridPtr>,
+                        public jalib::JPrintable,
+                        public jalib::SrcPosTaggable {
+public:
+  void print(std::ostream& os) const {
+    for(const_iterator i=begin(); i!=end(); ++i)
+      os << "    [" << i->first << "] : " << i->second << "\n";
+  }
+  void removeDisabledRules();
+};
+class ChoiceGridMap : public std::map<MatrixDefPtr, ChoiceGridIndex>, public jalib::JPrintable, public jalib::SrcPosTaggable {
+public:
+  void print(std::ostream& os) const {
+    for(const_iterator i=begin(); i!=end(); ++i)
+      os << "  " << i->first << ":\n" << i->second;
+  }
+  void removeDisabledRules(){
+    for(iterator i=begin(); i!=end(); ++i)
+      i->second.removeDisabledRules();
+  }
+};
+
+
+
+
+class ChoiceGrid : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
+protected:
+  ChoiceGrid(int d, const FormulaPtr& begin) : _dimension(d), _begin(begin) {}
+
+  void finalizeConstruction(const FormulaPtr& end, const RuleSet& applicable);
+public:
+  static ChoiceGridPtr constructFrom( const RuleSet& allowedRules
+                                    , const RuleDescriptorListList& dimensions
+                                    , size_t dimension = 0);
+
+  void print(std::ostream& os) const;
+
+  void generateCodeSimple(CodeGenerator& o, const SimpleRegionPtr& prefix);
+
+  void buildIndex(ChoiceGridIndex& idx, const SimpleRegionPtr& prefix = 0);
+
+  const RuleSet& rules() const { return _applicableRules; }
+  RuleSet& rules() { return _applicableRules; }
+
+  bool hasWhereClauses() const {
+    if(_applicableRules.empty()) return false;
+    return (*_applicableRules.begin())->hasWhereClause();
+  }
+
+  void applyRulePriorities();
+
+  void removeDisabledRules();
+private:
+  int _dimension;
+  FormulaPtr _begin;
+  FormulaPtr _end;
+  RuleSet _applicableRules;
+  ChoiceGridPtr _nextElement;
+  ChoiceGridPtr _nextDimension;
+
+};
+
+
+
+
+
+
+}
+# 16 "transform.h" 2
+# 1 "configitem.h" 1
+# 25 "configitem.h"
+namespace petabricks {
+
+class CodeGenerator;
+class ConfigItem;
+typedef std::vector<ConfigItem> ConfigItems;
+
+
+
+typedef ConfigItem TemplateArg;
+typedef jalib::JRef<TemplateArg> TemplateArgPtr;
+class TemplateArgList: public std::vector<TemplateArgPtr>, public jalib::JRefCounted, public jalib::SrcPosTaggable {};
+typedef jalib::JRef<TemplateArgList> TemplateArgListPtr;
+
+class ConfigItem : public jalib::JPrintable, public jalib::JRefCounted, public jalib::SrcPosTaggable {
+public:
+  enum FlagT {
+    FLAG_TUNABLE = 1<<0,
+    FLAG_USER = 1<<1,
+    FLAG_SIZESPECIFIC = 1<<2,
+    FLAG_ACCURACY = 1<<3,
+    FLAG_SIZEVAR = 1<<4,
+    FLAG_FROMCFG = 1<<5,
+    FLAG_TEMPLATEVAR = 1<<6,
+    FLAG_DOUBLE = 1<<7,
+    FLAG_ARRAY = 1<<8,
+    FLAG_FORCEPASS = 1<<9
+  };
+
+  ConfigItem(int flags, std::string name, jalib::TunableValue initial, jalib::TunableValue min, jalib::TunableValue max);
+  ConfigItem(std::string name, jalib::TunableValue min, jalib::TunableValue max);
+
+  std::string name() const { return _name; }
+  jalib::TunableValue initial() const { return _initial; }
+  jalib::TunableValue min() const { return _min; }
+  jalib::TunableValue max() const { return _max; }
+  int range() const { return _max.i()-_min.i()+1; }
+
+
+  void initDefaults();
+
+
+
+  std::string category() const;
+
+  bool hasFlag(FlagT f) const {
+    return (_flags & f) != 0;
+  }
+
+  bool shouldPass() const {
+    return hasFlag(FLAG_SIZEVAR) || hasFlag(FLAG_SIZESPECIFIC) || hasFlag(FLAG_ARRAY) || hasFlag(FLAG_FORCEPASS);
+  }
+
+  void merge(int flags, std::string name, jalib::TunableValue initial, jalib::TunableValue min, jalib::TunableValue max){
+    merge(ConfigItem(flags, name, initial, min, max));
+  }
+  void merge(const ConfigItem& that);
+
+  void addFlag(int flag){ _flags|=flag; }
+  void removeFlag(int flag){ _flags&=~flag; }
+
+  void print(std::ostream& o) const;
+
+  void setInitial(const jalib::TunableValue& i) { _initial=i; }
+  void setMin(const jalib::TunableValue& i) { _min=i; }
+  void setMax(const jalib::TunableValue& i) { _max=i; }
+  void setName(const std::string& i) { _name=i; }
+
+  void setArraySize(size_t i) { _arraySize=i; }
+
+  void createTunableDecls(const std::string& prefix, CodeGenerator& o) const;
+
+  void assignTunableDecls(const std::string& prefix,
+                          CodeGenerator& o,
+                          const std::string& sizestr,
+                          const std::string& arraystr="") const;
+
+  std::string elementType() const {
+    return hasFlag(FLAG_DOUBLE) ? "double" : "int";
+  }
+  std::string passType() const {
+    if(hasFlag(FLAG_ARRAY))
+      return "std::vector<"+elementType()+">&";
+    else
+      return elementType();
+  }
+  std::string memberType() const {
+    if(hasFlag(FLAG_ARRAY))
+      return "std::vector<"+elementType()+">";
+    else
+      return elementType();
+  }
+private:
+  int _flags;
+  std::string _name;
+  jalib::TunableValue _initial;
+  jalib::TunableValue _min;
+  jalib::TunableValue _max;
+  size_t _arraySize;
+};
+
+}
+# 17 "transform.h" 2
+
+# 1 "rirscope.h" 1
+# 20 "rirscope.h"
+namespace petabricks {
+
+class RIRSymbol;
+typedef jalib::JRef<RIRSymbol> RIRSymbolPtr;
+typedef std::map<std::string, RIRSymbolPtr> RIRSymbolMap;
+class RIRScope;
+typedef jalib::JRef<RIRScope> RIRScopePtr;
+
+class RIRSymbol: public jalib::JRefCounted, public jalib::JPrintable {
+public:
+  enum SymbolType {
+    INVALID,
+    SYM_TYPE = 0x0100,
+    SYM_TYPE_BASIC,
+    SYM_TYPE_MATRIX,
+    SYM_TRANSFORM = 0x0200,
+    SYM_TRANSFORM_TEMPLATE,
+    SYM_TRANSFORM_VARACCURACY,
+    SYM_CONFIG = 0x0400,
+    SYM_CONFIG_TRANSFORM_LOCAL,
+    SYM_CONFIG_PASSED,
+    SYM_LOCAL_VAR = 0x0800,
+    SYM_ARG = 0x1000,
+    SYM_ARG_ELEMENT,
+    SYM_ARG_REGION,
+    _LAST
+  };
+  RIRSymbol(SymbolType t, const std::string& rp = "")
+    : _type(t), _replacement(rp)
+  {}
+  SymbolType type() const { return _type; }
+
+  void print(std::ostream& o) const {
+    o<<"RIRSymbol";
+  }
+
+  bool isType() const { return (_type & SYM_TYPE) != 0; }
+  bool isConfig() const { return (_type & SYM_CONFIG) != 0; }
+  bool isTransform() const { return (_type & SYM_TRANSFORM) != 0; }
+  bool isTemplateTransform() const { return _type == SYM_TRANSFORM_TEMPLATE || _type==SYM_TRANSFORM_VARACCURACY; }
+
+  bool hasReplacement() const { return _replacement.length()>0; }
+  const std::string& replacement() const { return _replacement; }
+private:
+  SymbolType _type;
+  std::string _replacement;
+};
+
+class RIRScope: public jalib::JRefCounted {
+public:
+  static const RIRScopePtr& global();
+
+  RIRScope(const RIRScopePtr& parent)
+    : _parent(parent)
+  {}
+
+  void set(const std::string& name, RIRSymbol::SymbolType val){
+    set(name, new RIRSymbol(val));
+  }
+
+  void set(const std::string& name, const RIRSymbolPtr& val){
+    _symbols[name] = val;
+  }
+
+  RIRSymbolPtr localLookup(const std::string& name) const;
+
+  RIRSymbolPtr lookup(const std::string& name) const;
+
+  RIRScopePtr createChildLayer() { return new RIRScope(this); }
+  const RIRScopePtr& parentLayer() const { return _parent; }
+private:
+  RIRScopePtr _parent;
+  RIRSymbolMap _symbols;
+};
+
+}
+# 19 "transform.h" 2
+
+# 1 "scheduler.h" 1
+# 15 "scheduler.h"
+# 1 "choicedepgraph.h" 1
+# 17 "choicedepgraph.h"
+# 1 "matrixdependency.h" 1
+# 27 "matrixdependency.h"
+namespace petabricks {
+
+class MatrixDependency;
+typedef jalib::JRef<MatrixDependency> MatrixDependencyPtr;
+class MatrixDependencyMap : public jalib::JRefCounted, public std::map<MatrixDefPtr, MatrixDependencyPtr> {};
+
+class DependencyDirection : public jalib::JPrintable {
+public:
+  enum DirectionT {
+    D_NONE = 0,
+    D_LT=1, D_EQ=2, D_GT=4,
+    D_MULTIOUTPUT=8,
+    D_LE = D_LT | D_EQ,
+    D_GE = D_GT | D_EQ,
+    D_NEQ = D_LT | D_GT,
+    D_ALL = D_LT | D_EQ | D_GT
+  };
+
+
+  DependencyDirection(size_t dimensions = 0, DirectionT dir=D_NONE);
+
+
+
+  DependencyDirection(const DependencyDirection& left, const DependencyDirection& right);
+
+
+
+  void addDirection(size_t dim, DirectionT dir);
+
+  void print(std::ostream& o) const;
+
+  size_t size() const;
+
+  DirectionT operator[](size_t dim) const ;
+
+  void addDirection(const DependencyDirection& that){
+    *this=DependencyDirection(*this,that);
+  }
+
+  bool operator!= ( const DependencyDirection& that ) const {
+     return _directionMask!=that._directionMask;
+  }
+
+  bool isMultioutput() const {
+    for(size_t i=0; i<_directionMask.size(); ++i)
+      if( (_directionMask[i]&D_MULTIOUTPUT) != 0 )
+        return true;
+    return false;
+  }
+  
+  bool isNone() const {
+    for(size_t i=0; i<_directionMask.size(); ++i)
+      if( _directionMask[i] != D_NONE )
+        return false;
+    return true;
+  }
+
+  std::string toCodeStr() const;
+
+  bool canIterateForward(int d) const { return (operator[](d) & D_GT)==0; }
+  bool canIterateBackward(int d) const { return (operator[](d) & D_LT)==0; }
+private:
+  std::vector<int> _directionMask;
+};
+
+class MatrixDependency : public jalib::JRefCounted, public jalib::JPrintable {
+public:
+  MatrixDependency( const DependencyDirection& d
+                  , const SimpleRegionPtr& r = NULL);
+
+  void print(std::ostream& o) const;
+
+  void mergeWith( MatrixDependency& that );
+
+  const SimpleRegionPtr& region() const { return _region; }
+
+  const DependencyDirection& direction() const { return _direction; }
+private:
+  DependencyDirection _direction;
+  SimpleRegionPtr _region;
+};
+
+}
+# 18 "choicedepgraph.h" 2
+
+# 1 "rulechoice.h" 1
+# 18 "rulechoice.h"
+namespace petabricks {
+class CodeGenerator;
+class RuleChoice;
+class ScheduleNode;
+typedef jalib::JRef<RuleChoice> RuleChoicePtr;
+
+class RuleChoiceConsumer {
+public:
+  virtual ~RuleChoiceConsumer() {}
+  virtual const RuleSet& choices() const = 0;
+};
+
+class RuleChoiceAssignment : public std::map<const RuleChoiceConsumer*, RulePtr>{
+};
+
+class RuleChoiceCollection {
+public:
+  typedef int const_iterator;
+  typedef const_iterator iterator;
+  iterator begin() { return 0; }
+  const_iterator begin() const { return 0; }
+  iterator end() { return size(); }
+  const_iterator end() const { return size(); }
+
+  void addConsumer(const RuleChoiceConsumer* c) {
+    _ordering.push_back(c);
+  }
+
+  size_t size() const;
+
+  RuleChoiceAssignment getAssignment(size_t choice) const;
+
+
+  void markInvalid(const iterator& i) { _invalidOrderings.push_back(i); }
+
+  void generateDecisionTree(std::string& prefix, size_t choiceCount, CodeGenerator& o);
+
+private:
+  std::vector<const RuleChoiceConsumer*> _ordering;
+  std::vector<iterator> _invalidOrderings;
+};
+
+}
+# 20 "choicedepgraph.h" 2
+# 28 "choicedepgraph.h"
+namespace petabricks {
+class Transform;
+class ChoiceGrid;
+class CodeGenerator;
+typedef jalib::JRef<ChoiceGrid> ChoiceGridPtr;
+
+class ChoiceDepGraphNode;
+typedef jalib::JRef<ChoiceDepGraphNode> ChoiceDepGraphNodePtr;
+typedef std::vector< ChoiceDepGraphNodePtr > ChoiceDepGraphNodeList;
+typedef std::map<ChoiceDepGraphNode*,ChoiceDepGraphNode*> ChoiceDepGraphNodeRemapping;
+
+class ChoiceDepGraphNodeSet : public std::set<ChoiceDepGraphNode*> {
+public:
+  void applyRemapping(const petabricks::ChoiceDepGraphNodeRemapping& map);
+  bool overlaps(const ChoiceDepGraphNodeSet& that){
+    const_iterator i;
+    for(i=begin(); i!=end(); ++i){
+      if(that.find(*i)!=that.end())
+        return true;
+    }
+    return false;
+  }
+};
+
+struct DependencyInformation {
+  RuleSet rules;
+  DependencyDirection direction;
+
+
+
+  bool merge(const DependencyInformation& that){
+    size_t nRules = rules.size();
+    DependencyDirection oldDir = direction;
+    rules.insert(that.rules.begin(), that.rules.end());
+    direction.addDirection(that.direction);
+    return rules.size()!=nRules || oldDir!=direction;
+  }
+
+  bool contains(const RulePtr& p) const {
+    return rules.find(p) != rules.end();
+  }
+
+};
+
+class ScheduleDependencies : public std::map<ChoiceDepGraphNode*, DependencyInformation>{
+public:
+  void merge(const ScheduleDependencies& that){
+    for(const_iterator i=that.begin(); i!=that.end(); ++i)
+      operator[](i->first).merge(i->second);
+  }
+
+  void applyRemapping(const petabricks::ChoiceDepGraphNodeRemapping& map);
+};
+
+class ChoiceDepGraphNode : public jalib::JRefCounted,
+                     public jalib::JPrintable,
+                     public jalib::SrcPosTaggable,
+                     public RuleChoiceConsumer {
+public:
+
+
+  ChoiceDepGraphNode();
+
+
+
+  void addDependency(ChoiceDepGraphNode* n, const RulePtr& r, const DependencyDirection& dir){
+    JASSERT(_directDependsRemapped.empty());
+    _directDependsOriginal[n].rules.insert(r);
+    _directDependsOriginal[n].direction.addDirection(dir);
+  }
+
+
+
+  void printNode(std::ostream& os) const;
+
+
+
+  void printEdges(std::ostream& os) const;
+
+
+
+  std::string nodename() const { return "n"+jalib::XToString(_id); }
+
+
+
+
+  virtual void generateCode(Transform& trans,
+                            CodeGenerator& o,
+                            RuleFlavor flavor,
+                            const RuleChoiceAssignment& choice) = 0;
+  virtual void generateCodeForSlice(Transform& trans,
+                                    CodeGenerator& o,
+                                    int dimension,
+                                    const FormulaPtr& pos,
+                                    RuleFlavor flavor,
+                                    const RuleChoiceAssignment& choice) = 0;
+
+  virtual const MatrixDefPtr& matrix() const = 0;
+  virtual const SimpleRegionPtr& region() const = 0;
+  virtual const RuleSet& choices() const = 0;
+
+  ScheduleDependencies& directDepends() {
+    return _directDependsRemapped.empty() ? _directDependsOriginal : _directDependsRemapped;
+  }
+  const ScheduleDependencies& directDepends() const {
+    return _directDependsRemapped.empty() ? _directDependsOriginal : _directDependsRemapped;
+  }
+
+  const ScheduleDependencies& directDependsOriginal() const { return _directDependsOriginal; }
+  const ScheduleDependencies& directDependsRemapped() const { return _directDependsRemapped; }
+  ScheduleDependencies& indirectDepends() { return _indirectDepends; }
+  const ScheduleDependencies& indirectDepends() const { return _indirectDepends; }
+
+
+
+  int updateIndirectDepends();
+
+  ChoiceDepGraphNodeSet getStronglyConnectedComponent();
+
+  ChoiceDepGraphNodeSet getMultioutputComponent();
+
+  void applyRemapping(const ChoiceDepGraphNodeRemapping& map);
+  void applyChoiceRemapping(const RuleChoiceAssignment& map);
+
+  void resetRemapping();
+
+  bool isInput() const { return _isInput; }
+  bool isOutput() const { return _isOutput; }
+  void markInput() { _isInput = true; }
+  void markOutput() { _isOutput = true; }
+  void markLast() { _isLast = true; }
+
+  std::string getChoicePrefix(Transform& t);
+
+  virtual bool findValidSchedule(const RuleChoiceAssignment&) { return true; }
+protected:
+  int _id;
+  bool _isInput;
+  bool _isOutput;
+  bool _isLast;
+  ScheduleDependencies _directDependsOriginal;
+  ScheduleDependencies _directDependsRemapped;
+  ScheduleDependencies _indirectDepends;
+  int _choiceId;
+};
+
+class BasicChoiceDepGraphNode : public ChoiceDepGraphNode {
+public:
+  BasicChoiceDepGraphNode(const MatrixDefPtr& m, const SimpleRegionPtr& r, const ChoiceGridPtr& choices);
+
+  const MatrixDefPtr& matrix() const { return _matrix; }
+  const SimpleRegionPtr& region() const { return _region; }
+  const RuleSet& choices() const { return _choices; }
+
+  void print(std::ostream& o) const {
+    o << _matrix->name() << ".region(" << _region << ")";
+  }
+
+  void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
+                            const RuleChoiceAssignment& choice);
+  void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos, RuleFlavor flavor,
+                            const RuleChoiceAssignment& choice);
+private:
+  MatrixDefPtr _matrix;
+  SimpleRegionPtr _region;
+  RuleSet _choices;
+};
+
+class MetaChoiceDepGraphNode : public ChoiceDepGraphNode {
+public:
+  MetaChoiceDepGraphNode(const ChoiceDepGraphNodeSet& set);
+
+  const MatrixDefPtr& matrix() const { JASSERT(false); return MatrixDefPtr::null(); }
+  const SimpleRegionPtr& region() const { JASSERT(false); return SimpleRegionPtr::null(); }
+  const RuleSet& choices() const { static RuleSet empty; return empty; }
+
+  void print(std::ostream& o) const {
+    o << classname() << ":";
+    for(ChoiceDepGraphNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i)
+      o << "\\n " << **i;
+  }
+
+  void generateCode(Transform&,
+                    CodeGenerator&,
+                    RuleFlavor,
+                    const RuleChoiceAssignment&){
+    UNIMPLEMENTED();
+  }
+  void generateCodeForSlice(Transform&,
+                            CodeGenerator&,
+                            int,
+                            const FormulaPtr&,
+                            RuleFlavor,
+                            const RuleChoiceAssignment& ){
+    UNIMPLEMENTED();
+  }
+
+protected:
+  virtual const char* classname() const { return "MetaChoiceDepGraphNode"; }
+
+protected:
+  ChoiceDepGraphNodeSet _originalNodes;
+};
+
+class MultiOutputChoiceDepGraphNode : public MetaChoiceDepGraphNode {
+public:
+  MultiOutputChoiceDepGraphNode(const ChoiceDepGraphNodeSet& set)
+    : MetaChoiceDepGraphNode(set)
+  {}
+  bool findValidSchedule(const RuleChoiceAssignment& choice);
+
+  void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
+                            const RuleChoiceAssignment& choice);
+protected:
+  virtual const char* classname() const { return "MultiOutputChoiceDepGraphNode"; }
+
+};
+
+
+class SlicedChoiceDepGraphNode : public MetaChoiceDepGraphNode {
+public:
+  SlicedChoiceDepGraphNode(const ChoiceDepGraphNodeSet& set);
+
+
+  bool findValidSchedule(const RuleChoiceAssignment& choice);
+
+  void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
+                            const RuleChoiceAssignment& choice);
+
+protected:
+  const char* classname() const { return "SlicedChoiceDepGraphNode"; }
+private:
+  int _dimension;
+  bool _forward;
+  FormulaPtr _begin;
+  FormulaPtr _end;
+};
+
+
+}
+# 16 "scheduler.h" 2
+
+
+
+namespace petabricks {
+class ChoiceGridMap;
+class StaticScheduler;
+class Schedule;
+typedef jalib::JRef<StaticScheduler> StaticSchedulerPtr;
+typedef jalib::JRef<Schedule> SchedulePtr;
+
+
+
+
+class ScheduleEntry {
+public:
+  ScheduleEntry(ChoiceDepGraphNode* node, const ScheduleDependencies& deps)
+    : _node(node), _deps(deps)
+  {
+    filterDeps();
+  }
+
+  const ChoiceDepGraphNode& node() const { return _node; }
+  ChoiceDepGraphNode& node() { return _node; }
+
+  void printNode(std::ostream& o) const {
+    node().printNode(o);
+  }
+  void printEdge(std::ostream& o) const {
+    for(ScheduleDependencies::const_iterator i=_deps.begin(); i!=_deps.end(); ++i){
+      if(i->first->isInput()) {
+        o << "  input";
+      }else{
+        o << "  " << i->first->nodename();
+      }
+      o << " -> "
+        << node().nodename()
+        << "[ label=\"" << i->second.direction << "\"];\n";
+    }
+  }
+  void filterDeps() {
+    ScheduleDependencies tmp;
+    for(ScheduleDependencies::const_iterator i=_deps.begin(); i!=_deps.end(); ++i){
+      if(i->first->isInput()) {
+        continue;
+      }
+      if(i->first == _node.asPtr()) {
+        continue;
+      }
+      tmp[i->first] = i->second;
+    }
+    tmp.swap(_deps);
+  }
+
+  const ScheduleDependencies& deps() const { return _deps; }
+  ScheduleDependencies& deps() { return _deps; }
+private:
+  ChoiceDepGraphNodePtr _node;
+  ScheduleDependencies _deps;
+};
+
+
+
+
+class Schedule : public jalib::JRefCounted, public jalib::JPrintable{
+
+  struct SchedulingState {
+    ChoiceDepGraphNodeSet generated;
+    ChoiceDepGraphNodeSet pending;
+  };
+public:
+  Schedule(const RuleChoiceAssignment& choice, const ChoiceDepGraphNodeSet& inputs, const ChoiceDepGraphNodeSet& outputs)
+    : _choiceAssignment(choice)
+  {
+    initialize(inputs, outputs);
+  }
+  void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+
+  size_t size() const { return _schedule.size(); }
+
+  void print(std::ostream& o) const {
+    o << "digraph {\n";
+    for(ScheduleT::const_iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
+      i->printNode(o);
+    }
+    for(ScheduleT::const_iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
+      i->printEdge(o);
+    }
+    o << "}\n";
+  }
+
+  void writeGraph(const char* filename) {
+    std::ofstream of(filename);
+    of << *this;
+  }
+protected:
+  void initialize(const ChoiceDepGraphNodeSet& inputs, const ChoiceDepGraphNodeSet& outputs);
+  void depthFirstChoiceDepGraphNode(SchedulingState& state, ChoiceDepGraphNode* n);
+private:
+
+  typedef std::vector<ScheduleEntry> ScheduleT;
+  ScheduleT _schedule;
+  RuleChoiceAssignment _choiceAssignment;
+};
+
+
+
+
+class StaticScheduler : public jalib::JRefCounted,
+                        public jalib::JPrintable,
+                        public jalib::SrcPosTaggable
+{
+public:
+  class CantScheduleException {};
+
+  ChoiceDepGraphNodeSet lookupNode(const MatrixDefPtr& matrix, const SimpleRegionPtr& region);
+
+  StaticScheduler(const ChoiceGridMap& cg, Transform&);
+
+  void markInputMatrix(const MatrixDefPtr& matrix){
+    SimpleRegionPtr r = new SimpleRegion(matrix);
+    ChoiceDepGraphNodeList& regions = _matrixToNodes[matrix];
+    JASSERT(regions.size()==0)(matrix).Text("Rules given for input matrix");
+    regions.push_back(new BasicChoiceDepGraphNode(matrix, r, NULL));
+    _allNodes.push_back(regions.back());
+    _inputsOriginal.insert(regions.back().asPtr());
+    regions.back()->markInput();
+  }
+
+  void markOutputMatrix(const MatrixDefPtr& matrix){
+    ChoiceDepGraphNodeList& lst = _matrixToNodes[matrix];
+    JASSERT(lst.size()>0);
+    for(ChoiceDepGraphNodeList::iterator i=lst.begin(); i!=lst.end(); ++i){
+      _outputsOriginal.insert(i->asPtr());
+      (*i)->markOutput();
+    }
+  }
+
+  void renderGraph(const char* filename, const char* type="png") const;
+  void writeGraph(const char* filename) const;
+  void writeGraph(FILE* fd) const;
+
+  void generateSchedule();
+
+  void computeIndirectDependencies();
+  void mergeCoscheduledNodes(const RuleChoiceAssignment& choice);
+
+
+
+  void print(std::ostream& o) const {
+    o << "digraph {\n";
+    for(ChoiceDepGraphNodeList::const_iterator r=_allNodes.begin(); r!=_allNodes.end(); ++r){
+      (*r)->printNode(o);
+    }
+    for(ChoiceDepGraphNodeList::const_iterator r=_allNodes.begin(); r!=_allNodes.end(); ++r){
+      (*r)->printEdges(o);
+    }
+    o << "}\n";
+  }
+
+  void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor type);
+
+  int size() const { return _allNodes.size() - _inputsOriginal.size(); }
+private:
+
+  std::map<MatrixDefPtr, ChoiceDepGraphNodeList> _matrixToNodes;
+  ChoiceDepGraphNodeList _allNodes;
+  ChoiceDepGraphNodeList _metaNodes;
+
+  ChoiceDepGraphNodeSet _inputsOriginal;
+  ChoiceDepGraphNodeSet _inputsRemapped;
+  ChoiceDepGraphNodeSet _outputsOriginal;
+  ChoiceDepGraphNodeSet _outputsRemapped;
+
+
+  typedef std::vector<SchedulePtr> SchedulesT;
+  SchedulesT _schedules;
+
+  RuleChoiceCollection _choices;
+
+  std::string _dbgpath;
+};
+
+}
+# 21 "transform.h" 2
+# 30 "transform.h"
+namespace petabricks {
+
+class Transform;
+typedef jalib::JRef<Transform> TransformPtr;
+class TransformList: public std::vector<TransformPtr>, public jalib::JRefCounted, public jalib::SrcPosTaggable {};
+typedef jalib::JRef<TransformList> TransformListPtr;
+typedef std::set<std::string> ConstantSet;
+
+class DoubleList: public std::vector<double>, public jalib::JRefCounted, public jalib::SrcPosTaggable {};
+
+
+
+
+class Transform : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
+public:
+
+
+
+  Transform();
+
+
+  void setName(const std::string& str) { _originalName=_name=str; }
+  void addFrom(const MatrixDefList&);
+  void addThrough(const MatrixDefList&);
+  void addTo(const MatrixDefList&);
+  void setRules(const RuleList&);
+
+
+
+  void initialize();
+
+  void compile();
+
+  void print(std::ostream& o) const;
+
+  const std::string& name() const { return _name; }
+
+  MatrixDefPtr lookupMatrix(const std::string& name) const{
+    MatrixDefMap::const_iterator i = _matrices.find(name);
+    JASSERT(i != _matrices.end())(name).Text("Unknown input/output matrix");
+    return i->second;
+  }
+
+  void generateCode(CodeGenerator& o);
+
+  void generateCodeSimple(CodeGenerator& o, const std::string& nextMain = "NULL");
+
+  void registerMainInterface(CodeGenerator& o);
+
+  void generateMainInterface(CodeGenerator& o, const std::string& nextMain);
+
+  void fillBaseCases(const MatrixDefPtr& matrix);
+
+  FreeVars constants() const {
+    FreeVars fv;
+    for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i)
+      fv.insert(i->name());
+    return fv;
+  }
+
+  void extractSizeDefines(CodeGenerator& o, FreeVars fv, const char* inputsizestr);
+  void extractOpenClSizeDefines(CLCodeGenerator& o);
+
+  void declTransformNFunc(CodeGenerator& o);
+  void declTryMemoizeFunc(CodeGenerator& o);
+
+  void markMain() { _isMain=true; }
+  void markMemoized() { _memoized=true; }
+
+
+
+  std::vector<std::string> maximalArgList() const;
+
+  int nextTunerId() {
+    return _tuneId++;
+  }
+
+  int ruleIdOffset() const { return _rules.front()->id()-1; }
+
+  std::string taskname() const { return _name+"_fin"; }
+
+  void addTemplateArg(const TemplateArgList& args){
+    for(size_t i=0; i<args.size(); ++i)
+      args[i]->addFlag(ConfigItem::FLAG_TEMPLATEVAR);
+    _templateargs.insert(_templateargs.end(), args.begin(), args.end());
+  }
+
+  std::vector<std::string> spawnArgs() const;
+  std::vector<std::string> spawnArgNames() const;
+  std::vector<std::string> normalArgs() const;
+  std::vector<std::string> normalArgNames() const;
+
+  void genTmplJumpTable(CodeGenerator& o,
+                        bool isStatic,
+                        const std::vector<std::string>& args,
+                        const std::vector<std::string>& argNames);
+
+  void extractConstants(CodeGenerator& o);
+
+  int tmplChoiceCount() const;
+
+  bool isTemplate() const { return !_templateargs.empty(); }
+  bool isVariableAccuracy() const { return !_accuracyBins.empty(); }
+
+  std::string tmplName(int n, CodeGenerator* o=NULL);
+
+
+  void addConfigItem(const ConfigItem& value){
+    ConfigItems::iterator i;
+
+    for(i=_config.begin(); i!=_config.end(); ++i){
+      if(i->name()==value.name())
+        break;
+    }
+    if(i==_config.end()){
+      _config.push_back(value);
+    }else{
+      i->merge(value);
+    }
+  }
+
+
+  void addConfigItem(int flags, const std::string& n,
+                                jalib::TunableValue initial,
+                                jalib::TunableValue min,
+                                jalib::TunableValue max){
+    addConfigItem(ConfigItem(flags,n,initial,min,max));
+  }
+
+  void addConfigItem(int flags, const std::string& n,
+                                jalib::TunableValue initial,
+                                jalib::TunableValue min){
+    if( (flags & ConfigItem::FLAG_DOUBLE) == 0 )
+      addConfigItem(flags, n, initial, min, jalib::maxval<int>());
+    else
+      addConfigItem(flags, n, initial, min, jalib::maxval<double>());
+  }
+
+  void addConfigItem(int flags, const std::string& n,
+                                jalib::TunableValue initial){
+    if( (flags & ConfigItem::FLAG_DOUBLE) == 0 )
+      addConfigItem(flags, n, initial, 0);
+    else
+      addConfigItem(flags, n, initial, jalib::minval<double>());
+  }
+
+  void addConfigItem(int flags, const std::string& n){
+    if( (flags & ConfigItem::FLAG_DOUBLE) == 0 )
+      addConfigItem(flags, n, 0);
+    else
+      addConfigItem(flags, n, 0.0);
+  }
+
+  void addSizeVar(const std::string& name){
+    addConfigItem(ConfigItem::FLAG_SIZEVAR, name);
+  }
+
+  std::string instClassName() const { return _name+"_instance"; }
+
+  void markSplitSizeUse(CodeGenerator& o);
+
+  void expandWhereClauses(RuleSet&, const MatrixDefPtr&, const SimpleRegionPtr&);
+
+  void addParams(const OrderedFreeVars& p) { _parameters.insert(_parameters.end(), p.begin(), p.end()); }
+
+  MatrixDefList defaultVisibleInputs() const {
+    MatrixDefList tmp;
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      if( (*i)->numDimensions() == 0 )
+        tmp.push_back(*i);
+    }
+    return tmp;
+  }
+
+  bool isMain() const { return _isMain; }
+
+  void setAccuracyMetric(const std::string& str){
+    JASSERT(_accuracyMetric=="")(_name).Text("accuracy_metric declared twice");
+    _accuracyMetric=str;
+  }
+  void setAccuracyBins(const std::vector<double>& v){
+    JASSERT(_accuracyBins.empty())(_name).Text("accuracy_bins declared twice");
+    _accuracyBins = v;
+  }
+  void setGenerator(const std::string& str){
+    JASSERT(_generator=="")(_name).Text("generator declared twice");
+    _generator=str;
+  }
+
+  std::vector<std::string> argnames() const {
+    std::vector<std::string> args;
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      args.push_back((*i)->name());
+    }
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      args.push_back((*i)->name());
+    }
+    return args;
+  }
+
+  bool isAccuracyInverted() const {
+    int forward = 0;
+    int backward = 0;
+    for(size_t i=1; i<_accuracyBins.size(); ++i){
+      double a=_accuracyBins[i-1];
+      double b=_accuracyBins[i];
+      JASSERT(a!=b)(_name)(a)(b).Text("invalid accuracy_bins");
+      if(a<b) ++forward;
+      else ++backward;
+    }
+    JASSERT(forward==0 || backward==0)(forward)(backward)(_name).Text("invalid accuracy_bins");
+    return backward>0;
+  }
+
+
+  const ConfigItems& config() const { return _config; }
+
+  void addRule(const RulePtr& rp) { _rules.push_back(rp); }
+
+
+  const std::string& accuracyMetric() const { return _accuracyMetric; }
+
+protected:
+  static std::map<std::string, TransformPtr> theTransformMap();
+
+private:
+  std::string _originalName;
+  std::string _name;
+  MatrixDefList _from;
+  MatrixDefList _through;
+  MatrixDefList _to;
+  MatrixDefMap _matrices;
+  RuleList _rules;
+  ChoiceGridMap _choiceGrid;
+  OrderedFreeVars _parameters;
+  bool _isMain;
+  bool _memoized;
+  StaticSchedulerPtr _scheduler;
+  TemplateArgList _templateargs;
+  int _tuneId;
+  ConfigItems _config;
+  RIRScopePtr _scope;
+  bool _usesSplitSize;
+  std::string _accuracyMetric;
+  std::vector<double> _accuracyBins;
+  std::string _generator;
+  int _templateChoice;
+  double _curAccTarget;
+};
+
+}

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import re
 from xml.dom.minidom import parse
 nameof = lambda t: str(t.getAttribute("name"))
@@ -67,6 +67,12 @@ class TrainingInfo:
 
   def tunables(self):
     return map(XmlDictApi, self.infoxml.getElementsByTagName("tunable"))
+
+  def tunablesDict(self):
+    tunables = dict()
+    for t in self.tunables():
+      tunables[t['name']] = t
+    return tunables
 
   def rulesInAlgchoice(self, number):
     matches = filter(lambda x: x['number']==number, self.algchoices())

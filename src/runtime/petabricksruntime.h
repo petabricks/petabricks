@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef PETABRICKSPETABRICKSRUNTIME_H
 #define PETABRICKSPETABRICKSRUNTIME_H
 
@@ -150,6 +165,7 @@ public:
   double runTrial(TestIsolation&, bool train);
   double runTrialNoSmoothing(TestIsolation&, bool train);
   double runTrial(double thresh, bool train);
+  void runTrialFromFile(TestIsolation& ti, const std::vector<std::string>* files);
 
   static bool isTrainingRun();
   //static void setIsTrainingRun(bool b);
@@ -168,6 +184,9 @@ public:
 
   static void saveConfig();
 
+  void spawnDistributedNodes(int argc, const char** argv);
+  void distributedSlaveLoop();
+
   double trainAndComputeWrapper(TestIsolation&, int n);
   double raceConfigs(int n, const std::vector<std::string>* files = NULL, int retries=-1);
   double computeWrapper(TestIsolation&, int n=-1, int retries=-1, const std::vector<std::string>* files = NULL);
@@ -178,6 +197,9 @@ public:
   void loadTestInput(int n, const std::vector<std::string>* files);
   
   
+  static void startWorkerThreads(int worker_threads);
+
+
   void variableAccuracyTrainingLoop(TestIsolation& ti);
   int variableAccuracyTrainingLoopInner(TestIsolation& ti);
 
@@ -208,9 +230,16 @@ public:
 
 
   static double updateRaceTimeout(TestResult& result, int winnerid);
+      
+  
+  static void reexecTestIsolation(int fd);
+  
 protected:
   void reallocate() { _main->reallocate(_randSize); }
 
+private:
+  double runMultipleTrials(TestIsolation& ti, int n, bool train, const std::vector<std::string>* files);
+  
 private:
   Main* _main;
   std::string _mainName;

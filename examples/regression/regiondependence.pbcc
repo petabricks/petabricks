@@ -1,0 +1,24 @@
+#include "../simple/copy.pbcc"
+
+// region dependence test (parallel execution order violates dependences for m > 64ish)
+transform RegionDependence
+from B[n,m]
+to X[n,m]
+{
+    primary
+    to   (X.cell(j, 0) x)
+    from (B.cell(j, 0) b)
+    {
+        x = b;
+    }
+
+    to   (X.region(0, i, n, i+1) xout)
+    from (X.region(0, 0, n, i  ) x, B.region(0, i, n, i+1) b)
+    {
+        printf("Begin row %d\n", i);
+        fflush(stdout);
+        Copy2D(xout, b);
+        printf("End row %d\n", i);
+        fflush(stdout);
+    }
+}

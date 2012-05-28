@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #include "region.h"
 
 #include "matrixdependency.h"
@@ -35,7 +50,7 @@ petabricks::Region::RegionType petabricks::Region::strToRegionType(const std::st
   return _strToRegionType(str);
 }
 
-petabricks::Region::Region(const char* fromMatrix, const FormulaList& version, const char* type, const FormulaList& bounds) 
+petabricks::Region::Region(const char* fromMatrix, const FormulaList& version, const char* type, const FormulaList& bounds)
   : _name(RETURN_VAL_STR)
   , _fromMatrixName(fromMatrix)
   , _originalType(strToRegionType(type))
@@ -55,8 +70,8 @@ void petabricks::Region::print(std::ostream& o) const {
   o << ") " << _name;
 }
 
-void petabricks::Region::setName(const char* name){ 
-  _name=name; 
+void petabricks::Region::setName(const char* name){
+  _name=name;
   if(_name=="") _name=RETURN_VAL_STR;
 }
 
@@ -67,14 +82,15 @@ void petabricks::Region::initialize(Transform& trans) {
 
   JASSERT(!isOptional() || _originalType == REGION_CELL)(_name)(_fromMatrix)
     .Text("optional rule inputs currently only supported for .cell() inputs");
-  
+
   //convert given coordinates to a region
   switch(_originalType){
   case REGION_CELL: {
       //min = max = given
       for(size_t i=0; i<_originalBounds.size(); ++i){
         _minCoord.push_back(_originalBounds[i]);
-//         _maxCoord.push_back(_originalBounds[i]);
+        /* NB: _maxCoord[i]=_originalBounds[i]+1 because the lower bound is 
+         * included while the upper bound is excluded */
         _maxCoord.push_back(MaximaWrapper::instance().normalize(
           new FormulaAdd(_originalBounds[i], FormulaInteger::one())));
       }
@@ -140,7 +156,6 @@ void petabricks::Region::initialize(Transform& trans) {
         }
       }
     }
-    if(_version) _originalType = REGION_SLICE;
     break;
   default:
     JASSERT(false).Text("Unreachable");
@@ -156,7 +171,7 @@ void petabricks::Region::initialize(Transform& trans) {
 void petabricks::Region::validate() {
   addAssumptions();
   for(size_t i=0; i<dimensions(); ++i){
-    int isBeginLeqEnd = MAXIMA.tryCompare(_minCoord[i], "<=", _maxCoord[i]); 
+    int isBeginLeqEnd = MAXIMA.tryCompare(_minCoord[i], "<=", _maxCoord[i]);
     JASSERT(isBeginLeqEnd==MaximaWrapper::YES)(_minCoord[i])(_maxCoord[i])
       .Text("Invalid .region().  Syntax is .region(beginCoord, endCoord), for example region(x, y, x+4, y+4).  Begin is inclusive end is exclusive.");
   }
@@ -179,14 +194,53 @@ void petabricks::RegionList::makeRelativeTo(const FormulaList& defs){
   }
 }
 
+void petabricks::RegionList::print(std::ostream& o) const {
+  o << "RegionList:";
+  for(RegionList::const_iterator i=this->begin(), e=this->end(); i!=e; ++i) {
+    RegionPtr region= *i;
+    o << "\n* " << region;
+  }
+}
+
 void petabricks::SimpleRegion::print(std::ostream& o) const {
   o << _minCoord << ", " << _maxCoord;
 }
 
+
+petabricks::FormulaPtr petabricks::SimpleRegion::symbolicSize() const {
+  FormulaPtr p = FormulaInteger::one();
+  for(size_t d=0; d<dimensions(); ++d) {
+    p = new FormulaMultiply(p,
+                            new FormulaSubtract(maxCoord()[d], minCoord()[d]));
+  }
+  return MAXIMA.normalize(p);
+}
+
+std::string petabricks::SimpleRegion::getIterationLowerBounds() const {
+  std::string s = minCoord().toString();
+  
+  if(removedDimensions() == 0) {
+    return s;
+  }
+  
+  return s + ", " + _removedDimensions.minCoord.toString();
+}
+
+std::string petabricks::SimpleRegion::getIterationUpperBounds() const {
+  std::string s = maxCoord().toString();
+  
+  if(removedDimensions() == 0) {
+    return s;
+  }
+  
+  return s + ", " + _removedDimensions.maxCoord.toString();
+}
+
+  
 petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList&, bool isOutput){
   CoordinateFormula min;
   CoordinateFormula max;
-    
+
   FormulaList offsets = diff(tx,rule);
   FormulaList minDefs /*= _defs*/;
   FormulaList maxDefs /*= _defs*/;
@@ -328,29 +382,38 @@ bool petabricks::SimpleRegion::hasIntersect(const SimpleRegion& that) const {
   return true;
 }
 
-std::string petabricks::Region::genTypeStr(bool isConst) const{
+std::string petabricks::Region::genTypeStr(RuleFlavor rf, bool isConst) const{
   switch(_originalType){
   case REGION_CELL:
-    if(isConst)
-      return "const ElementT";
-    else
-      return "ElementT&";
+    if(isConst){
+      if(rf != RuleFlavor::DISTRIBUTED) {
+        return "const ElementT";
+      }else{
+        return "CellProxy";
+      }
+    }else{
+      if(rf != RuleFlavor::DISTRIBUTED) {
+        return "ElementT&";
+      }else{
+        return "CellProxy";
+      }
+    }
   case REGION_COL:
   case REGION_ROW:
-    return (isConst?MatrixDef::oneD().constMatrixTypeName():MatrixDef::oneD().matrixTypeName());
+    return MatrixDef::oneD().typeName(rf, isConst);
   case REGION_BOX:
   case REGION_ALL:
-    return (isConst?_fromMatrix->constMatrixTypeName():_fromMatrix->matrixTypeName());
+    return _fromMatrix->typeName(rf, isConst);
   case REGION_SLICE:
-    return (isConst?_fromMatrix->constSliceTypeName():_fromMatrix->sliceTypeName());
+    return _fromMatrix->typeName(rf, isConst, 1);
   default:
     JASSERT(false).Text("Unreachable");
     return "";
   }
 }
 
-std::string petabricks::Region::generateSignatureCode(bool isConst) const{
-  return genTypeStr(isConst) + " " + _name;
+std::string petabricks::Region::generateSignatureCode(RuleFlavor rf, bool isConst) const{
+  return genTypeStr(rf, isConst) + " " + _name;
 }
 
 std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
@@ -360,7 +423,7 @@ std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
       std::string s = _fromMatrix->name() + ".cell("+_minCoord.toString()+")";
       if(allowOptional && isOptional())
         return "(" + _fromMatrix->name() + ".contains("+_minCoord.toString()+")"
-                   + " ? " + s + " : " + optionalDefault()->toString() + ")";
+                   + " ? (ElementT)(" + s + ") : (ElementT)(" + optionalDefault()->toString() + "))";
       else
         return s;
     }
@@ -380,32 +443,35 @@ std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
   }
 }
 
-void petabricks::Region::collectDependencies(const Transform& tx, const RuleInterface& rule, MatrixDependencyMap& map) const {
-  //Determine dependency direction
-  DependencyDirection direction(dimensions());
-  for(size_t i=0; i<dimensions(); ++i){
-    MaximaWrapper::tryCompareResult isLeft =MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i),  "<", _maxCoord[i]);
-    MaximaWrapper::tryCompareResult isRight=MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _minCoord[i]);
-    
-    if(isLeft!=MaximaWrapper::YES)
-      direction.addDirection(i, DependencyDirection::D_LT);
+void petabricks::Region::determineDependencyDirection(const size_t dimension, const RuleInterface& rule, DependencyDirection& direction) const {
+  MaximaWrapper::tryCompareResult isLeft =MaximaWrapper::instance().tryCompare(rule.getOffsetVar(dimension),  "<", _maxCoord[dimension]);
+  MaximaWrapper::tryCompareResult isRight=MaximaWrapper::instance().tryCompare(rule.getOffsetVar(dimension), ">=", _minCoord[dimension]);
+  
+  if(isLeft!=MaximaWrapper::YES)
+    direction.addDirection(dimension, DependencyDirection::D_LT);
 
-    if(isRight!=MaximaWrapper::YES)
-      direction.addDirection(i, DependencyDirection::D_GT);
+  if(isRight!=MaximaWrapper::YES)
+    direction.addDirection(dimension, DependencyDirection::D_GT);
 
-    if(isLeft==MaximaWrapper::UNKNOWN || isRight==MaximaWrapper::UNKNOWN || isLeft==isRight){
-      direction.addDirection(i, DependencyDirection::D_EQ);
-    }else{
-      if(isLeft){
-        if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), "<",  _minCoord[i])!=MaximaWrapper::YES)
-          direction.addDirection(i, DependencyDirection::D_EQ);
-      }else{//isRight
-        if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _maxCoord[i])!=MaximaWrapper::YES)
-          direction.addDirection(i, DependencyDirection::D_EQ);
-      }
+  if(isLeft==MaximaWrapper::UNKNOWN || isRight==MaximaWrapper::UNKNOWN || isLeft==isRight){
+    direction.addDirection(dimension, DependencyDirection::D_EQ);
+  }else{
+    if(isLeft){
+      if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(dimension), "<",  _minCoord[dimension])!=MaximaWrapper::YES)
+        direction.addDirection(dimension, DependencyDirection::D_EQ);
+    }else{//isRight
+      if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(dimension), ">=", _maxCoord[dimension])!=MaximaWrapper::YES)
+        direction.addDirection(dimension, DependencyDirection::D_EQ);
     }
   }
-  //JTRACE("compute direction")(_minCoord)(_maxCoord)(direction);
+
+}
+
+void petabricks::Region::collectDependencies(const Transform& tx, const RuleInterface& rule, MatrixDependencyMap& map) const {
+  DependencyDirection direction(dimensions());
+  for(size_t dimension=0; dimension<dimensions(); ++dimension){
+    determineDependencyDirection(dimension, rule, direction);
+  }
   FormulaList offsets = diff(tx,rule);
   SimpleRegion applicable = rule.applicableRegion();
   applicable.maxCoord().subToEach(FormulaInteger::one());
@@ -434,7 +500,7 @@ void petabricks::Region::collectDependencies(const Transform& tx, const RuleInte
     }
   }
   SimpleRegionPtr region = new SimpleRegion(minAbsolute, maxAbsolute);
-      
+
   //Merge with existing entry
   MatrixDependencyPtr dep = new MatrixDependency(direction, region);
   MatrixDependencyPtr& element = map[_fromMatrix];
@@ -449,7 +515,7 @@ void petabricks::Region::addAssumptions() const{
     MAXIMA.assume(new FormulaLE(FormulaInteger::zero(), _maxCoord[i]));
     MAXIMA.assume(new FormulaLE(_minCoord[i], end));
     MAXIMA.assume(new FormulaLE(_maxCoord[i], end));
-  } 
+  }
 }
 
 void petabricks::Region::assertNotInput(){
@@ -460,6 +526,17 @@ void petabricks::Region::assertNotInput(){
 petabricks::FormulaPtr petabricks::Region::getSizeOfRuleIn(int d) const{
   JASSERT((int)dimensions()>d)(dimensions())(d);
   return MaximaWrapper::instance().normalize(new FormulaSubtract(_maxCoord[d], _minCoord[d]));
+}
+
+petabricks::FormulaPtr petabricks::Region::getSizeOfRuleInRemovedDimension(int d) const {
+  JASSERT(isRemovedDimension(d))(d)(dimensions())(removedDimensions());
+  
+  size_t removedDimensionIndex= d-dimensions();
+  FormulaPtr maxCoord = _removedDimensions.maxCoord[removedDimensionIndex];
+  FormulaPtr minCoord = _removedDimensions.minCoord[removedDimensionIndex];
+  
+  return MaximaWrapper::instance().normalize(new FormulaSubtract(maxCoord, 
+                                                                 minCoord));
 }
 
 void  petabricks::Region::addArgToScope(RIRScope& scope) const {
@@ -479,6 +556,15 @@ void  petabricks::Region::addArgToScope(RIRScope& scope) const {
   }
 }
 
-
-
-
+void petabricks::Region::fixTypeIfVersioned() {
+  if(! _version) {
+    //Not versioned. Nothing to do
+    return;
+  }
+  
+  if (_originalType == REGION_ALL && removedDimensions() == 0) {
+    //The versioning is done by adding a dimension to the matrix
+    //Access to a version is done by slicing
+    _originalType = REGION_SLICE;
+  }
+}

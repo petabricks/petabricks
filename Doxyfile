@@ -5,7 +5,7 @@
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = PetaBricks 
-PROJECT_NUMBER         = 1.5
+PROJECT_NUMBER         = 2.0
 OUTPUT_DIRECTORY       = ./doc/api
 CREATE_SUBDIRS         = YES
 OUTPUT_LANGUAGE        = English
@@ -154,7 +154,7 @@ FILE_PATTERNS          = *.c \
                          *.moc \
                          *.xpm \
                          *.dox
-RECURSIVE              = NO
+RECURSIVE              = YES
 EXCLUDE                = maximaparser.cpp \
                          matrixreader.cpp \
                          maximalexer.cpp \

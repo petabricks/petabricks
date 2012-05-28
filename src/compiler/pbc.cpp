@@ -1,29 +1,47 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 
 #include "codegenerator.h"
 #include "maximawrapper.h"
 #include "transform.h"
 
+#include "common/hash.h"
 #include "common/jargs.h"
 #include "common/jfilesystem.h"
 #include "common/jtunable.h"
+#include "common/openclutil.h"
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#ifdef HAVE_OPENCL
-#include "openclutil.h"
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
 #endif
 
 
@@ -48,12 +66,7 @@ const char headertxtcpp[] =
   "#include \""GENHEADER"\"\n"
   ;
 
-
-void callCxxCompiler();
-std::string cmdCxxCompiler();
-
 using namespace petabricks;
-
 
 namespace pbcConfig {
   bool shouldCompile = true;
@@ -69,6 +82,8 @@ namespace pbcConfig {
   std::string theOutputInfo;
   std::string theRuntimeDir;
   std::string thePbPreprocessor;
+  std::string theBasename;
+  std::string theHeuristicsFile;
   int theNJobs = 2;
 }
 using namespace pbcConfig;
@@ -78,7 +93,8 @@ TransformListPtr parsePbFile(const char* filename);
 
 /* wrapper around popen */
 FILE* opensubproc(const std::string& cmd) {
-  FILE* p = popen(cmd.c_str(), "r");
+  FILE* p = popen((cmd+" 2>&1").c_str(), "r");
+  JTRACE("calling gcc")(cmd);
   JASSERT(p!= 0)(cmd);
   return p;
 }
@@ -89,8 +105,9 @@ void closesubproc(FILE* p, const std::string& name) {
   while(!feof(p)) {
     char buf[1024];
     memset(buf, 0, sizeof buf);
-    (void)fread(buf, 1, sizeof buf -1,  p);
-    std::cerr << buf;
+    if(fread(buf, 1, sizeof buf -1,  p) > 0) {
+      std::cerr << buf;
+    }
   }
   JASSERT(pclose(p)==0);
 }
@@ -106,19 +123,19 @@ class OutputCode {
   std::string   _gcccmd;
   FILE*         _gccfd;
 public:
-  OutputCode(const std::string& base, CodeGenerator& o) 
-    : _cpp(base+".cpp")
-    , _obj(base+".o")
+  OutputCode(const std::string& basename, CodeGenerator& o) 
+    : _cpp(basename+".cpp")
+    , _obj(basename+".o")
     , _gccfd(0)
   {
-    _code = o.startSubfile(base);
+    _code = o.startSubfile(basename);
 
     std::ostringstream os; 
-    os << CXX " " CXXFLAGS " " CXXDEFS " -c -o " << _obj 
-                                      << " "     << _cpp
-                                      << " -I\"" << theLibDir << "\""
-                                      << " -I\"" << theRuntimeDir << "\""
-                                      << " 2>&1";
+    os << CXX " " CXXFLAGS " " CXXDEFS " -c "
+       << " -o "  << _obj 
+       << " "     << _cpp
+       << " -I\"" << theLibDir << "\""
+       << " -I\"" << theRuntimeDir << "\"";
     _gcccmd = os.str();
   }
 
@@ -132,8 +149,9 @@ public:
     of.flush();
     of.close();
   }
-  
+
   void forkCompile() {
+    JTRACE(_gcccmd.c_str());
     _gccfd = opensubproc(_gcccmd);
   }
 
@@ -142,6 +160,13 @@ public:
   }
 
   const std::string& objpath() const { return _obj; }
+
+  void writeMakefile(std::ostream& o) {
+    o << _obj << ": " << _cpp << "\n\t"
+      << _gcccmd
+      << "\n\n";
+  }
+
 };
 
 
@@ -150,7 +175,6 @@ public:
  */
 class OutputCodeList : public std::vector<OutputCode> {
 public:
-
   void writeHeader(const StreamTreePtr& h) {
     std::ofstream of((theObjDir+"/"GENHEADER).c_str());
     h->writeTo(of);
@@ -189,19 +213,51 @@ public:
 
   std::string mklinkcmd() {
     std::ostringstream os; 
-    os << CXX " " CXXFLAGS " -o " << theOutputBin;
+    os << CXX " -o " BIN_TMPFILE " " CXXFLAGS;
     for(const_iterator i=begin(); i!=end(); ++i)
       os << " " << i->objpath();
     os << " " CXXLDFLAGS " -L\"" << theLibDir <<"\" -lpbmain -lpbruntime -lpbcommon " CXXLIBS;
-    os << " 2>&1";
     return os.str();
   }
 
   void link() {
+    JTRACE(mklinkcmd().c_str());
     closesubproc(opensubproc(mklinkcmd()), "Link "+theOutputBin);
+  }
+  
+  void writeMakefile() {
+    std::ofstream o("Makefile");
+    o << "# Generated by " PACKAGE " compiler (pbc) v" VERSION " " REVISION_LONG "\n";
+    o << "# This file is generated only for testing purposes and it not used\n\n";
+    
+    o << "all: " BIN_TMPFILE "\n\n";
+    for(iterator i=begin(); i!=end(); ++i)
+      i->writeMakefile(o);
+    
+    
+    o << BIN_TMPFILE << ":";
+    for(iterator i=begin(), e=end(); i!=e; ++i)
+      o << " " << i->objpath();
+    o << "\n\t" << mklinkcmd() << "\n\n";
+    
+    o << "clean_bin:\n";
+    o << "\trm -f " BIN_TMPFILE "\n\n";
+    
+    o << "clean_obj:\n";
+    o << "\trm -f *.o\n\n";
+    
+    o << "clean_temp:\n";
+    o << "\trm -f *~ *.bak *.tmp *.temp\n\n";
+    
+    o << "clean: clean_bin clean_obj clean_temp\n";
   }
 };
 
+void loadDefaultHeuristics() {
+  HeuristicManager& hm = HeuristicManager::instance();
+  
+  hm.registerDefault("UserRule_blockNumber", "2");
+}
 
 void findMainTransform(const TransformListPtr& t) {
   //find the main transform if it has not been specified
@@ -253,7 +309,8 @@ int main( int argc, const char ** argv){
   args.param("main",       theMainName).help("transform name to use as program entry point");
   args.param("hardcode",   theHardcodedConfig).help("a config file containing tunables to set to hardcoded values");
   args.param("jobs",       theNJobs).help("number of gcc processes to call at once");
-
+  args.param("heuristics", theHeuristicsFile).help("config file containing the (partial) set of heuristics to use");
+  
   if(args.param("version").help("print out version number and exit") ){
     std::cerr << PACKAGE " compiler (pbc) v" VERSION " " REVISION_LONG << std::endl;
     return 1;
@@ -276,7 +333,12 @@ int main( int argc, const char ** argv){
   if(theObjDir.empty())     theObjDir     = theOutputBin + ".obj";
   if(theOutputInfo.empty()) theOutputInfo = theOutputBin + ".info";
   if(theObjectFile.empty()) theObjectFile = theOutputBin + ".o";
+  if(! theHeuristicsFile.empty()) {
+    //Load the heuristics from the file
+    HeuristicManager::instance().loadFromFile(theHeuristicsFile);
+  }
   
+  loadDefaultHeuristics();
   
   int rv = mkdir(theObjDir.c_str(), 0755);
   if(rv!=0 && errno==EEXIST)
@@ -314,17 +376,23 @@ int main( int argc, const char ** argv){
   CodeGenerator o(header, NULL);
   
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
-    ccfiles.push_back(OutputCode(theObjDir+"/"+(*i)->name(), o));
+    ccfiles.push_back(OutputCode((*i)->name(), o));
     (*i)->generateCode(o);
   }
 
   // generate misc files:
   o.cg().beginGlobal();
 #ifdef SINGLE_SEQ_CUTOFF
-  o.createTunable(true, "system.cutoff.sequential", "sequentialcutoff", 64);
+  o.createTunable(true, "system.cutoff.sequential",  "sequentialcutoff", 64);
+  o.createTunable(true, "system.cutoff.distributed", "distributedcutoff", 512);
+#endif
+  o.cg().addTunable(true, "system.runtime.threads", "worker_threads", 8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
+#ifdef HAVE_OPENCL
+  o.createTunable(true, "system.flag.localmem",  "use_localmem", 1, 0, 2);
+  o.createTunable(true, "system.size.blocksize",  "opencl_blocksize", 16, 0, 25); // 0 means not using local memory
 #endif
   o.cg().endGlobal();
-  ccfiles.push_back(OutputCode(theObjDir+"/"GENMISC, o));
+  ccfiles.push_back(OutputCode(GENMISC, o));
   o.outputTunables(o.os());
   o.comment("A hook called by PetabricksRuntime");
   o.beginFunc("petabricks::PetabricksRuntime::Main*", "petabricksMainTransform");
@@ -339,6 +407,17 @@ int main( int argc, const char ** argv){
   }
   o.write("return NULL;");
   o.endFunc();
+
+  
+  CodeGenerator& init    = o.forkhelper();
+  CodeGenerator& cleanup = o.forkhelper();
+  init.beginFunc("void", "_petabricksInit");
+  cleanup.beginFunc("void", "_petabricksCleanup");
+  for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
+    (*i)->generateInitCleanup(init, cleanup);
+  }
+  init.endFunc();
+  cleanup.endFunc();
   
   // generate common header file:
   *prefix << headertxth;
@@ -350,9 +429,18 @@ int main( int argc, const char ** argv){
 
   // dump .info file:
   std::ofstream infofile(theOutputInfo.c_str());
+  o.cg().addHeuristics(HeuristicManager::instance().usedHeuristics());
   o.cg().dumpTo(infofile);
   infofile.flush();
   infofile.close();
+
+
+  char olddir[1024];
+  memset(olddir, 0, sizeof olddir);
+  JASSERT(olddir==getcwd(olddir, sizeof olddir - 1));
+  JASSERT(chdir(theObjDir.c_str())==0)(theObjDir);
+  
+  ccfiles.writeMakefile();
   
   // COMPILE AND LINK:
   if(shouldCompile)
@@ -360,8 +448,15 @@ int main( int argc, const char ** argv){
   else
     ccfiles.write();
 
-  if(shouldLink)
+  if(shouldLink) {
     ccfiles.link();
+    JASSERT(chdir(olddir)==0)(olddir);
+    JASSERT(rename((theObjDir+"/"BIN_TMPFILE).c_str(), theOutputBin.c_str())==0)
+      (theObjDir+"/"BIN_TMPFILE)(theOutputBin);
+  }else{
+    JASSERT(chdir(olddir)==0)(olddir);
+  }
+
 
 #ifdef DEBUG
   MAXIMA.sanityCheck();

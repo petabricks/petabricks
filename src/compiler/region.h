@@ -1,19 +1,35 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef PETABRICKSREGION_H
 #define PETABRICKSREGION_H
 
 #include "formula.h"
 #include "matrixdef.h"
+#include "pbc.h"
 
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
@@ -22,22 +38,44 @@
 #include <vector>
 
 namespace petabricks {
-class RuleInterface;
-class UserRule;
 class CodeGenerator;
-class Transform;
-class SimpleRegion;
-class Region;
 class MatrixDependencyMap;
+class Region;
 class RIRScope;
+class RuleInterface;
+class SimpleRegion;
+class Transform;
+class UserRule;
 typedef jalib::JRef<Region> RegionPtr;
 typedef jalib::JRef<SimpleRegion> SimpleRegionPtr;
-class RegionList : public std::vector<RegionPtr> , public jalib::JRefCounted, public jalib::SrcPosTaggable {
+
+
+class RegionNodeGroup : public jalib::JRefCounted {
 public:
+  RegionNodeGroup(const std::string& name, std::vector<int>& ids) {
+    _matrixName = name;
+    _nodeIDs = ids;
+  }
+  std::string matrixName() { return _matrixName; }
+  std::vector<int>& nodeIDs() { return _nodeIDs; }
+private:
+  std::string _matrixName;
+  std::vector<int> _nodeIDs;
+};
+
+class RegionList : public std::vector<RegionPtr> , public jalib::JRefCounted, public jalib::SrcPosTaggable, public jalib::JPrintable {
+public:
+  void print(std::ostream& o) const;
   void makeRelativeTo(const FormulaList& defs);
 };
 
 class SimpleRegion : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
+private:
+  struct RemovedDimensionsInfo {
+    CoordinateFormula minCoord;
+    CoordinateFormula maxCoord;
+  };
+  
 public: 
   SimpleRegion(){}
   SimpleRegion(const CoordinateFormula& min, const CoordinateFormula& max)
@@ -59,7 +97,21 @@ public:
   bool hasIntersect(const SimpleRegion& that) const;
 
   size_t dimensions() const { return _minCoord.size(); }
-
+  
+  size_t isExistingDimension(size_t dimension) const { 
+    return dimension < dimensions();
+  }
+  
+  size_t removedDimensions() const { return _removedDimensions.minCoord.size(); }
+  
+  size_t totalDimensions() const {return dimensions() + removedDimensions(); }
+  
+  size_t isRemovedDimension(size_t dim) const {
+    size_t existingDimensions = dimensions();
+    
+    return (existingDimensions <= dim) && (dim < totalDimensions());
+  }
+  
   const CoordinateFormula& minCoord() const { return _minCoord; }
   const CoordinateFormula& maxCoord() const { return _maxCoord; }
   CoordinateFormula& minCoord() { return _minCoord; }
@@ -69,7 +121,23 @@ public:
     _minCoord.push_back(min);
     _maxCoord.push_back(max);
   }
-
+  
+  FormulaPtr symbolicSize() const;
+  
+  ///Remove the given dimension from the region
+  void removeDimension(const size_t dimension) {
+    CoordinateFormula& minCoordVector = minCoord();
+    CoordinateFormula& maxCoordVector = maxCoord();
+    
+    //Store the dimension in the removed dimensions data structure
+    _removedDimensions.minCoord.push_back(minCoordVector[dimension]);
+    _removedDimensions.maxCoord.push_back(maxCoordVector[dimension]);
+    
+    //Erase the dimension
+    minCoordVector.erase(minCoordVector.begin()+dimension);
+    maxCoordVector.erase(maxCoordVector.begin()+dimension);    
+  }
+  
   void offsetMaxBy(const FormulaPtr& val){
     for(CoordinateFormula::iterator i=_maxCoord.begin(); i!=_maxCoord.end(); ++i)
       *i = new FormulaAdd(*i, val);
@@ -93,11 +161,17 @@ public:
     return args;
   }
 
+  std::string getIterationLowerBounds() const;
+  std::string getIterationUpperBounds() const;
+  
   size_t size() const { return dimensions(); }
 protected:
   CoordinateFormula _minCoord;
   CoordinateFormula _maxCoord;
+  RemovedDimensionsInfo _removedDimensions;
 };
+
+class DependencyDirection;
 
 class Region : public SimpleRegion {
 public:
@@ -127,8 +201,8 @@ public:
     _maxCoord.makeRelativeTo(defs);
   }
 
-  std::string genTypeStr(bool isConst) const;
-  std::string generateSignatureCode(bool isConst) const;
+  std::string genTypeStr(RuleFlavor rf, bool isConst) const;
+  std::string generateSignatureCode(RuleFlavor rf, bool isConst) const;
   std::string generateAccessorCode(bool allowOptional=true) const;
 
   SimpleRegionPtr getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList& defs, bool isOutput);
@@ -138,6 +212,7 @@ public:
   void addAssumptions() const;
 
   FormulaPtr getSizeOfRuleIn(int d) const;
+  FormulaPtr getSizeOfRuleInRemovedDimension(int d) const;
 
   MatrixDefPtr matrix() const { return _fromMatrix; }
   
@@ -149,6 +224,8 @@ public:
   
   const std::string& name() const { return _name; }
 
+  bool isVersioned() const { return _version; }
+  
   bool isAll() const { return _originalType == REGION_ALL; }
 
   void assertNotInput();
@@ -173,6 +250,19 @@ public:
   }
 
   void addArgToScope(RIRScope& scope) const;
+
+  void setBuffer(bool b) { buffer = b; }
+  bool isBuffer() const { return buffer; }
+
+  void setArgName(std::string& name) { argName = name; }
+  const std::string& getArgName() const { return argName; }
+
+  void fixTypeIfVersioned();
+  
+private:
+  void determineDependencyDirection(const size_t dimension, 
+                                    const RuleInterface& rule, 
+                                    DependencyDirection& direction) const;
 private:
   std::string _name;
   std::string _fromMatrixName;
@@ -181,6 +271,8 @@ private:
   FormulaList _originalBounds;
   MatrixDefPtr _fromMatrix;
   FormulaPtr  _optionalDefault;
+  bool        buffer;
+  std::string argName;
 };
 
 }

@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef PETABRICKSTRANSFORM_H
 #define PETABRICKSTRANSFORM_H
 
@@ -73,6 +88,10 @@ public:
   void generateCode(CodeGenerator& o);
 
   void generateCodeSimple(CodeGenerator& o, const std::string& nextMain = "NULL");
+
+  void generateTransformInstanceClass(CodeGenerator& o, RuleFlavor rf);
+  
+  void generateTransformSelector(CodeGenerator& o, RuleFlavor rf, bool spawn);
   
   void registerMainInterface(CodeGenerator& o);
 
@@ -88,8 +107,13 @@ public:
   }
 
   void extractSizeDefines(CodeGenerator& o, FreeVars fv, const char* inputsizestr);
+  void extractOpenClSizeDefines(CLCodeGenerator& o, unsigned int dims, std::map<std::string, std::string> &map);
+  
+  void generateInitCleanup(CodeGenerator& init, CodeGenerator& cleanup);
   
   void declTransformNFunc(CodeGenerator& o);
+  void declTransformN(CodeGenerator& o, const std::string& name);
+  void declTransformNDirect(CodeGenerator& o, const std::string& name);
   void declTryMemoizeFunc(CodeGenerator& o);
 
   void markMain() { _isMain=true; }
@@ -97,7 +121,10 @@ public:
 
   //void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
 
-  std::vector<std::string> maximalArgList() const;
+  std::vector<std::string> maximalArgList(RuleFlavor rf) const;
+
+
+  void generateCrossCall(CodeGenerator& o, RuleFlavor fromflavor, RuleFlavor toflavor, bool spawn);
 
   int nextTunerId() {
     return _tuneId++;
@@ -113,17 +140,17 @@ public:
     _templateargs.insert(_templateargs.end(), args.begin(), args.end());
   }
 
-  std::vector<std::string> spawnArgs() const;
+  std::vector<std::string> spawnArgs(RuleFlavor rf) const;
   std::vector<std::string> spawnArgNames() const;
-  std::vector<std::string> normalArgs() const;
+  std::vector<std::string> normalArgs(RuleFlavor rf) const;
   std::vector<std::string> normalArgNames() const;
 
   void genTmplJumpTable(CodeGenerator& o,
-                        bool isStatic,
+                        RuleFlavor rf,
                         const std::vector<std::string>& args,
                         const std::vector<std::string>& argNames);
   
-  void extractConstants(CodeGenerator& o);
+  void extractConstants(CodeGenerator& o, RuleFlavor rf);
 
   int tmplChoiceCount() const;
 
@@ -248,6 +275,9 @@ public:
   
   const std::string& accuracyMetric() const { return _accuracyMetric; }
 
+  MatrixDefList getToMatrices() { return _to; }
+
+  void addInitCall(const std::string& s) { _initCalls.push_back(s); }
 protected:
   static std::map<std::string, TransformPtr> theTransformMap();
 
@@ -274,6 +304,7 @@ private:
   std::string         _generator;
   int                 _templateChoice;
   double              _curAccTarget;
+  std::vector<std::string> _initCalls;
 };
 
 }

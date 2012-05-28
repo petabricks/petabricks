@@ -36,10 +36,12 @@ config.h
 stamp-h1
 pbc
 *.cache
+*.heur
 
 maxima.log
 schedule.pdf
 schedule_initial.pdf
+parser.out
 
 Makefile.in
 configure
@@ -47,6 +49,10 @@ configure
 test
 rttest1
 rttest2
+regiondatatest
+regionmatrixtest
+regionremotetest
+migrationtest
 tmp
 
 A
@@ -65,4 +71,8 @@ doc/api
 .aliases
 
 \#*\#
+
+perflogs
+confdefs
+*.latest
 

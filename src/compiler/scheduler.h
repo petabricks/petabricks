@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef PETABRICKSSCHEDULER_H
 #define PETABRICKSSCHEDULER_H
 
@@ -83,17 +98,20 @@ class Schedule : public jalib::JRefCounted, public jalib::JPrintable{
     ChoiceDepGraphNodeSet pending;
   };
 public:
-  Schedule(const RuleChoiceAssignment& choice, const ChoiceDepGraphNodeSet& inputs, const ChoiceDepGraphNodeSet& outputs)
+  Schedule(const RuleChoiceAssignment& choice,
+           const ChoiceDepGraphNodeSet& inputs,
+           const ChoiceDepGraphNodeSet& intermediates,
+           const ChoiceDepGraphNodeSet& outputs)
     : _choiceAssignment(choice)
   {
-    initialize(inputs, outputs);
+    initialize(inputs, intermediates, outputs);
   }
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
   size_t size() const { return _schedule.size(); }
 
   void print(std::ostream& o) const {
-    o << "digraph {\n";
+    o << "digraph schedule {\n";
     for(ScheduleT::const_iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
       i->printNode(o);
     }
@@ -108,14 +126,48 @@ public:
     of << *this;
   }
 protected:
-  void initialize(const ChoiceDepGraphNodeSet& inputs, const ChoiceDepGraphNodeSet& outputs);
+  void initialize(const ChoiceDepGraphNodeSet& inputs,
+                  const ChoiceDepGraphNodeSet& intermediates,
+                  const ChoiceDepGraphNodeSet& outputs);
   void depthFirstChoiceDepGraphNode(SchedulingState& state, ChoiceDepGraphNode* n);  
 private:
   // the ordering
   typedef std::vector<ScheduleEntry> ScheduleT;
   ScheduleT _schedule;
   RuleChoiceAssignment _choiceAssignment;
+
+  std::map<RuleChoiceConsumer*,bool> _copyAssignment;
+  std::map<RuleChoiceConsumer*,int> _numOutOnGpu;
 };
+
+namespace {
+  void reachFirstValidRuleFromHere(ChoiceDepGraphNodeList::iterator& _nodesIt,
+                                   ChoiceDepGraphNodeList::iterator& _nodesEnd,
+                                   RuleSet::iterator& _rulesIt) {
+    if (_rulesIt != (*_nodesIt)->choices().end()) {
+        //The rule is already valid
+        return;
+      }
+      
+    //This set of rules is finished! Let's go to the next one
+    bool found;
+    do {
+      found=true;
+      _nodesIt++;
+      
+      if (_nodesIt == _nodesEnd) {
+        //No more rules!!
+        break;
+      }
+      
+      _rulesIt=(*_nodesIt)->choices().begin();
+      
+      if (_rulesIt == (*_nodesIt)->choices().end()) {
+        found=false;
+      }
+    } while(!found);
+  }
+}
 
 /**
  * Create a manage a set of legal schedules
@@ -124,6 +176,65 @@ class StaticScheduler : public jalib::JRefCounted,
                         public jalib::JPrintable,
                         public jalib::SrcPosTaggable
 {
+public:
+  class rule_iterator;
+  friend class rule_iterator;
+  class rule_iterator {
+  public:
+    rule_iterator(StaticScheduler& scheduler) {
+      _nodesEnd = scheduler._allNodes.end();
+      _nodesIt = scheduler._allNodes.begin();
+      if (_nodesIt == _nodesEnd) {
+        //There are no node and therefore no rules
+        return;
+      } 
+      else {
+        _rulesIt = (*_nodesIt)->choices().begin();
+        reachFirstValidRuleFromHere(_nodesIt, _nodesEnd, _rulesIt);
+      }
+    }
+    
+    rule_iterator(ChoiceDepGraphNodeList::iterator nodesIt) 
+                 : _nodesIt(nodesIt) {}
+  
+    void operator++ () {
+      if (_nodesIt == _nodesEnd) {
+        //The iterator is already at the end. Nothing to do
+        return;
+      }
+      
+      _rulesIt++;
+      reachFirstValidRuleFromHere(_nodesIt, _nodesEnd, _rulesIt);
+    }
+    
+    bool operator== (rule_iterator& that) {
+      return _nodesIt==that._nodesIt && (_nodesIt==_nodesEnd
+                                         || _rulesIt==that._rulesIt);
+    }
+    
+    bool operator !=(rule_iterator& that) {
+      return ! (*this==that);
+    }
+    
+    RulePtr operator*() {
+      return *_rulesIt;
+    }
+    
+  private:
+    ChoiceDepGraphNodeList::iterator _nodesIt;
+    ChoiceDepGraphNodeList::iterator _nodesEnd;
+    RuleSet::iterator _rulesIt;
+  };
+
+public:
+  rule_iterator rule_begin() {
+    return rule_iterator(*this);
+  }
+    
+  rule_iterator rule_end() {
+    return rule_iterator(_allNodes.end());
+  }
+    
 public:
   class CantScheduleException {};
 
@@ -162,7 +273,7 @@ public:
   //const ChoiceDepGraphNodeList& schedule() const { return _schedule; }
 
   void print(std::ostream& o) const {
-    o << "digraph {\n";
+    o << "digraph staticScheduler {\n";
     for(ChoiceDepGraphNodeList::const_iterator r=_allNodes.begin(); r!=_allNodes.end(); ++r){
       (*r)->printNode(o);
     }
@@ -174,7 +285,48 @@ public:
 
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor type);
 
+  void generateGlobalCode(Transform& trans, CodeGenerator& o);
+
   int size() const { return _allNodes.size() - _inputsOriginal.size(); }
+
+private:
+  
+  struct DataDepSetCompare {
+    bool operator() (const CoordinateFormula* a, const CoordinateFormula* b) const;
+  };
+  
+  class DataDependencySet : public std::set<CoordinateFormula*,DataDepSetCompare> {
+  public:
+    /**
+     * Return true if the given dimension is equal to value in al the data 
+     * dependency vectors in the set
+     */
+    bool isDimensionDependencyAlwaysEqualTo(size_t dimension, int value) const;
+  };
+  
+  enum DimensionStatus {
+    ALWAYS_MINUS1,
+    ALWAYS_ZERO,
+    OTHER
+  };
+  
+  typedef std::map<MatrixDefPtr, DataDependencySet> MatrixDataDependencyMap;
+
+private:
+  void removeUselessDimensions();
+  void removeUselessDimensions(std::vector<size_t> uselessDimensions, 
+                               MatrixDefPtr matrix);
+  void importDataDepsFromRule(RulePtr& rule, 
+                              MatrixDataDependencyMap& dataDepsMap);
+  std::vector<size_t> findUselessDimensions(
+                                    const DataDependencySet matrixDependencies,
+                                    const MatrixDefPtr matrix);
+                                    
+  void filterNonSelfDependentAccesses(std::vector<size_t>& uselessDimensions,
+                                      const MatrixDefPtr matrix);
+  MatrixDataDependencyMap getDataDepsForTemporaryMatrixes ();
+  
+  void fixVersionedRegionsType();
 private:
   //storage of nodes
   std::map<MatrixDefPtr, ChoiceDepGraphNodeList> _matrixToNodes;
@@ -183,6 +335,8 @@ private:
 
   ChoiceDepGraphNodeSet _inputsOriginal;
   ChoiceDepGraphNodeSet _inputsRemapped;
+  ChoiceDepGraphNodeSet _intermediatesOriginal;
+  ChoiceDepGraphNodeSet _intermediatesRemapped;
   ChoiceDepGraphNodeSet _outputsOriginal;
   ChoiceDepGraphNodeSet _outputsRemapped;
 

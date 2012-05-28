@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #include "formula.h"
 #include "maximawrapper.h"
 
@@ -93,7 +108,7 @@ void petabricks::FormulaBinop<OP>::print(std::ostream& o) const {
       printPower(_toStringCache, _left, _right);
     }else{
       std::ostringstream ss;
-      ss << '(' << _left << opStr() << _right << ')';
+      ss << '(' << _left << " " << opStr() << " " << _right << ')';
       _toStringCache = ss.str();
     }
   }
@@ -104,8 +119,8 @@ template < char OP >
 const char* petabricks::FormulaBinop<OP>::opStr() {
   if(OP=='G') return ">=";
   if(OP=='L') return "<=";
-  if(OP=='&') return "&&";
-  if(OP=='|') return "||";
+  if(OP=='&') return "and";
+  if(OP=='|') return "or";
   static const char v[] = {OP , 0};
   return v;
 }
@@ -278,8 +293,18 @@ char petabricks::FormulaBinop<OP>::opType() const {
   return OP;
 }
   
+void petabricks::FormulaIf::print(std::ostream& o) const
+{
+  std::string elseClause= _else ? " else "+_else->toString() +" ": "";
+  o << "(if " << _cond << " then " << _then << elseClause << ")";
+}
 
-
+petabricks::FormulaIf::FormulaIf(const FormulaPtr& cond, const FormulaPtr& thenClause, const FormulaPtr& elseClause) : 
+    Formula(theNullFreeVarsList()),
+    _cond(cond),
+    _then(thenClause),
+    _else(elseClause) {}
+  
 //force implementations to be generated for templates
 template class petabricks::FormulaLiteral<int>;
 template class petabricks::FormulaLiteral<double>;
