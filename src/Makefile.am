@@ -35,9 +35,7 @@ noinst_HEADERS = \
   compiler/heuristicmanager.h \
   compiler/dbmanager.h \
   compiler/tinyxml.h \
-  compiler/tinystr.h
-
-pkglib_HEADERS=  \
+  compiler/tinystr.h \
   common/hash.h \
   common/jalloc.h \
   common/jargs.h \
