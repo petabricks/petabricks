@@ -1,13 +1,14 @@
 #!/usr/bin/env python
-import progress 
+from __future__ import with_statement
+import progress
 import itertools, random, subprocess, os, sys, time, warnings
 import pbutil, mutators
 import logging
-import storagedirs 
+import storagedirs
 import candidatetester
-import shutil 
+import shutil
 import tunerconfig
-import configtool 
+import configtool
 import re
 import math
 import time
@@ -25,7 +26,7 @@ import pdb
 
 class TrainingTimeout(Exception):
   pass
-  
+
 def check_timeout():
   if time.time() > config.end_time:
     raise TrainingTimeout()
@@ -64,7 +65,7 @@ class Population:
       self.candidateloglast = None
     self.starttime = time.time()
     self.onMembersChanged(True)
-  
+
   def test(self, count):
     '''test each member of the pop count times'''
     self.failed=set()
