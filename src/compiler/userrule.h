@@ -111,6 +111,8 @@ public:
   
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
+  void generateUseOnCpu(CodeGenerator& o);
+  void generateModifyOnCpu(CodeGenerator& o);
   void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
   void generateOpenCLCallCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
   void generateOpenCLPrepareCode(std::string& codename, CodeGenerator& o);
@@ -143,6 +145,7 @@ public:
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor,
+			bool wrap,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         int gpuCopyOut); 
@@ -212,7 +215,8 @@ public:
     return 0;
   }
 
-  bool isDivisible() {  
+  bool isDivisible(const SimpleRegionPtr& region) {  
+    if(region->removedDimensions() > 0) return false;
     //TODO: what about COL and ROW?
     IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
     for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){

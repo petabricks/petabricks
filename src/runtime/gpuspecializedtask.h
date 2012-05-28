@@ -106,9 +106,11 @@ private:
 template< typename T, int D, DynamicTaskPtr (T::*method)(std::vector<IndexT*>& begins, std::vector<IndexT*>& ends, int nodeID)>
 class GpuCopyOutMethodCallTask : public GpuDynamicTask {
 public:
-  GpuCopyOutMethodCallTask(const jalib::JRef<T>& obj, GpuTaskInfoPtr taskinfo, MatrixStorageInfoPtr info)
+  GpuCopyOutMethodCallTask(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D], GpuTaskInfoPtr taskinfo, MatrixStorageInfoPtr info)
     : GpuDynamicTask(taskinfo,COPYOUT,info), _obj(obj)
   {
+    memcpy(_begin, begin, sizeof _begin);
+    memcpy(_end,   end,   sizeof _end);
     _nodeID = -1;
   }
   DynamicTaskPtr run(){
@@ -121,8 +123,14 @@ public:
     _nodeID = nodeID;
   }
 
+  IndexT* begin() { return _begin; }
+  IndexT* end() { return _end; }
+
 private:
   jalib::JRef<T> _obj;
+  IndexT _begin[D];
+  IndexT _end[D];
+
   std::vector<IndexT*> _begins;
   std::vector<IndexT*> _ends;
   int _nodeID;

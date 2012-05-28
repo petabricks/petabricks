@@ -141,7 +141,7 @@ public:
   const StorageT& storage() const { return _storage; }
   const MatrixStorageInfoPtr storageInfo() const {
 #ifdef DEBUG
-    JASSERT(count()>0)(count());
+    //JASSERT(count()>0)(count());
 #endif
     return _storageInfo; 
   }
@@ -302,28 +302,28 @@ public:
 
   ///
   /// Decide to make a copy or return the orginal for making GPU buffer.s
-	ElementT* getGpuInputBufferPtr() {
+  ElementT* getGpuInputBufferPtr() {
 #ifdef HAVE_OPENCL
     if(isEntireBuffer()) {
       return this->base();
     }
-
-		_gpuInputBuffer = new MatrixStorage(count());
-		MutableMatrixRegion t = MutableMatrixRegion(_gpuInputBuffer, _gpuInputBuffer->data(), this->sizes());
+    
+    _gpuInputBuffer = new MatrixStorage(count());
+    MutableMatrixRegion t = MutableMatrixRegion(_gpuInputBuffer, _gpuInputBuffer->data(), this->sizes());
     IndexT coord[D];
     memset(coord, 0, sizeof coord);
     do {
       t.cell(coord) = this->cell(coord);
     } while(this->incCoord(coord)>=0);
-    //this->storageInfo()->addGpuInputBuffer(_gpuInputBuffer);
+    this->storageInfo()->addGpuInputBuffer(_gpuInputBuffer);
     // Store buffer in the global storage so that it won't be derefferenced before enqueueWriteBuffer is done
-    CopyPendingMap::_pendingMap.addBuffer(_gpuInputBuffer);
+    /* CopyPendingMap::_pendingMap.addBuffer(_gpuInputBuffer); */
     return _gpuInputBuffer->data();
 #else
     UNIMPLEMENTED();
     return 0;
 #endif
-	}
+  }
 
   ///
   /// Decide to make a copy or return the orginal for making GPU buffer.
@@ -497,7 +497,14 @@ public:
   void useOnCpu(IndexT firstRow = 0) {
 #ifdef HAVE_OPENCL
     if(D == 0) return;
-    this->storage()->updateDataFromGpu(firstRow);
+    this->storage()->updateDataFromGpu(this->storageInfo(), firstRow);
+#endif
+  }
+
+  void modifyOnCpu(IndexT firstRow = 0) {
+#ifdef HAVE_OPENCL
+    if(D == 0 || count() == 0) return;
+    this->storageInfo()->modifyOnCpu(firstRow);
 #endif
   }
 

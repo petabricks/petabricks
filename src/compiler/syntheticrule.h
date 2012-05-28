@@ -105,6 +105,7 @@ public:
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor,
+			bool wrap,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         int gpuCopyOut);
@@ -140,6 +141,7 @@ public:
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor,
+			bool wrap,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         int gpuCopyOut);
@@ -180,6 +182,7 @@ public:
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor,
+			bool wrap,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         int gpuCopyOut);
@@ -203,6 +206,7 @@ public:
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor,
+			bool wrap,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         int gpuCopyOut);

@@ -836,21 +836,51 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
   int dim_int = iterdef.dimensions();
   std::string dim_string = jalib::XToString(dim_int);
   
-  for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i) {
-    if(_loads.find(*i) == _loads.end())
-      continue;
-    switch(stencilType(*i)) {
-    case 0:
-      o.write((*i)->matrix()->name()+".useOnCpu(0);");
-      break;
-    case 1:
-      o.write((*i)->matrix()->name()+".useOnCpu(_iter_begin["+dim_string+"-1]);");
-      break;
-    case 2:
-      o.write((*i)->matrix()->name()+".useOnCpu(_iter_begin["+dim_string+"-1] + "+jalib::XToString(_minCoordOffsets[(*i)->matrix()->name()][dim_int-1])+");");
-      break;
-    }
-  }  
+  if(RuleFlavor::WORKSTEALING == flavor || RuleFlavor::DISTRIBUTED == flavor) {
+    CodeGenerator helper = o.forkhelper();
+    std::string taskclass;
+    //std::string dim_string = jalib::XToString(region.dimensions() + region.removedDimensions());
+    std::string methodname = trampcodename(trans)+"_"+flavor.str();
+    
+    helper.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+"_"+flavor.str()+"_wrap", packedargs);
+    taskclass = "petabricks::SpatialMethodCallTask<CLASS"
+      ", " + dim_string
+      + ", &CLASS::" + methodname + "_useOnCpu"
+      + ">";
+    helper.write("DynamicTaskPtr pre = new "+taskclass+"(this, _iter_begin, _iter_end);");
+    helper.write("pre->enqueue();");
+    
+    taskclass = "petabricks::SpatialMethodCallTask<CLASS"
+      ", " + dim_string
+      + ", &CLASS::" + methodname
+      + ">";
+    helper.write("DynamicTaskPtr main = new "+taskclass+"(this, _iter_begin, _iter_end);");
+    helper.write("main->dependsOn(pre);");
+    helper.write("main->enqueue();");
+    
+    taskclass = "petabricks::SpatialMethodCallTask<CLASS"
+      ", " + dim_string
+      + ", &CLASS::" + methodname + "_modifyOnCpu"
+      + ">";
+    helper.write("DynamicTaskPtr post = new "+taskclass+"(this, _iter_begin, _iter_end);");
+    helper.write("post->dependsOn(main);");
+    helper.write("return post;");
+    helper.endFunc();
+    
+    helper.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+"_"+flavor.str()+"_useOnCpu", packedargs);
+    generateUseOnCpu(helper);
+    helper.write("return NULL;");
+    helper.endFunc();
+    
+    
+    helper.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+"_"+flavor.str()+"_modifyOnCpu", packedargs);
+    generateModifyOnCpu(helper);
+    helper.write("return NULL;");
+    helper.endFunc();
+  }
+  else {
+    generateUseOnCpu(o);
+  }
 #endif
 
   for(size_t i=0; i<_duplicateVars.size(); ++i){
@@ -1129,31 +1159,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     iterdef.genLoopEnd(o);
 
 #ifdef HAVE_OPENCL
-  for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i) {
-    if(_stores.find(*i) == _stores.end())
-      continue;
-    // switch(stencilType((*i)->matrix(),dim_int)) {
-    // case 0:
-    //   o.comment("case 0");
-    //   o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(0);");
-    //   break;
-    // case 1:
-    //   o.comment("case 1");
-    //   o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(_iter_begin["+dim_string+"-1]);");
-    //   break;
-    // case 2:
-    //   o.comment("case 2");
-    //   o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(_iter_begin["+dim_string+"-1] + "+jalib::XToString(_minCoordOffsets[(*i)->matrix()->name()][dim_int-1])+");");
-    //   break;
-    // }
-    if((*i)->getRegionType() == Region::REGION_ALL) {
-      o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(0);");
-    }
-    else {
-    //if((*i)->getRegionType() != Region::REGION_ALL) {
-      o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(_iter_begin["+dim_string+"-1]);");
-    }
-  }
+    generateModifyOnCpu(o);
 #endif
     
     if(RuleFlavor::SEQUENTIAL != flavor){
@@ -1169,6 +1175,40 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 }
 
 #ifdef HAVE_OPENCL
+void petabricks::UserRule::generateUseOnCpu(CodeGenerator& o){
+  int lastdim_int = dimensions()-1;
+  std::string lastdim = jalib::XToString(lastdim_int);
+  for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i) {
+    if(_loads.find(*i) == _loads.end())
+      continue;
+    switch(stencilType(*i)) {
+    case 0:
+      o.write((*i)->matrix()->name()+".useOnCpu(0);");
+      break;
+    case 1:
+      o.write((*i)->matrix()->name()+".useOnCpu(_iter_begin["+lastdim+"]);");
+      break;
+    case 2:
+      o.write((*i)->matrix()->name()+".useOnCpu(_iter_begin["+lastdim+"] + "+jalib::XToString(_minCoordOffsets[(*i)->matrix()->name()][lastdim_int])+");");
+      break;
+    }
+  } 
+}
+
+void petabricks::UserRule::generateModifyOnCpu(CodeGenerator& o){
+  std::string lastdim = jalib::XToString(dimensions()-1);
+  for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i) {
+    if(_stores.find(*i) == _stores.end() || !(*i)->isBuffer())
+      continue;
+    if((*i)->getRegionType() == Region::REGION_ALL) {
+      o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(0);");
+    }
+    else {
+      //if((*i)->getRegionType() != Region::REGION_ALL) {
+      o.write((*i)->matrix()->name()+".modifyOnCpu(_iter_begin["+lastdim+"]);");
+    }
+  }
+}
 
 void petabricks::UserRule::generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   SRCPOSSCOPE();
@@ -1293,12 +1333,12 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
     if((*i)->isBuffer()){
       o.beginIf("map->find(\""+(*i)->matrix()->name()+"\") != map->end()");
-      std::string copyinclass = "petabricks::GpuCopyOutMethodCallTask<"+objectname
+      std::string copyoutclass = "petabricks::GpuCopyOutMethodCallTask<"+objectname
                               + ", " + dimension
                               + ", &" + objectname + "::" + codename + "_copyout_" + (*i)->name()
                               + ">";
       std::string taskid = jalib::XToString(id);
-      o.write("DynamicTaskPtr copyout_"+taskid+" = new "+copyinclass+"(this, taskinfo, "+(*i)->matrix()->name()+".storageInfo());");
+      o.write("DynamicTaskPtr copyout_"+taskid+" = new "+copyoutclass+"(this, _iter_begin, _iter_end, taskinfo, "+(*i)->matrix()->name()+".storageInfo());");
       o.write("end->dependsOn(copyout_"+taskid+");");
       o.write("copyout_"+taskid+"->enqueue();");
       id++;
@@ -1378,6 +1418,7 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
   o.write("std::cout << \"copyin: bytesOnGpu = \" << storage_" + name + "->bytesOnGpu() << std::endl;");
 #endif
   o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->getClMem(), CL_FALSE, 0, storage_"+name+"->bytesOnGpu(), "+name+".getGpuInputBufferPtr(), 0, NULL, NULL);");
+  o.write("storage_"+name+"->storeGpuData();");
   o.write("clFlush(GpuManager::_queue);");
 #ifdef DEBUG
   o.write("JASSERT(CL_INVALID_CONTEXT != err).Text( \"Failed to write to buffer: invalid context.\");");
@@ -1933,6 +1974,7 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor,
+					    bool wrap,
                                             std::vector<RegionNodeGroup>&,
                                             int, int){
   SRCPOSSCOPE();
@@ -1943,7 +1985,10 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
     break;
   case RuleFlavor::WORKSTEALING:
   case RuleFlavor::DISTRIBUTED:
-    o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+"_"+flavor.str(), region);
+    if(wrap)
+      o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+"_"+flavor.str()+"_wrap", region);
+    else
+      o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+"_"+flavor.str(), region);
     break;
   default:
     UNIMPLEMENTED();

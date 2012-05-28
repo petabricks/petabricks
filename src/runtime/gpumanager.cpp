@@ -167,6 +167,7 @@ void GpuManager::prepare(GpuDynamicTaskPtr task) {
   task->runWrapper();
 
   int dimensions = _currenttaskinfo->dimensions();
+  //JASSERT(task->end()[dimensions-1] > task->begin()[dimensions-1])(task->end()[dimensions-1])(task->begin()[dimensions-1]);
   if(task->end()[dimensions-1] <= task->begin()[dimensions-1])
     return;
 
@@ -192,7 +193,8 @@ void GpuManager::copyin(GpuDynamicTaskPtr task) {
   MatrixStorageInfoPtr storageinfo = task->storageinfo();
   double gpuRatio = _currenttaskinfo->gpuRatio();
 
-  if(storageinfo->initGpuMem(_queue,_context,gpuRatio,true)) { // clCreateBuffer
+  if(task->end()[dimensions-1] > task->begin()[dimensions-1] &&
+     storageinfo->initGpuMem(_queue,_context,gpuRatio,true)) { // clCreateBuffer
     #ifdef GPU_TRACE
     std::cout << "copying in... " << &(*storageinfo) << std::endl;
     #endif
@@ -208,11 +210,12 @@ void GpuManager::run(GpuDynamicTaskPtr task) {
   #ifdef GPU_TRACE
   std::cout << "[RUN]" << std::endl;
   #endif
-  /*for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_from.begin(); i != _currenttaskinfo->_from.end(); ++i) {
-    (*i)->check(_queue);
-  }*/
+
   int dimensions = _currenttaskinfo->dimensions();
   if(task->end()[dimensions-1] > task->begin()[dimensions-1]) {
+    // for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_from.begin(); i != _currenttaskinfo->_from.end(); ++i) {
+    //   (*i)->check(_queue);
+    // }
     task->run();
   }
   #ifdef GPU_TRACE
@@ -233,6 +236,13 @@ bool GpuManager::copyout(GpuDynamicTaskPtr task) {
   #ifdef GPU_TRACE 
   std::cout << "[COPY OUT]" << &(*storage) << std::endl;
   #endif
+
+  int dimensions = _currenttaskinfo->dimensions();
+  if(task->end()[dimensions-1] <= task->begin()[dimensions-1]) {
+    task->completeTaskDeps();
+    storage->done(_currenttaskinfo->nodeID());
+    return true;
+  }
 
   CopyoutInfoPtr copyInfo = storage->getCopyoutInfo(_currenttaskinfo->nodeID());
 

@@ -53,7 +53,6 @@ public:
 
 class CopyoutInfo;
 typedef jalib::JRef<CopyoutInfo> CopyoutInfoPtr;
-class CopyPendingMap;
 
 class ClMemWrapper: public jalib::JRefCounted {
 public:
@@ -144,19 +143,21 @@ public:
   }
 
 #ifdef HAVE_OPENCL
-  void lock() { _lock.lock(); }
-  void unlock() { _lock.unlock(); }
-  void lockStorage() { _storageLock.lock(); }
-  void unlockStorage() { _storageLock.unlock(); }
-  void updateDataFromGpu(IndexT firstRow = 0);
+  void updateDataFromGpu(MatrixStorageInfoPtr info, IndexT firstRow = 0);
+  void clearDataOnGpu(MatrixStorageInfoPtr info, IndexT firstRow);
+  MatrixStorageInfoPtr findStorageInfo(MatrixStorageInfoPtr info, int lastRowOnGpu);
+  void addNeedCopyOut(MatrixStorageInfoPtr info);
+  void addDoneCopyOut(MatrixStorageInfoPtr info);
 #endif
 
 private:
   ElementT* _data;
   size_t _count;
 #ifdef HAVE_OPENCL
-  jalib::JMutex  _lock;
-  jalib::JMutex  _storageLock;
+  std::set<MatrixStorageInfoPtr> _needcopyout;
+  std::set<MatrixStorageInfoPtr> _donecopyout;
+  jalib::JMutex _needcopyoutLock;
+  jalib::JMutex _donecopyoutLock;
 #endif
 };
 
@@ -300,6 +301,7 @@ public:
 
 #ifdef HAVE_OPENCL
   void modifyOnCpu(IndexT firstRow);
+  void storeGpuData();
   void setName(std::string name) { _name = name; }
   std::string getName() { return _name; }
   bool isContiguous() { return _contiguous; }
@@ -435,7 +437,6 @@ public:
     _gpuInputBuffers.push_back(buffer);
   }
 
-  std::vector<MatrixStoragePtr>& getGpuInputBuffers() { return _gpuInputBuffers; }
 #endif
 
 private:
@@ -501,141 +502,6 @@ private:
   bool _done;
   bool _empty;
 };
-
-class CopyPendingMap : public jalib::JRefCounted {
-public:
-
-  ///
-  /// WARNING: need to grab info->storage()->lock() before calling this function.
-  void put(const MatrixStorageInfoPtr& info) {
-#ifdef HAVE_OPENCL
-    _lock.lock();
-    std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator it = _map.find(info->storage());
-    std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator end = _map.end();
-    _lock.unlock();
-    if(it != end) {
-      std::set<MatrixStorageInfoPtr>& infoList = it->second;
-      bool add = false; 
-      std::set<MatrixStorageInfoPtr>::iterator i;
-      for(i = infoList.begin(); i != infoList.end(); ++i) {
-        if((*i)->equal(info)) {
-          (*i)->addPending(info->getBegins(), info->getEnds(), info->coverage());
-          add = true;
-          break;
-        }
-      }
-      
-      if(!add) {
-        it->second.insert(info);
-      }
-    }
-    else {
-      std::set<MatrixStorageInfoPtr> newInfoList;
-      newInfoList.insert(info);
-      _lock.lock();
-      _map[info->storage()] = newInfoList;
-      _lock.unlock();
-    }
-
-    /*std::cout << "@@@ pending map: contains..." << std::endl;
-    std::set<MatrixStorageInfoPtr> set = _map[info->storage()];
-    for(std::set<MatrixStorageInfoPtr>::iterator i = set.begin(); i != set.end(); ++i) {
-      std::cout << &(*(*i)) << std::endl;
-    }*/
-#else
-    USE(info);
-    UNIMPLEMENTED();
-#endif
-  }
-
-  void putInStorage(const MatrixStorageInfoPtr& info) {
-    _storageLock.lock();
-    std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator it = _storageMap.find(info->storage());
-    std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator end = _storageMap.end();
-
-    if(it != end) {
-      it->second.insert(info);
-    }
-    else {
-      std::set<MatrixStorageInfoPtr> newInfoList;
-      newInfoList.insert(info);
-      _lock.lock();
-      _storageMap[info->storage()] = newInfoList;
-      _lock.unlock();
-    }
-    _storageLock.unlock();
-  }
-
-  std::set<MatrixStorageInfoPtr>& allPendings(MatrixStoragePtr storage) {     
-    _lock.lock();
-    std::set<MatrixStorageInfoPtr>& pendings = _map[storage];
-    _lock.unlock();
-    return pendings; 
-
-  }
-
-  std::set<MatrixStorageInfoPtr>& allStoring(MatrixStoragePtr storage) {     
-    _storageLock.lock();
-    std::set<MatrixStorageInfoPtr>& ret = _storageMap[storage];
-    _storageLock.unlock();
-    return ret; 
-
-  }
-
-  ///
-  /// WARNING: need to grab info->storage()->lock() before calling this function.
-  void clearPendings(MatrixStoragePtr storage) { 
-    _lock.lock();
-    std::set<MatrixStorageInfoPtr>& pendings = _map[storage];
-    _lock.unlock();
-
-    _storageLock.lock();
-    std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator it = _storageMap.find(storage);
-    std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator end = _storageMap.end();
-
-    if(it == end) {
-      std::set<MatrixStorageInfoPtr> newStorage;
-      newStorage.insert(pendings.begin(), pendings.end());
-      _storageMap[storage] = newStorage;
-    }
-    else {
-      it->second.insert(pendings.begin(), pendings.end());
-    }
-    _storageLock.unlock();
-
-    pendings.clear(); 
-  }
-
-  void print() {
-    std::cout << "@@@ pending map: print" << std::endl;
-    for(std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator it = _map.begin(); it != _map.end(); ++it) {
-      std::cout << "storage: " << &(*(it->first)) << std::endl;
-      std::set<MatrixStorageInfoPtr>& set = it->second;
-      for(std::set<MatrixStorageInfoPtr>::iterator i = set.begin(); i != set.end(); ++i) {
-        std::cout << "  " << &(*(*i)) << std::endl;
-      }
-    }
-  }
-
-  void addBuffer(MatrixStoragePtr buffer) {
-    _bufferlock.lock();
-    _buffers.push_back(buffer);
-    _bufferlock.unlock();
-  }
-  
-  static CopyPendingMap _pendingMap;
-
-private:
-  std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> > _map;
-  jalib::JMutex  _lock;
-
-  std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> > _storageMap;
-  jalib::JMutex  _storageLock;
-
-  std::vector<MatrixStoragePtr> _buffers;
-  jalib::JMutex  _bufferlock;
-};
-
 
 }
 
