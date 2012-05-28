@@ -210,7 +210,7 @@ def main():
   global REV
   REV=pbutil.gitRevision()
 
-  r, lines = pbutil.loadAndCompileBenchmarks("./scripts/pbbenchmark.tests", learning=options.learning, heuristicSetFileName=options.heuristics)
+  r, lines = pbutil.loadAndCompileBenchmarks("./scripts/pbbenchmark.tests", searchterms=sys.argv[1:], learning=options.learning, heuristicSetFileName=options.heuristics)
 
   if filter(lambda x: x.rv!=0, r):
     print "compile failed"

@@ -122,7 +122,7 @@ class Progress:
       m = self.parent.progressStr()
     else:
       m = ""
-    if self.maxRemaining>0:
+    if self.maxRemaining>1:
       m += "[%d/%d]" % (self.maxRemaining-self.curRemaining, self.maxRemaining)
     return m
 

@@ -43,7 +43,7 @@ inline void toMatrix(ElementT* array, T&matrix) {
 
 
 
-transform MatrixMultiply
+transform MatrixMultiplyBase
 from A[c,h], B[w,c] 
 to AB[w,h]
 {
@@ -96,6 +96,56 @@ to AB[w,h]
     delete arrayAB;
   }
 }
+
+transform MatrixMultiply
+from A[c,h], B[w,c] 
+to AB[w,h]
+{
+  to(AB ab) from (A a, B b) {
+    MatrixMultiplyBase(ab,a,b);
+  }
+
+  to(AB ab) from (A a, B b) using(t1[w,h], t2[w,h]) {
+    if (c<=1) {
+      MatrixMultiplyBase(ab,a,b);
+    }else{
+      spawn MatrixMultiply(t1, a.region(0,   0, c/2, h), b.region(0, 0,   w, c/2));
+      spawn MatrixMultiply(t2, a.region(c/2, 0, c,   h), b.region(0, c/2, w, c));
+      sync;
+      MatrixAdd(ab, t1, t2);
+    }
+  }
+
+  to(AB ab) from (A a, B b){
+    if (w<=1 || h<=1) {
+      MatrixMultiplyBase(ab,a,b);
+    }else{
+      spawn MatrixMultiply(ab.region(0,   0,   w/2, h/2), a.region(0, 0,   c, h/2), b.region(0,   0, w/2, c));
+      spawn MatrixMultiply(ab.region(w/2, 0,   w,   h/2), a.region(0, 0,   c, h/2), b.region(w/2, 0, w,   c));
+      spawn MatrixMultiply(ab.region(0,   h/2, w/2, h),   a.region(0, h/2, c, h),   b.region(0,   0, w/2, c));
+      spawn MatrixMultiply(ab.region(w/2, h/2, w,   h),   a.region(0, h/2, c, h),   b.region(w/2, 0, w,   c));
+    }
+  }
+
+  to(AB ab) from (A a, B b) using(t1[w,h], t2[w,h]) {
+    if (w<=1 || h<=1 || c<=1) {
+      MatrixMultiplyBase(ab,a,b);
+    }else{
+      spawn MatrixMultiply(t1.region(0,   0,   w/2, h/2), a.region(0, 0,   c/2, h/2), b.region(0,   0, w/2, c/2));
+      spawn MatrixMultiply(t1.region(w/2, 0,   w,   h/2), a.region(0, 0,   c/2, h/2), b.region(w/2, 0, w,   c/2));
+      spawn MatrixMultiply(t1.region(0,   h/2, w/2, h),   a.region(0, h/2, c/2, h),   b.region(0,   0, w/2, c/2));
+      spawn MatrixMultiply(t1.region(w/2, h/2, w,   h),   a.region(0, h/2, c/2, h),   b.region(w/2, 0, w,   c/2));
+      spawn MatrixMultiply(t2.region(0,   0,   w/2, h/2), a.region(c/2, 0,   c, h/2), b.region(0,   c/2, w/2, c));
+      spawn MatrixMultiply(t2.region(w/2, 0,   w,   h/2), a.region(c/2, 0,   c, h/2), b.region(w/2, c/2, w,   c));
+      spawn MatrixMultiply(t2.region(0,   h/2, w/2, h),   a.region(c/2, h/2, c, h),   b.region(0,   c/2, w/2, c));
+      spawn MatrixMultiply(t2.region(w/2, h/2, w,   h),   a.region(c/2, h/2, c, h),   b.region(w/2, c/2, w,   c));
+      sync;
+      MatrixAdd(ab, t1, t2);
+    }
+  }
+
+}
+
 
 transform MatrixMultiplyTransposed
 from A[n,n], B[n,n] 
