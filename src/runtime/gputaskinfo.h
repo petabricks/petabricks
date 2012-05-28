@@ -44,7 +44,7 @@ class GpuTaskInfo: public jalib::JRefCounted {
 public:
 
   /// constructor
-  GpuTaskInfo(int nodeID, RegionNodeGroupMapPtr map, int gpuCopyOut, int dimensions, int gpuRatio) {
+  GpuTaskInfo(int nodeID, RegionNodeGroupMapPtr map, int gpuCopyOut, int dimensions, double gpuRatio) {
     _nodeID = nodeID;
     _map = map;
     _gpuCopyOut = gpuCopyOut;

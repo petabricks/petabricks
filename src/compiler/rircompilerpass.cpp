@@ -581,17 +581,17 @@ void petabricks::OpenClFunctionRejectPass::before(RIRExprCopyRef& e)
 
 
 void petabricks::CollectLoadStorePass::before(RIRExprCopyRef& e) {
-  //std::cout << "Expr current = " << e->toString() << " type = " << e->type() << " EXPR = " << RIRNode::EXPR << std::endl;
+  std::cout << "Expr current = " << e->toString() << " type = " << e->type() << " EXPR = " << RIRNode::EXPR << std::endl;
   _numExprs++;
   RIRSymbolPtr sym = _scope->lookup(e->toString());
   if(_numExprs == 2) {
     _firstInStmt = e;
   }
-  if(!_istrans && sym && (sym->type() == RIRSymbol::SYM_ARG_ELEMENT || sym->type() == RIRSymbol::SYM_ARG_REGION)) {
+  if(_firstInStmt != e && !_istrans && sym && (sym->type() == RIRSymbol::SYM_ARG_ELEMENT || sym->type() == RIRSymbol::SYM_ARG_REGION)) {
     RegionPtr region = _rule.findMatrix(e->str());
     if(region) {
-      _loadstores.insert(region);
-      std::cout << ">>> ADD LOADSTORE " << region->name() << " " << region->matrix()->name() << std::endl;
+      _loads.insert(region);
+      std::cout << ">>> ADD LOAD " << region->name() << " " << region->matrix()->name() << std::endl;
     }
     else {
       std::cout << ">>> TRY ADD LOADSTORE " << e->str() << std::endl;
@@ -608,11 +608,12 @@ void petabricks::CollectLoadStorePass::before(RIRExprCopyRef& e) {
   else if(e->type() == RIRNode::EXPR_OP && hasExprBackward() 
      && (e->isLeaf("=") || e->isLeaf("+=") || e->isLeaf("-=") || e->isLeaf("*=") || e->isLeaf("/=") || e->isLeaf("%=") || e->isLeaf(">>=") || e->isLeaf("<<=")) ) {
     RegionPtr region = _rule.findMatrix(_firstInStmt->str());
-      if(region) {
-	_stores.insert(region);
-	std::cout << ">>> ADD STORE " << region->name() << " " << region->matrix()->name() << std::endl;
-
-      }
+    if(region) {
+      _stores.insert(region);
+      std::cout << ">>> ADD STORE " << region->name() << " " << region->matrix()->name() << std::endl;
+      if(e->isLeaf("="))
+	_addFirst = true;
+    }
   }
   else if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM) {
     _istrans = true;
@@ -621,9 +622,21 @@ void petabricks::CollectLoadStorePass::before(RIRExprCopyRef& e) {
 }
 
 void petabricks::CollectLoadStorePass::before(RIRStmtCopyRef& e) {
-  //std::cout << "Stmt current = " << e << std::endl;
+  std::cout << "(before) Stmt current = " << e << std::endl;
   _numExprs = 0;
+  _addFirst = false;
   _istrans = false;
+}
+
+void petabricks::CollectLoadStorePass::after(RIRStmtCopyRef& e) {
+  std::cout << "(after) Stmt current = " << e << std::endl;
+  if(!_addFirst) {
+    RegionPtr region = _rule.findMatrix(_firstInStmt->str());
+    if(region) {
+      _loads.insert(region);
+      std::cout << ">>> ADD LOAD " << region->name() << " " << region->matrix()->name() << std::endl;
+    }
+  }
 }
 
 void petabricks::ManageCpuGpuMemPass::before(RIRExprCopyRef& e) {
@@ -638,7 +651,7 @@ void petabricks::ManageCpuGpuMemPass::before(RIRExprCopyRef& e) {
       std::string lastdim_string = jalib::XToString(lastdim);
       //push UseOnCpu
       for(RegionSet::iterator i = _loads.begin(); i != _loads.end(); ++i) {
-	switch(_rule.stencilType(*i)) {
+	switch(_rule.stencilType(*i, true)) {
 	case 0:
 	  pushStmtBackward(RIRStmt::parse((*i)->name()+".useOnCpu(0);", SRCPOS()));
 	  break;

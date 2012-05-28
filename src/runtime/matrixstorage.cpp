@@ -34,7 +34,7 @@
 
 void petabricks::MatrixStorageInfo::modifyOnCpu(IndexT firstRow){
   // if(storage())
-  //   std::cout << "+++ modifyOnCpu: " << &(*this) << " _storage = " << &(*storage()) << ", row = " << firstRow << std::endl;
+  //    std::cout << "+++ modifyOnCpu: " << &(*this) << " _storage = " << &(*storage()) << ", row = " << firstRow << std::endl;
   if(firstRow < _firstRowOnCpu)
     _firstRowOnCpu = firstRow;
 
@@ -54,7 +54,7 @@ void petabricks::MatrixStorage::clearDataOnGpu(MatrixStorageInfoPtr info, IndexT
   std::list<MatrixStorageInfoPtr> stale2;
   _donecopyoutLock.lock();
   for(std::set<MatrixStorageInfoPtr>::iterator it = _donecopyout.begin(); it != _donecopyout.end(); ++it) {
-    std::cout << "+++ info.lastrow = " << (*it)->lastRowOnGpu() << std::endl;
+    // std::cout << "+++ info.lastrow = " << (*it)->lastRowOnGpu() << std::endl;
     if((*it)->dimensions() != info->dimensions() || firstRow < (*it)->lastRowOnGpu()) {
       stale2.push_back(*it);
     }
@@ -66,9 +66,11 @@ void petabricks::MatrixStorage::clearDataOnGpu(MatrixStorageInfoPtr info, IndexT
 }
 
 void petabricks::MatrixStorage::updateDataFromGpu(MatrixStorageInfoPtr info, IndexT firstRow){
+  std::cout << "+++updateDataFromGpu " << &(*this) << ": dimension = " << info->dimensions() << ", firstRow = " << firstRow << std::endl;
   bool needUpdate = false;
   for(std::set<MatrixStorageInfoPtr>::iterator it = _needcopyout.begin(); it != _needcopyout.end(); ++it) {
-    if((*it)->lastRowOnGpu() - 1 >= firstRow) {
+    std::cout << "+++compare: dimension = " << (*it)->dimensions() << ", lastRow = " << (*it)->lastRowOnGpu() << std::endl;
+    if((*it)->lastRowOnGpu() - 1 >= firstRow || (*it)->dimensions() != info->dimensions()) {
       needUpdate = true;
       break;
     }
@@ -293,11 +295,6 @@ bool petabricks::MatrixStorageInfo::isDataMatch(const MatrixStorageInfo& that) c
 
 #ifdef HAVE_OPENCL
 bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_context& context, double gpuRatio, bool input) {
-#ifdef GPU_TRACE
-  if(storage())
-    std::cout << "initGpuMem " << &(*this) << " _storage = " << &(*storage()) << ", _firstRowOnCpu = " << _firstRowOnCpu << ", _lastRowOnGpu = " << _lastRowOnGpu << ", _lastRowGuide = " << _lastRowOnGpuGuide << std::endl;
-#endif
-
   // Set upperound of the region to be copied into GPU
   int upperbound;
   if(_dimensions == 0)
@@ -308,8 +305,26 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
   else
     upperbound = _lastRowOnGpuGuide;
 
-  if(upperbound < gpuRatio*_sizes[_dimensions - 1])
-    upperbound = gpuRatio*_sizes[_dimensions - 1];
+  // if(upperbound < gpuRatio*_sizes[_dimensions - 1])
+  //   upperbound = gpuRatio*_sizes[_dimensions - 1];
+  //JASSERT(_dimensions == 0 || upperbound >= gpuRatio*_sizes[_dimensions - 1])(_dimensions)(upperbound)(gpuRatio*_sizes[_dimensions - 1])(_lastRowOnGpuGuide);
+
+  // if(_dimensions == 0) {
+  //   upperbound = 0;
+  // }
+  // else if(_iterDim == _dimensions && _lastRowOnGpuOffset < INT_MAX) {
+  //   upperbound = gpuRatio*_sizes[_dimensions - 1] + _lastRowOnGpuOffset;
+  //   if(upperbound > _sizes[_dimensions - 1])
+  //     upperbound = gpuRatio*_sizes[_dimensions - 1];
+  // }
+  // else {
+  //   upperbound = gpuRatio*_sizes[_dimensions - 1];
+  // }
+
+#ifdef GPU_TRACE
+  if(storage())
+    std::cout << "initGpuMem " << &(*this) << " _storage = " << &(*storage()) << ", _firstRowOnCpu = " << _firstRowOnCpu << ", _lastRowOnGpu = " << _lastRowOnGpu << ", _lastRowOffset = " << _lastRowOnGpuOffset << ", gpu_ratio = " << gpuRatio << ", upperbound = " << upperbound << ", dimension = " << _dimensions << ", _size = " << _sizes[_dimensions - 1] << std::endl;
+#endif
 
   _queue = queue;
 
@@ -575,9 +590,13 @@ void petabricks::MatrixStorageInfo::addPending(std::vector<IndexT*>& begins, std
 petabricks::MatrixStoragePtr petabricks::MatrixStorageInfo::processPending() {
   if(_coverage == 0)
     return NULL;
+  std::cout << "before: " << std::endl;
+  storage()->print();
   //TODO: how to deal with queue when region is on multiple gpus?
   CopyoutInfoPtr copy = new CopyoutInfo(_queue, this, _begins, _ends, _coverage);
   while(!copy->complete()) {}
+  std::cout << "after: " << std::endl;
+  storage()->print();
   //copy->getGpuOutputStoragePtr()->print();
   return copy->getGpuOutputStoragePtr();
 }

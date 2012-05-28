@@ -337,19 +337,20 @@ class CollectLoadStorePass: public RIRCompilerPass {
   }
   void before(RIRExprCopyRef& e);
   void before(RIRStmtCopyRef& e);
+  void after(RIRStmtCopyRef& e);
 
   RegionSet& stores() {
     return _stores;
   }
 
   RegionSet& loads() {
-    if(!_computeloads) {
-      _computeloads = true;
-      for(RegionSet::iterator i = _loadstores.begin(); i != _loadstores.end(); ++i) {
-	if(_stores.find(*i) == _stores.end())
-	  _loads.insert(*i);
-      }
-    }
+    /* if(!_computeloads) { */
+    /*   _computeloads = true; */
+    /*   for(RegionSet::iterator i = _loadstores.begin(); i != _loadstores.end(); ++i) { */
+    /* 	if(_stores.find(*i) == _stores.end()) */
+    /* 	  _loads.insert(*i); */
+    /*   } */
+    /* } */
     return _loads;
   }
 
@@ -362,6 +363,7 @@ class CollectLoadStorePass: public RIRCompilerPass {
   bool _istrans;
 
   RIRExprCopyRef _firstInStmt;
+  bool _addFirst;
   int _numExprs;
 };
 

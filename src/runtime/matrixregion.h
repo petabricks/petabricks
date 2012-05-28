@@ -126,7 +126,15 @@ public:
         memcpy(this->_sizes, sizes, sizeof_sizes);
       else
         memset(this->_sizes, -1, sizeof_sizes);
+
+      /* ssize_t s=1; */
+      /* for(int i=0; i<D; ++i) */
+      /* 	s*=this->sizes()[i]; */
+      /* _count = s; */
     }
+    /* else */
+    /*   _count = 1; */
+
     _base = b;
     _storage = s;
     if(count()>0){
@@ -172,6 +180,8 @@ public:
     for(int i=0; i<D; ++i)
       s*=this->sizes()[i];
     return s;
+    /* JASSERT(s == _count)(s)(_count); */
+    /* return _count; */
   }
   
   ///
@@ -196,6 +206,9 @@ private:
   ElementT* _base;
   IndexT _multipliers[D];
   IndexT _sizes[D];
+
+protected:
+  ssize_t _count;
 };
 
 /**
@@ -496,7 +509,7 @@ public:
 
   void useOnCpu(IndexT firstRow = 0) {
 #ifdef HAVE_OPENCL
-    if(D == 0) return;
+    if(D == 0 || count() == 0) return;
     this->storage()->updateDataFromGpu(this->storageInfo(), firstRow);
 #endif
   }
@@ -584,11 +597,13 @@ public:
 
   ///
   /// Number of elements in this region
-  ssize_t count() const {
+  ssize_t count() const { 
     ssize_t s=1;
     for(int i=0; i<D; ++i)
       s*=this->sizes()[i];
     return s;
+    /* JASSERT(s == this->_count)(s)(this->_count); */
+    /* return this->_count; */
   }
 
   ///
@@ -691,6 +706,7 @@ public:
 
 protected:
   bool _hasStorageInfo;
+
   ///
   /// Compute the offset in _base for a given coordinate
   ElementT* coordToPtr(const IndexT coord[D]) const{

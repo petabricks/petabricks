@@ -263,7 +263,48 @@ void petabricks::UserRule::collectGpuLocalMemoryData() {
   for( RegionList::const_iterator it =_from.begin( ); it != _from.end( ); ++it )
   {
     //std::cout << "collect = " << (*it)->name() << " " << (*it)->matrix()->name() << std::endl;
-    if((*it)->isBuffer() && (*it)->dimensions() == dim) {
+    // if((*it)->isBuffer() && (*it)->dimensions() == dim) {
+    //   SimpleRegionPtr region = _fromBoundingBox[(*it)->matrix()];
+    //   bool local = true;
+    //   FormulaList min, max;
+    //   for(int i = 0; i < (int) dim; i++) {
+    //     FormulaPtr min_diff = new FormulaSubtract(region->minCoord().at(i), getOffsetVar(i));
+    //     min_diff = MAXIMA.normalize(min_diff);
+    //     FreeVarsPtr vars = min_diff->getFreeVariables();
+    //     if(vars->size() > 0) {
+    //       local = false;
+    //       break;
+    //     }
+
+
+    //     FormulaPtr max_diff = new FormulaSubtract(region->maxCoord().at(i), getOffsetVar(i));
+    //     max_diff = MAXIMA.normalize(max_diff);
+    //     vars = max_diff->getFreeVariables();
+    //     if(vars->size() > 0) {
+    //       local = false;
+    //       break;
+    //     }
+
+    //     min.push_back(min_diff);
+    //     max.push_back(max_diff);
+
+    //   }
+
+    //   if(local) {
+    // 	//std::cout << "ADD collect = " << (*it)->name() << " " << (*it)->matrix()->name() << std::endl;
+    // 	std::string matrix = (*it)->matrix()->name();
+    // 	if(dim <= 2 && MAXIMA.comparePessimistically(region->symbolicSize(), ">", FormulaInteger::one()) ) {
+    // 	  // Only local mem when dimension <= 2
+    // 	  // TODO: handle >2D dimension
+    // 	  _local.insert(matrix);
+    // 	}
+    //     _minCoordOffsets[matrix] = min;
+    //     _maxCoordOffsets[matrix] = max;
+    //   }
+    // }
+
+    std::cout << "collect = " << (*it)->name() << " " << (*it)->matrix()->name() << std::endl;
+    if((*it)->dimensions() == dim) {
       SimpleRegionPtr region = _fromBoundingBox[(*it)->matrix()];
       bool local = true;
       FormulaList min, max;
@@ -293,14 +334,57 @@ void petabricks::UserRule::collectGpuLocalMemoryData() {
       if(local) {
 	//std::cout << "ADD collect = " << (*it)->name() << " " << (*it)->matrix()->name() << std::endl;
 	std::string matrix = (*it)->matrix()->name();
-	if(dim <= 2 && MAXIMA.comparePessimistically(region->symbolicSize(), ">", FormulaInteger::one()) ) {
-	  // Only local mem when dimension <= 2
-	  // TODO: handle >2D dimension
-	  _local.insert(matrix);
+	if(_minCoordOffsets.find(matrix) == _minCoordOffsets.end()) {
+	  _minCoordOffsets[matrix] = min;
 	}
-        _minCoordOffsets[matrix] = min;
-        _maxCoordOffsets[matrix] = max;
+	else {
+	  FormulaList& oldmin = _minCoordOffsets[matrix];
+	  FormulaList newmin;
+	  FormulaList::iterator fml1, fml2;
+	  for(fml1 = oldmin.begin(), fml2 = min.begin(); fml1 != oldmin.end(); ++fml1, ++fml2) {
+	    if(MAXIMA.compare(*fml1, "<", *fml2))
+	      newmin.push_back(*fml1);
+	    else
+	      newmin.push_back(*fml2);
+	  }
+	  _minCoordOffsets[matrix] = newmin;
+	}
+
+	if(_maxCoordOffsets.find(matrix) == _maxCoordOffsets.end()) {
+	  _maxCoordOffsets[matrix] = max;
+	}
+	else {
+	  FormulaList& oldmax = _maxCoordOffsets[matrix];
+	  FormulaList newmax;
+	  FormulaList::iterator fml1, fml2;
+	  for(fml1 = oldmax.begin(), fml2 = max.begin(); fml1 != oldmax.end(); ++fml1, ++fml2) {
+	    if(MAXIMA.compare(*fml1, ">", *fml2))
+	      newmax.push_back(*fml1);
+	    else
+	      newmax.push_back(*fml2);
+	  }
+	  _maxCoordOffsets[matrix] = newmax;
+	}
       }
+    }
+  }
+
+  for(std::map<std::string, FormulaList>::iterator it = _minCoordOffsets.begin(); it != _minCoordOffsets.end(); ++it) {
+    std::string matrix = it->first;
+    FormulaList& min = _minCoordOffsets[matrix];
+    if(min.size() != 2)
+      continue;
+    FormulaList& max = _maxCoordOffsets[matrix];
+    FormulaList::iterator fml1, fml2;
+    FormulaPtr p = FormulaInteger::one();
+    for(fml1 = min.begin(), fml2 = max.begin(); fml1 != min.end(); ++fml1, ++fml2) {
+      p = new FormulaMultiply(p, new FormulaSubtract(*fml2, *fml1));
+    }
+    if(MAXIMA.comparePessimistically(p, ">", FormulaInteger::one()) ) {
+      std::cout << "LOCAL: " << matrix << std::endl;
+      std::cout << "MIN: " << min << std::endl;
+      std::cout << "MAX: " << max << std::endl;
+      _local.insert(matrix);
     }
   }
   //exit(1);
@@ -777,31 +861,33 @@ void petabricks::UserRule::generateDeclCodeSequential(Transform& trans, CodeGene
 
 void petabricks::UserRule::prepareBuffers() {
   std::set<std::string> set;
-	for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
-		std::string matrix_name = (*i)->matrix( )->name( );
+  for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
+    std::string matrix_name = (*i)->matrix( )->name( );
     std::set<std::string>::iterator matrix_it = set.find(matrix_name);
     if(matrix_it == set.end()) {
       // If matrix that region belongs to is not in the set, this region is in charge of handling gpu buffer
-			set.insert(matrix_name);
-			(*i)->setBuffer(true);
-		}
-		else {
-			(*i)->setBuffer(false);
-		}
-	}
-
-	for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i ) {
-		std::string matrix_name = (*i)->matrix( )->name( );
+      set.insert(matrix_name);
+      (*i)->setBuffer(true);
+    }
+    else {
+      (*i)->setBuffer(false);
+    }
+  }
+  
+  //TODO: check this
+  set.clear();
+  for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i ) {
+    std::string matrix_name = (*i)->matrix( )->name( );
     std::set<std::string>::iterator matrix_it = set.find(matrix_name);
     if(matrix_it == set.end()) {
       // If matrix that region belongs to is not in the set, this region is in charge of handling gpu buffer
-			set.insert(matrix_name);
-			(*i)->setBuffer(true);
-		}
-		else {
-			(*i)->setBuffer(false);
-		}
-	}
+      set.insert(matrix_name);
+      (*i)->setBuffer(true);
+    }
+    else {
+      (*i)->setBuffer(false);
+    }
+  }
 }
 
 void petabricks::UserRule::generateDeclCodeOpenCl(Transform& /*trans*/, CodeGenerator& /*o*/) {
@@ -1179,9 +1265,9 @@ void petabricks::UserRule::generateUseOnCpu(CodeGenerator& o){
   int lastdim_int = dimensions()-1;
   std::string lastdim = jalib::XToString(lastdim_int);
   for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i) {
-    if(_loads.find(*i) == _loads.end())
+    if(!(*i)->isBuffer() || _loads.find(*i) == _loads.end())
       continue;
-    switch(stencilType(*i)) {
+    switch(stencilType(*i, true)) {
     case 0:
       o.write((*i)->matrix()->name()+".useOnCpu(0);");
       break;
@@ -1198,13 +1284,14 @@ void petabricks::UserRule::generateUseOnCpu(CodeGenerator& o){
 void petabricks::UserRule::generateModifyOnCpu(CodeGenerator& o){
   std::string lastdim = jalib::XToString(dimensions()-1);
   for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i) {
-    if(_stores.find(*i) == _stores.end() || !(*i)->isBuffer())
+    if(!(*i)->isBuffer() || _stores.find(*i) == _stores.end())
       continue;
     if((*i)->getRegionType() == Region::REGION_ALL) {
       o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(0);");
     }
     else {
       //if((*i)->getRegionType() != Region::REGION_ALL) {
+      //o.write("std::cout << \"*** modify "+(*i)->matrix()->name()+": \" << _iter_begin["+lastdim+"]<< std::endl;");
       o.write((*i)->matrix()->name()+".modifyOnCpu(_iter_begin["+lastdim+"]);");
     }
   }
@@ -1221,7 +1308,7 @@ void petabricks::UserRule::generateMultiOpenCLTrampCodes(Transform& trans, CodeG
   // Call prepare, copy-in, run ,copy-out tasks
   generateOpenCLCallCode(trans, o, flavor);
   // Prepare task
-  generateOpenCLPrepareCode(codename,o);
+  generateOpenCLPrepareCode(trans, codename,o);
 
   // Copy-in tasks (one per IN region)
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i ) {
@@ -1361,14 +1448,14 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   std::string dimension = jalib::XToString(dim_int);
   std::string last;
 
-  switch(stencilType(region)) {
+  switch(stencilType(region, false)) {
   case 0: last = "-1"; break;
   case 1: last = "_iter_end["+dimension+"-1]"; break;
   case 2: 
     std::stringstream ss;
     ss << "_iter_end[" << dimension <<  "-1] + "
        << _maxCoordOffsets[region->matrix()->name()][dim_int-1]
-       << " - 1";
+       << "-1";
     last = ss.str();
     break;
   }
@@ -1376,7 +1463,28 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   return last;
 }
 
-void petabricks::UserRule::generateOpenCLPrepareCode(std::string& codename, CodeGenerator& o){
+ /// for _from only
+ std::string petabricks::UserRule::getLastRowOnGpuOffset(RegionPtr region, int dim_int) {
+   if(dim_int == 0)
+     return "0";
+
+  std::string dimension = jalib::XToString(dim_int);
+  std::string last;
+
+  switch(stencilType(region, false)) {
+  case 0: last = "INT_MIN"; break;
+  case 1: last = "0"; break;
+  case 2: 
+    std::stringstream ss;
+    ss << _maxCoordOffsets[region->matrix()->name()][dim_int-1]
+       << "-1";
+    last = ss.str();
+    break;
+  }
+
+  return last;
+}
+void petabricks::UserRule::generateOpenCLPrepareCode(Transform& trans, std::string& codename, CodeGenerator& o){
   SRCPOSSCOPE();
   IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
@@ -1384,12 +1492,27 @@ void petabricks::UserRule::generateOpenCLPrepareCode(std::string& codename, Code
   std::string dimension = jalib::XToString(dim_int);
 
   o.beginFunc("petabricks::DynamicTaskPtr", codename+"_prepare", packedargs);
+  
+  bool divisible = isDivisible();
+  if(divisible) {
+    o.write("ElementT gpu_ratio = "+trans.name()+"_gpuratio/8.0;");
+    RegionPtr proxy = _to.front();
+    o.write("IndexT totalRow = "+proxy->matrix()->name()+".size("+jalib::XToString(dim_int - 1)+");");
+    o.write("IndexT div = ceil(gpu_ratio * totalRow);");
+  }
+
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
     std::string matrix_name = (*i)->matrix()->name();
     if((*i)->isBuffer()) {
       o.write("GpuManager::_currenttaskinfo->addToMatrix(" + matrix_name + ".storageInfo());");
       o.write(matrix_name + ".storageInfo()->setName(std::string(\""+matrix_name+"\"));");
-      o.write(matrix_name + ".storageInfo()->setLastRowGuide(_iter_end["+dimension+"-1], "+dimension+");");
+      if(divisible)
+	o.write(matrix_name + ".storageInfo()->setLastRowGuide(div, "+dimension+");");
+      else
+	o.write(matrix_name + ".storageInfo()->setLastRowGuide(-1, "+dimension+");");
+	
+      //o.write(matrix_name + ".storageInfo()->setLastRowGuide(_iter_end["+dimension+"-1], "+dimension+");");
+      //o.write(matrix_name + ".storageInfo()->setLastRowOffset(0, "+dimension+");");
     }
     else {
       //TODO
@@ -1399,7 +1522,13 @@ void petabricks::UserRule::generateOpenCLPrepareCode(std::string& codename, Code
     std::string matrix_name = (*i)->matrix()->name();
     if((*i)->isBuffer()) {
       o.write("GpuManager::_currenttaskinfo->addFromMatrix(" + matrix_name + ".storageInfo());");
-      o.write(matrix_name + ".storageInfo()->setLastRowGuide("+getLastRowOnGpuGuide(*i, dim_int)+","+dimension+");");
+      std::string offset = getLastRowOnGpuOffset(*i, dim_int);
+      if(divisible && offset != "INT_MIN")
+	o.write(matrix_name + ".storageInfo()->setLastRowGuide(div + "+getLastRowOnGpuOffset(*i, dim_int)+","+dimension+");");
+      else 
+	o.write(matrix_name + ".storageInfo()->setLastRowGuide(-1,"+dimension+");");
+      //o.write(matrix_name + ".storageInfo()->setLastRowGuide("+getLastRowOnGpuGuide(*i, dim_int)+","+dimension+");");
+      //o.write(matrix_name + ".storageInfo()->setLastRowOffset("+getLastRowOnGpuOffset(*i, dim_int)+","+dimension+");");
     }
   }
 

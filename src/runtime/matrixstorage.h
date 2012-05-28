@@ -311,6 +311,10 @@ public:
       _lastRowOnGpuGuide = _sizes[_dimensions - 1];
     _iterDim = iter_dim;
   }
+  void setLastRowOffset(IndexT offset,IndexT iter_dim) { 
+    _lastRowOnGpuOffset = offset;
+    _iterDim = iter_dim;
+  }
   int lastRowOnGpu() { return _lastRowOnGpu; }
 
   bool equal(MatrixStorageInfoPtr that);
@@ -457,7 +461,9 @@ private:
   std::string _name;
   size_t _coverage;
   int _lastRowOnGpu;
-  int _lastRowOnGpuGuide, _iterDim;
+  int _lastRowOnGpuGuide;
+  int _lastRowOnGpuOffset;
+  int _iterDim;
   int _firstRowOnCpu;
   bool _hasGpuMem;
   bool _contiguous;;

@@ -53,6 +53,7 @@ public:
   {
     (void)sizes;
     (void)multipliers;
+    _count = 1;
   }
 
   ///
@@ -86,6 +87,9 @@ public:
   bool isSize() const {
     return this->base()!=0;
   }
+
+protected:
+  ssize_t _count;
   
 };
 

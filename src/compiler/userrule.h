@@ -115,7 +115,7 @@ public:
   void generateModifyOnCpu(CodeGenerator& o);
   void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
   void generateOpenCLCallCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
-  void generateOpenCLPrepareCode(std::string& codename, CodeGenerator& o);
+  void generateOpenCLPrepareCode(Transform& trans, std::string& codename, CodeGenerator& o);
   void generateOpenCLCopyInCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o, RegionPtr region);
   void generateOpenCLRunCode(Transform& trans, CodeGenerator& o);
   void generateOpenCLCopyOutCode(std::string& codename, CodeGenerator& o, RegionPtr region);
@@ -123,6 +123,7 @@ public:
   /// Generate an OpenCL program implementing this rule
   void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef, bool local=false);
   std::string getLastRowOnGpuGuide(RegionPtr region, int dim_int);
+  std::string getLastRowOnGpuOffset(RegionPtr region, int dim_int);
   void collectGpuLocalMemoryData();
   RegionPtr findMatrix(std::string var) {
     for( RegionList::const_iterator i = _to.begin(); i != _to.end(); ++i )
@@ -192,8 +193,8 @@ public:
   /// 0 - need to entire matrix
   /// 1 - one to one
   /// 2 - multiple to one
-  int stencilType(RegionPtr region) {
-    //std::cout << "#### stencil = " << region->name() << " " << region->matrix()->name() << std::endl;
+  int stencilType(RegionPtr region, bool min) {
+    std::cout << "#### stencil = " << region->name() << " " << region->matrix()->name() << std::endl;
     MatrixDefPtr matrix = region->matrix();
     IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
     size_t dim = iterdef.dimensions();
@@ -201,26 +202,51 @@ public:
       return 0;
     }
     if(_maxCoordOffsets.find(matrix->name()) != _maxCoordOffsets.end()) {
-      //std::cout << "maxcoordoffset = " << _maxCoordOffsets[matrix->name()][dim - 1] << std::endl;
-      //std::cout << "name = " << matrix->name() << std::endl;
-      //std::cout << "offset = " << _maxCoordOffsets[matrix->name()][dim - 1] << std::endl;
-      if(MAXIMA.comparePessimistically(_maxCoordOffsets[matrix->name()][dim - 1], ">", FormulaInteger::one())) {
-	return 2;
+      std::cout << "mincoordoffset = " << _minCoordOffsets[matrix->name()][dim - 1] << std::endl;
+      std::cout << "name = " << matrix->name() << std::endl;
+      std::cout << "offset = " << _minCoordOffsets[matrix->name()][dim - 1] << std::endl;
+      if(min) {
+	if(MAXIMA.comparePessimistically(_minCoordOffsets[matrix->name()][dim - 1], "<", FormulaInteger::zero())) {
+	  return 2;
+	}
+	else if(MAXIMA.comparePessimistically(_minCoordOffsets[matrix->name()][dim - 1], "=", FormulaInteger::zero())) {
+	  return 1;
+	}
       }
-      else if(MAXIMA.comparePessimistically(_maxCoordOffsets[matrix->name()][dim - 1], "=", FormulaInteger::one())) {
-      	return 1;
+      else {
+	std::cout << "#### max = " <<  _maxCoordOffsets[matrix->name()][dim - 1] << std::endl;
+	if(MAXIMA.comparePessimistically(_maxCoordOffsets[matrix->name()][dim - 1], ">", FormulaInteger::one())) {
+	std::cout << "### stencil = 2" << std::endl;
+	  return 2;
+	}
+	else if(MAXIMA.comparePessimistically(_maxCoordOffsets[matrix->name()][dim - 1], "=", FormulaInteger::one())) {
+	std::cout << "### stencil = 1" << std::endl;
+	  return 1;
+	}
+
       }
     }
     //std::cout << "matrix not found" << std::endl;
+    std::cout << "### stencil = 0" << std::endl;
     return 0;
   }
 
-  bool isDivisible(const SimpleRegionPtr& region) {  
-    if(region->removedDimensions() > 0) return false;
-    //TODO: what about COL and ROW?
+  /* bool isDivisible(SimpleRegionPtr region) {   */
+  /*   //TODO: what about COL and ROW? */
+  /*   if(region->removedDimensions() > 0) return false; */
+  /*   IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall()); */
+  /*   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){ */
+  /*     if((*i)->getRegionType() == Region::REGION_ALL || (*i)->getRegionType() == Region::REGION_COL) { */
+  /* 	return false; */
+  /*     } */
+  /*   } */
+  /*   return true; */
+  /* } */
+
+  bool isDivisible() {  
     IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
     for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
-      if((*i)->getRegionType() == Region::REGION_ALL || (*i)->getRegionType() == Region::REGION_COL) {
+      if((*i)->getRegionType() == Region::REGION_ALL || (*i)->getRegionType() == Region::REGION_COL || (*i)->removedDimensions() > 0) {
 	return false;
       }
     }
@@ -397,7 +423,6 @@ private:
  
   typedef std::map<MatrixDefPtr, SimpleRegionPtr> MatrixToRegionMap;
   MatrixToRegionMap _fromBoundingBox;
-
 };
 
 }
