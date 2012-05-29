@@ -1510,9 +1510,6 @@ void petabricks::UserRule::generateOpenCLPrepareCode(Transform& trans, std::stri
 	o.write(matrix_name + ".storageInfo()->setLastRowGuide(div, "+dimension+");");
       else
 	o.write(matrix_name + ".storageInfo()->setLastRowGuide(-1, "+dimension+");");
-	
-      //o.write(matrix_name + ".storageInfo()->setLastRowGuide(_iter_end["+dimension+"-1], "+dimension+");");
-      //o.write(matrix_name + ".storageInfo()->setLastRowOffset(0, "+dimension+");");
     }
     else {
       //TODO
@@ -1527,8 +1524,6 @@ void petabricks::UserRule::generateOpenCLPrepareCode(Transform& trans, std::stri
 	o.write(matrix_name + ".storageInfo()->setLastRowGuide(div + "+getLastRowOnGpuOffset(*i, dim_int)+","+dimension+");");
       else 
 	o.write(matrix_name + ".storageInfo()->setLastRowGuide(-1,"+dimension+");");
-      //o.write(matrix_name + ".storageInfo()->setLastRowGuide("+getLastRowOnGpuGuide(*i, dim_int)+","+dimension+");");
-      //o.write(matrix_name + ".storageInfo()->setLastRowOffset("+getLastRowOnGpuOffset(*i, dim_int)+","+dimension+");");
     }
   }
 

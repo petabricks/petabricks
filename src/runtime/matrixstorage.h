@@ -311,10 +311,7 @@ public:
       _lastRowOnGpuGuide = _sizes[_dimensions - 1];
     _iterDim = iter_dim;
   }
-  void setLastRowOffset(IndexT offset,IndexT iter_dim) { 
-    _lastRowOnGpuOffset = offset;
-    _iterDim = iter_dim;
-  }
+
   int lastRowOnGpu() { return _lastRowOnGpu; }
 
   bool equal(MatrixStorageInfoPtr that);

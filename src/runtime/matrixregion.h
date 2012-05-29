@@ -126,14 +126,7 @@ public:
         memcpy(this->_sizes, sizes, sizeof_sizes);
       else
         memset(this->_sizes, -1, sizeof_sizes);
-
-      /* ssize_t s=1; */
-      /* for(int i=0; i<D; ++i) */
-      /* 	s*=this->sizes()[i]; */
-      /* _count = s; */
     }
-    /* else */
-    /*   _count = 1; */
 
     _base = b;
     _storage = s;

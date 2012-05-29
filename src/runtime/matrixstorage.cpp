@@ -66,10 +66,10 @@ void petabricks::MatrixStorage::clearDataOnGpu(MatrixStorageInfoPtr info, IndexT
 }
 
 void petabricks::MatrixStorage::updateDataFromGpu(MatrixStorageInfoPtr info, IndexT firstRow){
-  std::cout << "+++updateDataFromGpu " << &(*this) << ": dimension = " << info->dimensions() << ", firstRow = " << firstRow << std::endl;
+  // std::cout << "+++updateDataFromGpu " << &(*this) << ": dimension = " << info->dimensions() << ", firstRow = " << firstRow << std::endl;
   bool needUpdate = false;
   for(std::set<MatrixStorageInfoPtr>::iterator it = _needcopyout.begin(); it != _needcopyout.end(); ++it) {
-    std::cout << "+++compare: dimension = " << (*it)->dimensions() << ", lastRow = " << (*it)->lastRowOnGpu() << std::endl;
+    // std::cout << "+++compare: dimension = " << (*it)->dimensions() << ", lastRow = " << (*it)->lastRowOnGpu() << std::endl;
     if((*it)->lastRowOnGpu() - 1 >= firstRow || (*it)->dimensions() != info->dimensions()) {
       needUpdate = true;
       break;
@@ -305,22 +305,6 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
   else
     upperbound = _lastRowOnGpuGuide;
 
-  // if(upperbound < gpuRatio*_sizes[_dimensions - 1])
-  //   upperbound = gpuRatio*_sizes[_dimensions - 1];
-  //JASSERT(_dimensions == 0 || upperbound >= gpuRatio*_sizes[_dimensions - 1])(_dimensions)(upperbound)(gpuRatio*_sizes[_dimensions - 1])(_lastRowOnGpuGuide);
-
-  // if(_dimensions == 0) {
-  //   upperbound = 0;
-  // }
-  // else if(_iterDim == _dimensions && _lastRowOnGpuOffset < INT_MAX) {
-  //   upperbound = gpuRatio*_sizes[_dimensions - 1] + _lastRowOnGpuOffset;
-  //   if(upperbound > _sizes[_dimensions - 1])
-  //     upperbound = gpuRatio*_sizes[_dimensions - 1];
-  // }
-  // else {
-  //   upperbound = gpuRatio*_sizes[_dimensions - 1];
-  // }
-
 #ifdef GPU_TRACE
   if(storage())
     std::cout << "initGpuMem " << &(*this) << " _storage = " << &(*storage()) << ", _firstRowOnCpu = " << _firstRowOnCpu << ", _lastRowOnGpu = " << _lastRowOnGpu << ", _lastRowOffset = " << _lastRowOnGpuOffset << ", gpu_ratio = " << gpuRatio << ", upperbound = " << upperbound << ", dimension = " << _dimensions << ", _size = " << _sizes[_dimensions - 1] << std::endl;
@@ -400,8 +384,10 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
       _firstRowOnCpu = upperbound;
       //std::cout << "+++ upperbound: " << &(*this) << " _storage = " << &(*storage()) << ", row = " << _firstRowOnCpu << std::endl;
       setClMemWrapper(clCreateBuffer(context, CL_MEM_USE_HOST_PTR, bytesOnGpu(), storage()->data(), &err));
+#ifdef DEBUG
       JASSERT(_dimensions == 0 || _lastRowOnGpu <= _sizes[_dimensions - 1])(_lastRowOnGpu)( _sizes[_dimensions - 1])(_dimensions);
       JASSERT(CL_SUCCESS == err)(_dimensions)(_sizes[_dimensions - 1])(_lastRowOnGpu).Text("Failed to create input memory object.");
+#endif
       _hasGpuMem = true;
 
       return false;
@@ -590,13 +576,13 @@ void petabricks::MatrixStorageInfo::addPending(std::vector<IndexT*>& begins, std
 petabricks::MatrixStoragePtr petabricks::MatrixStorageInfo::processPending() {
   if(_coverage == 0)
     return NULL;
-  std::cout << "before: " << std::endl;
-  storage()->print();
+  // std::cout << "before: " << std::endl;
+  // storage()->print();
   //TODO: how to deal with queue when region is on multiple gpus?
   CopyoutInfoPtr copy = new CopyoutInfo(_queue, this, _begins, _ends, _coverage);
   while(!copy->complete()) {}
-  std::cout << "after: " << std::endl;
-  storage()->print();
+  // std::cout << "after: " << std::endl;
+  // storage()->print();
   //copy->getGpuOutputStoragePtr()->print();
   return copy->getGpuOutputStoragePtr();
 }
