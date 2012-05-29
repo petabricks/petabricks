@@ -321,9 +321,8 @@ public:
     do {
       t.cell(coord) = this->cell(coord);
     } while(this->incCoord(coord)>=0);
-    this->storageInfo()->addGpuInputBuffer(_gpuInputBuffer);
+    //this->storageInfo()->addGpuInputBuffer(_gpuInputBuffer);
     // Store buffer in the global storage so that it won't be derefferenced before enqueueWriteBuffer is done
-    /* CopyPendingMap::_pendingMap.addBuffer(_gpuInputBuffer); */
     return _gpuInputBuffer->data();
 #else
     UNIMPLEMENTED();
