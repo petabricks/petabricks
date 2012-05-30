@@ -1530,7 +1530,6 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
 #endif
   o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->getClMem(), CL_FALSE, 0, storage_"+name+"->bytesOnGpu(), "+name+".getGpuInputBufferPtr(), 0, NULL, NULL);");
   o.write("storage_"+name+"->storeGpuData();");
-  o.cout("CALL STORE GPU DATA!");
   o.write("clFlush(GpuManager::_queue);");
 #ifdef DEBUG
   o.write("JASSERT(CL_INVALID_CONTEXT != err).Text( \"Failed to write to buffer: invalid context.\");");

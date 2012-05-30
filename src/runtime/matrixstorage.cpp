@@ -44,7 +44,6 @@ void petabricks::MatrixStorageInfo::modifyOnCpu(IndexT firstRow){
 
 void petabricks::MatrixStorageInfo::storeGpuData(){
   if(storage()) {
-    std::cout << "MatrixStorageInfo::storeGpuData" << std::endl;
     storage()->addDoneCopyOut(this);
   }
 }
