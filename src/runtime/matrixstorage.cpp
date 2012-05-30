@@ -43,8 +43,10 @@ void petabricks::MatrixStorageInfo::modifyOnCpu(IndexT firstRow){
 }
 
 void petabricks::MatrixStorageInfo::storeGpuData(){
-  if(storage())
+  if(storage()) {
+    std::cout << "MatrixStorageInfo::storeGpuData" << std::endl;
     storage()->addDoneCopyOut(this);
+  }
 }
 
 void petabricks::MatrixStorage::clearDataOnGpu(MatrixStorageInfoPtr info, IndexT firstRow){
@@ -155,6 +157,9 @@ void petabricks::MatrixStorage::addNeedCopyOut(MatrixStorageInfoPtr info) {
   _donecopyoutLock.lock();
   for(std::set<MatrixStorageInfoPtr>::iterator it = _donecopyout.begin(); it != _donecopyout.end(); ++it) {
     if((*it)->dimensions() != info->dimensions() || (*it)->equal(info)) {
+      #ifdef GPU_TRACE
+      std::cout << "erase: _storageInfo = " << &(*(*it)) << std::endl;
+      #endif
       stale.push_back(*it);
     }
   }
@@ -180,6 +185,9 @@ void petabricks::MatrixStorage::addDoneCopyOut(MatrixStorageInfoPtr info) {
   for(std::list<MatrixStorageInfoPtr>::iterator it = stale.begin(); it != stale.end(); ++it) {
     _donecopyout.erase(*it);
   }
+  #ifdef GPU_TRACE
+  std::cout << "+++ addDoneCopyOut _storageInfo = " << &(*info) << std::endl;
+  #endif
   _donecopyout.insert(info);
   _donecopyoutLock.unlock();
 }

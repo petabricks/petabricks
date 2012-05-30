@@ -211,6 +211,14 @@ public:
     #endif
     return _normalizedMultipliers[_dimensions - 1]*_lastRowOnGpu;
   }
+
+  void setCreateClMem(bool createClMem) {
+    _createClMem = createClMem;
+  }
+
+  bool createClMem() {
+    return _createClMem;
+  }
 #endif
 
   size_t coordToIndex(const IndexT* coord) const{
@@ -463,7 +471,8 @@ private:
   int _iterDim;
   int _firstRowOnCpu;
   bool _hasGpuMem;
-  bool _contiguous;;
+  bool _contiguous;
+  bool _createClMem;
 
   std::vector<IndexT*> _begins;
   std::vector<IndexT*> _ends;

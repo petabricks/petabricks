@@ -54,7 +54,9 @@ public:
 
   ///
   /// add output matrix storage info
-  void addToMatrix(MatrixStorageInfoPtr info) { _to.push_back(info); }
+  void addToMatrix(MatrixStorageInfoPtr info) { 
+    _to.push_back(info); 
+  }
 
   ///
   /// add input matrix storage info

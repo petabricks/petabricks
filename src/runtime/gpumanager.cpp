@@ -179,7 +179,8 @@ void GpuManager::prepare(GpuDynamicTaskPtr task) {
   double gpuRatio = _currenttaskinfo->gpuRatio();
 
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
-    (*i)->initGpuMem(_queue,_context,gpuRatio,false); // clCreateBuffer
+    if((*i)->createClMem())
+      (*i)->initGpuMem(_queue,_context,gpuRatio,false); // clCreateBuffer
   }
 }
 

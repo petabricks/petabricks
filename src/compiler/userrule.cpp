@@ -1311,9 +1311,13 @@ void petabricks::UserRule::generateMultiOpenCLTrampCodes(Transform& trans, CodeG
   generateOpenCLPrepareCode(trans, codename,o);
 
   // Copy-in tasks (one per IN region)
-  for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i ) {
-    if((*i)->isBuffer())
-      generateOpenCLCopyInCode(codename,packedargs,o,*i);
+  //for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i ) {
+  //if((*i)->isBuffer())
+  //        generateOpenCLCopyInCode(codename,packedargs,o,*i);
+  //}
+
+  for( RegionSet::const_iterator i = _loads.begin( ); i != _loads.end( ); ++i ) {
+    generateOpenCLCopyInCode(codename,packedargs,o,*i);
   }
 
   // Run task
@@ -1375,41 +1379,18 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   o.write("prepare->enqueue();");
 
   int id = 0;
-  for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i ) {
-    if((*i)->isBuffer()){
+  //for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i ) {
+  //if((*i)->isBuffer()){
+  for(RegionSet::const_iterator i = _loads.begin( ); i != _loads.end( ); ++i ) {
       std::string copyinclass = "petabricks::GpuCopyInMethodCallTask<"+objectname
                               + ", " + dimension
                               + ", &" + objectname + "::" + codename + "_copyin_" + (*i)->name()
                               + ">";
       std::string taskid = jalib::XToString(id);
-      // o.write("{");
-      // o.incIndent();
-      // int type = stencilType(*i,dim_int);
-      // if(type == 2) {
-      // 	// TODO: doens't work with removed dimensoin
-      // 	o.write("IndexT end[" + dimension + "];");
-      // 	o.write("memcpy(end, _iter_end, sizeof end);");
-      // 	o.os() << "end[" << dimension << "-1] = _iter_end[" << dimension <<  "-1] + "
-      // 	       << _maxCoordOffsets[(*i)->matrix()->name()][dim_int-1]
-      // 	       << " - 1;\n";
-      // }
-      // else if (type == 1){
-      // 	o.write("IndexT* end = _iter_end;");
-      // }
-      // else {
-      // 	// Set bound = {-1, ..., -1} to indicat copying the entire region. MatrixStroage::initGpuMem should handles this correctly.
-      // 	std::stringstream ss;
-      // 	ss << "-1";
-      // 	for(int i = 1; i < dim_int; ++i)
-      // 	  ss << ",-1";
-      // 	o.write("IndexT end[" + dimension + "] = {"+ss.str()+"};");
-      // }
       o.write("DynamicTaskPtr copyin_"+taskid+" = new "+copyinclass+"(this, _iter_begin, _iter_end, taskinfo, "+(*i)->matrix()->name()+".storageInfo());");
       o.write("copyin_"+taskid+"->enqueue();");
-      //o.decIndent();
-      //o.write("}");
       id++;
-    }
+      //}
   }
 
   o.write("\nDynamicTaskPtr run = new "+runclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::RUN);");
@@ -1504,7 +1485,13 @@ void petabricks::UserRule::generateOpenCLPrepareCode(Transform& trans, std::stri
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
     std::string matrix_name = (*i)->matrix()->name();
     if((*i)->isBuffer()) {
+      if(_loads.find(*i) == _loads.end())
+	o.write(matrix_name + ".storageInfo()->setCreateClMem(true);");
+      else
+	o.write(matrix_name + ".storageInfo()->setCreateClMem(false);");
+
       o.write("GpuManager::_currenttaskinfo->addToMatrix(" + matrix_name + ".storageInfo());");
+
       o.write(matrix_name + ".storageInfo()->setName(std::string(\""+matrix_name+"\"));");
       if(divisible)
 	o.write(matrix_name + ".storageInfo()->setLastRowGuide(div, "+dimension+");");
@@ -1543,6 +1530,7 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
 #endif
   o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->getClMem(), CL_FALSE, 0, storage_"+name+"->bytesOnGpu(), "+name+".getGpuInputBufferPtr(), 0, NULL, NULL);");
   o.write("storage_"+name+"->storeGpuData();");
+  o.cout("CALL STORE GPU DATA!");
   o.write("clFlush(GpuManager::_queue);");
 #ifdef DEBUG
   o.write("JASSERT(CL_INVALID_CONTEXT != err).Text( \"Failed to write to buffer: invalid context.\");");
