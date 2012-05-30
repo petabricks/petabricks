@@ -159,7 +159,12 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   this->print(std::cout);
   std::cerr << "----------------------------------" << std::endl;
 #endif
+  // prepareBuffers, for loop, collectGpuLocalMemoryData have to be in this order because the dependence on _loads
   prepareBuffers();
+  for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i ) {
+    if(_loads.find(*i) == _loads.end())
+      (*i)->setBuffer(false);
+  }
   collectGpuLocalMemoryData();
   
   // int lastdim = dimensions() - 1;
@@ -260,48 +265,8 @@ void petabricks::UserRule::collectGpuLocalMemoryData() {
   IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
   unsigned int dim = iterdef.dimensions();
 
-  for( RegionList::const_iterator it =_from.begin( ); it != _from.end( ); ++it )
+  for( RegionSet::const_iterator it =_loads.begin( ); it != _loads.end( ); ++it )
   {
-    //std::cout << "collect = " << (*it)->name() << " " << (*it)->matrix()->name() << std::endl;
-    // if((*it)->isBuffer() && (*it)->dimensions() == dim) {
-    //   SimpleRegionPtr region = _fromBoundingBox[(*it)->matrix()];
-    //   bool local = true;
-    //   FormulaList min, max;
-    //   for(int i = 0; i < (int) dim; i++) {
-    //     FormulaPtr min_diff = new FormulaSubtract(region->minCoord().at(i), getOffsetVar(i));
-    //     min_diff = MAXIMA.normalize(min_diff);
-    //     FreeVarsPtr vars = min_diff->getFreeVariables();
-    //     if(vars->size() > 0) {
-    //       local = false;
-    //       break;
-    //     }
-
-
-    //     FormulaPtr max_diff = new FormulaSubtract(region->maxCoord().at(i), getOffsetVar(i));
-    //     max_diff = MAXIMA.normalize(max_diff);
-    //     vars = max_diff->getFreeVariables();
-    //     if(vars->size() > 0) {
-    //       local = false;
-    //       break;
-    //     }
-
-    //     min.push_back(min_diff);
-    //     max.push_back(max_diff);
-
-    //   }
-
-    //   if(local) {
-    // 	//std::cout << "ADD collect = " << (*it)->name() << " " << (*it)->matrix()->name() << std::endl;
-    // 	std::string matrix = (*it)->matrix()->name();
-    // 	if(dim <= 2 && MAXIMA.comparePessimistically(region->symbolicSize(), ">", FormulaInteger::one()) ) {
-    // 	  // Only local mem when dimension <= 2
-    // 	  // TODO: handle >2D dimension
-    // 	  _local.insert(matrix);
-    // 	}
-    //     _minCoordOffsets[matrix] = min;
-    //     _maxCoordOffsets[matrix] = max;
-    //   }
-    // }
 
     std::cout << "collect = " << (*it)->name() << " " << (*it)->matrix()->name() << std::endl;
     if((*it)->dimensions() == dim) {
@@ -309,22 +274,29 @@ void petabricks::UserRule::collectGpuLocalMemoryData() {
       bool local = true;
       FormulaList min, max;
       for(int i = 0; i < (int) dim; i++) {
-        FormulaPtr min_diff = new FormulaSubtract(region->minCoord().at(i), getOffsetVar(i));
-        min_diff = MAXIMA.normalize(min_diff);
-        FreeVarsPtr vars = min_diff->getFreeVariables();
-        if(vars->size() > 0) {
+	FormulaPtr min_diff, max_diff;
+	if(region) {
+	  min_diff = new FormulaSubtract(region->minCoord().at(i), getOffsetVar(i));
+	  min_diff = MAXIMA.normalize(min_diff);
+	  FreeVarsPtr vars = min_diff->getFreeVariables();
+	  if(vars->size() > 0) {
           local = false;
           break;
-        }
-
-
-        FormulaPtr max_diff = new FormulaSubtract(region->maxCoord().at(i), getOffsetVar(i));
-        max_diff = MAXIMA.normalize(max_diff);
-        vars = max_diff->getFreeVariables();
-        if(vars->size() > 0) {
-          local = false;
-          break;
-        }
+	  }
+	  
+	  
+	  max_diff = new FormulaSubtract(region->maxCoord().at(i), getOffsetVar(i));
+	  max_diff = MAXIMA.normalize(max_diff);
+	  vars = max_diff->getFreeVariables();
+	  if(vars->size() > 0) {
+	    local = false;
+	    break;
+	  }
+	}
+	else {
+	  min_diff = FormulaInteger::zero();
+	  max_diff = FormulaInteger::one();
+	}
 
         min.push_back(min_diff);
         max.push_back(max_diff);
@@ -980,222 +952,6 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     o.write("return NULL;");
     o.endFunc();
     return;
-    o.write("std::cout << \"<<<RUN SEQUENTIAL>>>\" << std::endl;");
-    o.os() << "cl_int err;\n";
-    o.os() << "cl_kernel clkern = " "get_kernel_" << id() << "_nolocal();\n"; //TODO global get_kernel
-
-    int arg_pos = 0;
-
-		o.os( ) << "if( ";
-    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-    {
-      if(i != _to.begin( )) {
-        o.os() << " && ";
-      }
-      o.os( ) << (*i)->matrix( )->name( ) << ".bytes() == 0";
-    }
-    o.os( ) << ") {\n";
-    o.os( ) << "return NULL;\n";
-    o.os( ) << "}\n";
-
-    // clSetKernelArg needs to be conformed with CLCodeGenerator::beginKernel
-
-    o.comment( "Create memory objects for outputs." );
-    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-    {
-
-      std::string matrix_name = (*i)->matrix( )->name( );
-      if((*i)->isBuffer()) {
-
-        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
-                << " = " << matrix_name << ".asGpuOutputBuffer(_iter_begin, _iter_end);\n";
-        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
-                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, " 
-                << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object for" << (*i)->name( ) << ".\" );\n";
-        //o.os( ) << "std::cerr << \"" << (*i)->matrix( )->name( ) << "\" << std::endl;\n";
-        //o.os( ) << "std::cerr << normalized_" << (*i)->name( ) << ".bytes( ) << std::endl;\n";
-
-        // Bind to kernel.
-        o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
-      }
-    }
-
-    // Create memory objects for inputs.
-    o.comment( "Create memory objects for inputs." );
-    for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
-    {
-      std::string matrix_name = (*i)->matrix( )->name( );
-      if((*i)->isBuffer()) {
-#ifdef DEBUG
-        o.os( ) << "std::cout << \"INPUT\" << std::endl;\n";
-        o.os( ) << "MatrixIO().write(" << (*i)->matrix( )->name( ) << ");\n";
-#endif
-
-        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
-                << " = " << matrix_name << ".asGpuInputBuffer();\n";
-
-        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) << ";\n";
-#ifndef NVIDIA
-        o.write("std::cout << \"use host_ptr\" << std::endl;");
-        o.beginIf(matrix_name+".isEntireBuffer()");
-        o.os( ) << "devicebuf_" << (*i)->name( ) 
-                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_USE_HOST_PTR, "
-                << "normalized_" << (*i)->name( ) << ".bytes( ),"
-                << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
-        o.elseIf();
-#endif
-        o.write("std::cout << \"not use host_ptr\" << std::endl;");
-        o.os( ) << "devicebuf_" << (*i)->name( ) 
-                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, "
-                << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
-        o.write("err = clEnqueueWriteBuffer(OpenCLUtil::getQueue(0), devicebuf_"+ (*i)->name( ) +", CL_TRUE, 0, normalized_"+(*i)->name()+".bytes( ), normalized_"+ (*i)->name( )+".base( ), 0, NULL, NULL);");
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to copy input memory object\");\n";
-
-#ifndef NVIDIA
-        o.endIf();
-#endif
-
-        // Bind to kernel.
-        o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
-      }
-    }
-
-    // Pass config parameters
-    for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
-      if(i->shouldPass()) {
-        o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &" << i->name() << " );\n";
-      }
-    }
-
-    // Bind rule dimension arguments to kernel.
-    for( int i = 0; i < iterdef.dimensions( ); ++i )
-    {
-      //o.os( ) << "int ruledim_" << i << " = " << (*output)->matrix( )->name( ) << ".size(" << i << ");\n";
-      //o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
-      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &_iter_begin[" << i << "]);\n";
-      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &_iter_end[" << i << "]);\n";
-    }
-
-    // Bind matrix dimension arguments to kernel.
-    int count = 0;
-    for( RegionList::const_iterator it = _to.begin( ); it != _to.end( ); ++it )
-    {
-      if((*it)->isBuffer()) {
-        for( int i = 0; i < (int) (*it)->size() - 1; ++i ) {
-          o.os( ) << "int ruledim_out" << count << "_" << i << " = " << (*it)->matrix( )->name() << ".size(" << i << ");\n";
-          o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_out" << count << "_" << i << " );\n";
-        }
-        count++;
-      }
-    }
-
-    count = 0;
-    for( RegionList::const_iterator it = _from.begin( ); it != _from.end( ); ++it )
-    {
-      if((*it)->isBuffer()) {
-        for( int i = 0; i < (int) (*it)->size(); ++i ) {
-          o.os( ) << "int ruledim_in" << count << "_" << i << " = " << (*it)->matrix( )->name() << ".size(" << i << ");\n";
-          o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_in" << count << "_" << i << " );\n";
-        }
-        count++;
-      }
-    }
-    o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
-
-    // Invoke kernel.
-    o.comment( "Invoke kernel." );
-
-    RegionPtr rep = *(_to.begin());
-    o.os( ) << "size_t workdim[] = { ";
-    if(isSingleCall()) {
-      o.os() << "1";
-    }
-    else if(rep->getRegionType() == Region::REGION_ROW) {
-      o.os( ) << rep->matrix( )->name( ) << ".size(1)"; //TODO: check
-    }
-    else if(rep->getRegionType() == Region::REGION_COL) {
-      o.os( ) << rep->matrix( )->name( ) << ".size(0)"; //TODO: check
-    }
-    //else if(rep->getRegionType() == Region::REGION_BOX) {
-    //}
-    else {
-      for( int i = 0; i < iterdef.dimensions( ); ++i )
-      {
-        if(i > 0) {
-          o.os() << ", ";
-        }
-        //o.os( ) << "_iter_end[" << i << "]-_iter_begin[" << i << "]";
-        o.os( ) << rep->matrix( )->name( ) << ".size(" << i << ")";
-      }
-    }
-    o.os( ) << "};\n";
-
-    #ifdef OPENCL_LOGGING
-    o.os( ) << "std::cout << \"Work dimensions: \" << workdim[0] << \" x \" << workdim[1] << \"\\n\";\n";
-    #endif
-
-    o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, " << iterdef.dimensions( ) << ", 0, workdim, NULL, 0, NULL, NULL );\n";
-    //o.os( ) << "clFinish(OpenCLUtil::getQueue( 0 ));\n";
-    #ifndef OPENCL_LOGGING
-    o.os( ) << "if( CL_SUCCESS != err ) ";
-    #endif
-    o.os( ) << "std::cout << \"Kernel execution error #\" << err << \": \" << OpenCLUtil::errorString(err) << std::endl;\n";
-    o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to execute kernel.\" );\n";
-
-    // Copy results back to host memory.
-    o.comment( "Copy results back to host memory." );
-    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-    {
-      if((*i)->isBuffer()) {
-        o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_" 
-                << (*i)->name( ) << ", CL_TRUE, 0, " 
-                << "normalized_" << (*i)->name( ) <<  ".bytes(), " 
-                << "normalized_" << (*i)->name( ) << ".base(), "
-                << "0, NULL, NULL );\n";
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
-      }
-    }
-    o.os( ) << "\n";
-
-    // Free memory
-    o.comment( "Free memory." );
-    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-    {
-      if((*i)->isBuffer())
-        o.os( ) << "clReleaseMemObject( devicebuf_" << (*i)->name( ) << " );\n";
-    }
-    for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
-    {
-      if((*i)->isBuffer())
-        o.os( ) << "clReleaseMemObject( devicebuf_" << (*i)->name( ) << " );\n";
-    }
-
-    // Create memory objects for outputs
-    o.comment( "Copy back outputs (if they were already normalized, copyTo detects src==dst and does nothing)" );
-    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-    {
-      if((*i)->isBuffer()) {
-        //o.os( ) << "std::cerr << \"BEFORE copy\" << std::endl;\n";
-        //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
-
-        o.os( ) << "normalized_" << (*i)->name( ) 
-                << ".copyTo(" << (*i)->matrix( )->name( ) << ", _iter_begin, _iter_end);\n";
-
-#ifdef DEBUG
-        o.os( ) << "std::cout << \"normalize\" << std::endl;\n";
-        o.os( ) << "MatrixIO().write(normalized_" << (*i)->name( ) << ");\n";
-        o.os( ) << "std::cout << \"AFTER copy\" << std::endl;\n";
-        o.os( ) << "MatrixIO().write(" << (*i)->matrix( )->name( ) << ");\n";
-#endif
-      }
-    }
-
-    o.write( "return NULL;\n}\n\n" );
-    return;
   } else {
 #else
   if(true) {
@@ -1264,9 +1020,10 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 void petabricks::UserRule::generateUseOnCpu(CodeGenerator& o){
   int lastdim_int = dimensions()-1;
   std::string lastdim = jalib::XToString(lastdim_int);
-  for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i) {
-    if(!(*i)->isBuffer() || _loads.find(*i) == _loads.end())
-      continue;
+  // for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i) {
+  //   if(!(*i)->isBuffer() || _loads.find(*i) == _loads.end())
+  //     continue;
+  for(RegionSet::const_iterator i = _loads.begin( ); i != _loads.end( ); ++i) {
     switch(stencilType(*i, true)) {
     case 0:
       o.write((*i)->matrix()->name()+".useOnCpu(0);");
@@ -1528,6 +1285,7 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
   //o.write("MatrixIO().write("+name+".asGpuInputBuffer());");
   o.write("std::cout << \"copyin: bytesOnGpu = \" << storage_" + name + "->bytesOnGpu() << std::endl;");
 #endif
+  // TODO bytesOnGpu might not be equal to buffer.size
   o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->getClMem(), CL_FALSE, 0, storage_"+name+"->bytesOnGpu(), "+name+".getGpuInputBufferPtr(), 0, NULL, NULL);");
   o.write("storage_"+name+"->storeGpuData();");
   o.write("clFlush(GpuManager::_queue);");
@@ -1748,9 +1506,10 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     to_matrices.push_back( (*i)->name( ) );
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
-    from_matrices.push_back( (*i)->name( ) );
+    if(_loads.find(*i) != _loads.end())
+      from_matrices.push_back( (*i)->name( ) );
 
-  clo.beginKernel(_to, _from, iterdef.dimensions(), trans, local);
+  clo.beginKernel(_to, _from, _loads, iterdef.dimensions(), trans, local);
 
   // Get indices.
   for( int i = 0; i < iterdef.dimensions( ); ++i )
@@ -1801,6 +1560,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
   {
+    if(_loads.find(*i) == _loads.end()) continue;
     // Build & normalize formula for index.
     FormulaPtr idx_formula;
     switch((*i)->getRegionType()) {

@@ -310,7 +310,7 @@ public:
   /// Decide to make a copy or return the orginal for making GPU buffer.s
   ElementT* getGpuInputBufferPtr() {
 #ifdef HAVE_OPENCL
-    if(isEntireBuffer()) {
+    if(isEntireBuffer() && (D == 0 || this->multipliers()[0] == 1)) {
       return this->base();
     }
     

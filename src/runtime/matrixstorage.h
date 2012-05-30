@@ -188,6 +188,44 @@ public:
 
 
 #ifdef HAVE_OPENCL
+  bool overlap(MatrixStorageInfoPtr that) {
+    ElementT* this_i = this->base();
+    ElementT* this_f = this->base() + this->bytesOnGpu();
+    ElementT* that_i = that->base();
+    ElementT* that_f = that->base() + that->bytesOnGpu();
+    
+    if(this_i >= that_i && this_i < that_f)
+      return true;
+    if(this_f > that_i && this_f <= that_f)
+      return true;
+    if(that_i >= this_i && that_i < this_f)
+      return true;
+    if(that_f > this_i && that_f <= this_f)
+      return true;
+    return false;
+  }
+
+  bool overlap(MatrixStorageInfoPtr that, int offset) {
+    ElementT* this_i = this->base();
+    ElementT* this_f = this->base() + this->bytesOnGpu();
+    ElementT* that_i = that->base() + that->bytes(offset);
+    ElementT* that_f = that->base() + that->bytes(offset+1);
+#ifdef GPU_TRACE
+  std::cout << "@ overlap that: " << this_i << " - " << this_f << std::endl;
+  std::cout << "@ overlap this: " << that_i << " - " << that_f << std::endl;
+#endif
+    
+    if(this_i >= that_i && this_i < that_f)
+      return true;
+    if(this_f > that_i && this_f <= that_f)
+      return true;
+    if(that_i >= this_i && that_i < this_f)
+      return true;
+    if(that_f > this_i && that_f <= this_f)
+      return true;
+    return false;
+  }
+
   /// Number of bytes of this storage info from the beginning
   /// until the row #lastRow
   size_t bytesOnGpu() const {
@@ -200,6 +238,14 @@ public:
     std::cout << "bytesOnGpu: _normalize = " <<  _normalizedMultipliers[_dimensions - 1] << ", _mult = " << _multipliers[_dimensions - 1] << ", _last = " << _lastRowOnGpu << std::endl;
     #endif
     return _normalizedMultipliers[_dimensions - 1]*_lastRowOnGpu*sizeof(ElementT);
+  }
+
+  /// Number of bytes of this storage info from the beginning
+  /// until the row #lastRow
+  size_t bytes(int offset) const {
+    if(_dimensions == 0)
+      return sizeof(ElementT);
+    return _normalizedMultipliers[_dimensions - 1]*offset*sizeof(ElementT);
   }
 
 

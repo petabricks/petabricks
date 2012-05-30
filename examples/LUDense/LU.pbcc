@@ -50,6 +50,7 @@ to A[n,m], P[m]
                 p.cell(j) = j;
             } else {
                 // find the largest value in jth column on/below diagonal
+		a.useOnCpu(0);
                 ReduceAMax2D(jMax, iMax, valMax, a.region(j, j, j+1, m));
                 iMax += j;
 

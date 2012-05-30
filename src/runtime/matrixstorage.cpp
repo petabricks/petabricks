@@ -72,6 +72,7 @@ void petabricks::MatrixStorage::updateDataFromGpu(MatrixStorageInfoPtr info, Ind
   for(std::set<MatrixStorageInfoPtr>::iterator it = _needcopyout.begin(); it != _needcopyout.end(); ++it) {
     // std::cout << "+++compare: dimension = " << (*it)->dimensions() << ", lastRow = " << (*it)->lastRowOnGpu() << std::endl;
     if((*it)->lastRowOnGpu() - 1 >= firstRow || (*it)->dimensions() != info->dimensions()) {
+    // if((*it)->overlap(info, firstRow)) {
       needUpdate = true;
       break;
     }
@@ -85,6 +86,7 @@ void petabricks::MatrixStorage::updateDataFromGpu(MatrixStorageInfoPtr info, Ind
     if(storage) {
 #ifdef GPU_TRACE
       std::cout << "_storage = " << &(*this) << " on gpu!" << std::endl;
+      storage->print();
 #endif
       (*it)->copy(this, storage, (*it)->getBegins(), (*it)->getEnds());
       (*it)->resetPending();
@@ -106,6 +108,7 @@ petabricks::MatrixStorageInfoPtr petabricks::MatrixStorage::findStorageInfo(Matr
   //TODO: check correctness.
   _needcopyoutLock.lock();
   for(std::set<MatrixStorageInfoPtr>::iterator it = _needcopyout.begin(); it != _needcopyout.end(); ++it) {
+    // std::cout << "= " << (*it)->lastRowOnGpu() << " >= " << lastRowOnGpu << "???" << std::endl;
     if((*it)->equal(info) && (*it)->lastRowOnGpu() >= lastRowOnGpu) {
       _needcopyoutLock.unlock();
       return *it;
@@ -155,7 +158,8 @@ void petabricks::MatrixStorage::addNeedCopyOut(MatrixStorageInfoPtr info) {
   std::list<MatrixStorageInfoPtr> stale;
   _donecopyoutLock.lock();
   for(std::set<MatrixStorageInfoPtr>::iterator it = _donecopyout.begin(); it != _donecopyout.end(); ++it) {
-    if((*it)->dimensions() != info->dimensions() || (*it)->equal(info)) {
+    //if((*it)->dimensions() != info->dimensions() || (*it)->equal(info)) {
+    if((*it)->overlap(info)) {
       #ifdef GPU_TRACE
       std::cout << "erase: _storageInfo = " << &(*(*it)) << std::endl;
       #endif
@@ -177,7 +181,8 @@ void petabricks::MatrixStorage::addDoneCopyOut(MatrixStorageInfoPtr info) {
       _donecopyoutLock.unlock();
       return;
     }
-    else if((*it)->dimensions() != info->dimensions() || (*it)->equal(info)) {
+    // else if((*it)->dimensions() != info->dimensions() || (*it)->equal(info)) {
+    else if((*it)->overlap(info)) {
       stale.push_back(*it);
     }
   }
@@ -377,6 +382,7 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
     } //end if size == 1
     
     // If there is remining data on GPU, need to update data on CPU first
+    _lastRowOnGpu = upperbound;
     storage()->updateDataFromGpu(this, 0);
     
 #ifdef AMD || INTEL
@@ -388,8 +394,8 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
       cl_int err;
       
       // Buffer on gpu and cpu will be the same, so first row on cpu is always the one after last row on gpu
-      _lastRowOnGpu = upperbound;
       _firstRowOnCpu = upperbound;
+
       //std::cout << "+++ upperbound: " << &(*this) << " _storage = " << &(*storage()) << ", row = " << _firstRowOnCpu << std::endl;
       setClMemWrapper(clCreateBuffer(context, CL_MEM_USE_HOST_PTR, bytesOnGpu(), storage()->data(), &err));
 #ifdef DEBUG
@@ -541,7 +547,7 @@ void petabricks::MatrixStorageInfo::startReadBuffer(cl_command_queue& queue, std
 bool petabricks::MatrixStorageInfo::equal(MatrixStorageInfoPtr that) {
 #ifdef GPU_TRACE
   std::cout << "@ equal that: " << &(*that) << " base = " << that->base() << std::endl;
-  std::cout << "@ equal this: " << &(*this) << " base = " << that->base() << std::endl;
+  std::cout << "@ equal this: " << &(*this) << " base = " << this->base() << std::endl;
 #endif
   if(base() != that->base() || dimensions() != that->dimensions() || queue() != that->queue()) {
     return false;

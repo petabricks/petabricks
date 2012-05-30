@@ -217,6 +217,9 @@ void GpuManager::run(GpuDynamicTaskPtr task) {
     // for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_from.begin(); i != _currenttaskinfo->_from.end(); ++i) {
     //   (*i)->check(_queue);
     // }
+    // for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
+    //   (*i)->check(_queue);
+    // }
     task->run();
   }
   #ifdef GPU_TRACE

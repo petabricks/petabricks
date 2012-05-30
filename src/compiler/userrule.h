@@ -194,7 +194,7 @@ public:
   /// 1 - one to one
   /// 2 - multiple to one
   int stencilType(RegionPtr region, bool min) {
-    std::cout << "#### stencil = " << region->name() << " " << region->matrix()->name() << std::endl;
+    /* std::cout << "#### stencil = " << region->name() << " " << region->matrix()->name() << std::endl; */
     MatrixDefPtr matrix = region->matrix();
     IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
     size_t dim = iterdef.dimensions();
@@ -202,9 +202,9 @@ public:
       return 0;
     }
     if(_maxCoordOffsets.find(matrix->name()) != _maxCoordOffsets.end()) {
-      std::cout << "mincoordoffset = " << _minCoordOffsets[matrix->name()][dim - 1] << std::endl;
-      std::cout << "name = " << matrix->name() << std::endl;
-      std::cout << "offset = " << _minCoordOffsets[matrix->name()][dim - 1] << std::endl;
+      /* std::cout << "mincoordoffset = " << _minCoordOffsets[matrix->name()][dim - 1] << std::endl; */
+      /* std::cout << "name = " << matrix->name() << std::endl; */
+      /* std::cout << "offset = " << _minCoordOffsets[matrix->name()][dim - 1] << std::endl; */
       if(min) {
 	if(MAXIMA.comparePessimistically(_minCoordOffsets[matrix->name()][dim - 1], "<", FormulaInteger::zero())) {
 	  return 2;
@@ -214,20 +214,20 @@ public:
 	}
       }
       else {
-	std::cout << "#### max = " <<  _maxCoordOffsets[matrix->name()][dim - 1] << std::endl;
+	/* std::cout << "#### max = " <<  _maxCoordOffsets[matrix->name()][dim - 1] << std::endl; */
 	if(MAXIMA.comparePessimistically(_maxCoordOffsets[matrix->name()][dim - 1], ">", FormulaInteger::one())) {
-	std::cout << "### stencil = 2" << std::endl;
+	/* std::cout << "### stencil = 2" << std::endl; */
 	  return 2;
 	}
 	else if(MAXIMA.comparePessimistically(_maxCoordOffsets[matrix->name()][dim - 1], "=", FormulaInteger::one())) {
-	std::cout << "### stencil = 1" << std::endl;
+	/* std::cout << "### stencil = 1" << std::endl; */
 	  return 1;
 	}
 
       }
     }
     //std::cout << "matrix not found" << std::endl;
-    std::cout << "### stencil = 0" << std::endl;
+    /* std::cout << "### stencil = 0" << std::endl; */
     return 0;
   }
 

@@ -59,7 +59,7 @@ class CLCodeGenerator : public CodeGenerator
 
   void localMemoryBarrier( );
 
-  void beginKernel(RegionList& _to, RegionList& _from, unsigned int dims, Transform& trans, bool local);
+  void beginKernel(RegionList& _to, RegionList& _from, RegionSet& _loads, unsigned int dims, Transform& trans, bool local);
 
   void endKernel( );
 
