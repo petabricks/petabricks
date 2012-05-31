@@ -50,7 +50,6 @@ to A[n,m], P[m]
                 p.cell(j) = j;
             } else {
                 // find the largest value in jth column on/below diagonal
-		a.useOnCpu(0);
                 ReduceAMax2D(jMax, iMax, valMax, a.region(j, j, j+1, m));
                 iMax += j;
 
@@ -64,6 +63,7 @@ to A[n,m], P[m]
                 }
 
                 // scale current column and update trailing submatrix
+		a.useOnCpu(0);
                 Scale2D(a.region(j, j+1, j+1, m), 1.0 / a.cell(j, j));
 
                 if (j < n - 1) {

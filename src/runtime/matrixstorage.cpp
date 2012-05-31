@@ -72,7 +72,7 @@ void petabricks::MatrixStorage::updateDataFromGpu(MatrixStorageInfoPtr info, Ind
   for(std::set<MatrixStorageInfoPtr>::iterator it = _needcopyout.begin(); it != _needcopyout.end(); ++it) {
     // std::cout << "+++compare: dimension = " << (*it)->dimensions() << ", lastRow = " << (*it)->lastRowOnGpu() << std::endl;
     if((*it)->lastRowOnGpu() - 1 >= firstRow || (*it)->dimensions() != info->dimensions()) {
-    // if((*it)->overlap(info, firstRow)) {
+    //if((*it)->overlap(info, firstRow)) {
       needUpdate = true;
       break;
     }
@@ -159,8 +159,8 @@ void petabricks::MatrixStorage::addNeedCopyOut(MatrixStorageInfoPtr info) {
   std::list<MatrixStorageInfoPtr> stale;
   _donecopyoutLock.lock();
   for(std::set<MatrixStorageInfoPtr>::iterator it = _donecopyout.begin(); it != _donecopyout.end(); ++it) {
-    //if((*it)->dimensions() != info->dimensions() || (*it)->equal(info)) {
-    if((*it)->overlap(info)) {
+    if((*it)->dimensions() != info->dimensions() || (*it)->equal(info)) {
+    //if((*it)->overlap(info)) {
       #ifdef GPU_TRACE
       std::cout << "erase: _storageInfo = " << &(*(*it)) << std::endl;
       #endif
@@ -182,8 +182,8 @@ void petabricks::MatrixStorage::addDoneCopyOut(MatrixStorageInfoPtr info) {
       _donecopyoutLock.unlock();
       return;
     }
-    // else if((*it)->dimensions() != info->dimensions() || (*it)->equal(info)) {
-    else if((*it)->overlap(info)) {
+    else if((*it)->dimensions() != info->dimensions() || (*it)->equal(info)) {
+    //else if((*it)->overlap(info)) {
       stale.push_back(*it);
     }
   }
@@ -385,7 +385,7 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
     } //end if size == 1
     
     // If there is remining data on GPU, need to update data on CPU first
-    _lastRowOnGpu = upperbound;
+    //_lastRowOnGpu = upperbound;
     storage()->updateDataFromGpu(this, 0);
     
 #ifdef AMD || INTEL
@@ -397,6 +397,7 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
       cl_int err;
       
       // Buffer on gpu and cpu will be the same, so first row on cpu is always the one after last row on gpu
+      _lastRowOnGpu = upperbound;
       _firstRowOnCpu = upperbound;
 
       //std::cout << "+++ upperbound: " << &(*this) << " _storage = " << &(*storage()) << ", row = " << _firstRowOnCpu << std::endl;
@@ -598,8 +599,8 @@ petabricks::MatrixStoragePtr petabricks::MatrixStorageInfo::processPending() {
   //TODO: how to deal with queue when region is on multiple gpus?
   CopyoutInfoPtr copy = new CopyoutInfo(_queue, this, _begins, _ends, _coverage);
   while(!copy->complete()) {}
-  // std::cout << "after: " << std::endl;
-  // storage()->print();
+  //std::cout << "after: " << std::endl;
+  //storage()->print();
   //copy->getGpuOutputStoragePtr()->print();
   return copy->getGpuOutputStoragePtr();
 }
