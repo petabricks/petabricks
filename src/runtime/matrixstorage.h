@@ -488,9 +488,6 @@ public:
     }
   }
 
-  //void addGpuInputBuffer(MatrixStoragePtr& buffer) {
-  //_gpuInputBuffers.push_back(buffer);
-  //}
 
 #endif
 
@@ -506,7 +503,6 @@ private:
   size_t _count;
 
 #ifdef HAVE_OPENCL
-  //std::vector<MatrixStoragePtr> _gpuInputBuffers;
   IndexT  _normalizedMultipliers[MAX_DIMENSIONS];
   
   std::string _name;

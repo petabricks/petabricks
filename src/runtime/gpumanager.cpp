@@ -132,7 +132,9 @@ void GpuManager::mainLoop() {
 }
 
 void GpuManager::addTask(GpuDynamicTaskPtr task) {
+#ifdef DEBUG
   JASSERT(_useOpenCL());
+#endif
   _lock.lock();
   _readytasks.push(task);
   _lock.unlock();
@@ -160,7 +162,9 @@ bool GpuManager::copyout(GpuDynamicTaskPtr ) {
 #else
 
 void GpuManager::prepare(GpuDynamicTaskPtr task) {
+#ifdef DEBUG
   JASSERT(_useOpenCL());
+#endif
   #ifdef GPU_TRACE
   std::cout << "[PREPARE]" << std::endl;
   #endif
@@ -185,7 +189,9 @@ void GpuManager::prepare(GpuDynamicTaskPtr task) {
 }
 
 void GpuManager::copyin(GpuDynamicTaskPtr task) {
+#ifdef DEBUG
   JASSERT(_useOpenCL());
+#endif
   #ifdef GPU_TRACE
   std::cout << "[COPY IN]" << std::endl;
   #endif
@@ -207,7 +213,9 @@ void GpuManager::copyin(GpuDynamicTaskPtr task) {
 }
 
 void GpuManager::run(GpuDynamicTaskPtr task) {
+#ifdef DEBUG
   JASSERT(_useOpenCL());
+#endif
   #ifdef GPU_TRACE
   std::cout << "[RUN]" << std::endl;
   #endif
@@ -235,7 +243,9 @@ void GpuManager::run(GpuDynamicTaskPtr task) {
 }
 
 bool GpuManager::copyout(GpuDynamicTaskPtr task) {
+#ifdef DEBUG
   JASSERT(_useOpenCL());
+#endif
   MatrixStorageInfoPtr storage = task->storageinfo();
   #ifdef GPU_TRACE 
   std::cout << "[COPY OUT]" << &(*storage) << std::endl;

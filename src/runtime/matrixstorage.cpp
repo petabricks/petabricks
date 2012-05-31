@@ -101,6 +101,7 @@ void petabricks::MatrixStorage::updateDataFromGpu(MatrixStorageInfoPtr info, Ind
   _needcopyoutLock.unlock();
 }  
 
+
 petabricks::MatrixStorageInfoPtr petabricks::MatrixStorage::findStorageInfo(MatrixStorageInfoPtr info, int lastRowOnGpu) {
   if(_needcopyout.size() == 0 && _donecopyout.size() == 0)
     return NULL;
@@ -319,7 +320,7 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
 
 #ifdef GPU_TRACE
   if(storage())
-    std::cout << "initGpuMem " << &(*this) << " _storage = " << &(*storage()) << ", _firstRowOnCpu = " << _firstRowOnCpu << ", _lastRowOnGpu = " << _lastRowOnGpu << ", _lastRowOffset = " << _lastRowOnGpuOffset << ", gpu_ratio = " << gpuRatio << ", upperbound = " << upperbound << ", dimension = " << _dimensions << ", _size = " << _sizes[_dimensions - 1] << std::endl;
+    std::cout << "initGpuMem " << &(*this) << " _storage = " << &(*storage()) << ", _firstRowOnCpu = " << _firstRowOnCpu << ", _lastRowOnGpu = " << _lastRowOnGpu << ", _lastRowGuide = " << _lastRowOnGpuGuide << ", gpu_ratio = " << gpuRatio << ", upperbound = " << upperbound << ", dimension = " << _dimensions << ", _size = " << _sizes[_dimensions - 1] << std::endl;
 #endif
 
   _queue = queue;
@@ -373,7 +374,9 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
       
       // Before copy in, we need to make sure that all gpu data is in cpu.
       storage()->updateDataFromGpu(this, 0);
+
       if(input){
+
 	// If it is an input, we have cpu data on gpu, buffer on gpu and cpu will be the same, so first row on cpu is always the one after last row on gpu
 	_firstRowOnCpu = _lastRowOnGpu;
 	//std::cout << "+++ input1: " << &(*this) << " _storage = " << &(*storage()) << ", row = " << _firstRowOnCpu << std::endl;

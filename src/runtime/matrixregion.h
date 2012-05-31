@@ -141,9 +141,6 @@ public:
   const IndexT* multipliers() const { return _multipliers; };
   const StorageT& storage() const { return _storage; }
   const MatrixStorageInfoPtr storageInfo() const {
-#ifdef DEBUG
-    //JASSERT(count()>0)(count());
-#endif
     return _storageInfo; 
   }
 
@@ -173,8 +170,6 @@ public:
     for(int i=0; i<D; ++i)
       s*=this->sizes()[i];
     return s;
-    /* JASSERT(s == _count)(s)(_count); */
-    /* return _count; */
   }
   
   ///
@@ -594,8 +589,6 @@ public:
     for(int i=0; i<D; ++i)
       s*=this->sizes()[i];
     return s;
-    /* JASSERT(s == this->_count)(s)(this->_count); */
-    /* return this->_count; */
   }
 
   ///
@@ -704,10 +697,6 @@ protected:
   ElementT* coordToPtr(const IndexT coord[D]) const{
     IndexT rv = 0;
     for(int i=0; i<D; ++i){
-      #ifdef DEBUG
-      /*JASSERT(0<=coord[i] && coord[i]<size(i))(coord[i])(size(i))
-        .Text("Out of bounds access");*/
-      #endif
       rv +=  this->multipliers()[i] * coord[i];
     }
     return this->base()+rv;
