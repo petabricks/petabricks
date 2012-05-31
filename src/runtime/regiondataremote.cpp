@@ -536,9 +536,6 @@ RegionDataSplitPtr RegionDataRemote::copyRegionDataSplit() {
       for (int i = 0; i < reply->numParts; ++i) {
         _localRegionDataSplit->setPart(i, reply->handlers()[i]);
       }
-      // for (int i = 0; i < _localRegionDataSplit->numParts(); ++i) {
-      //   JASSERT(_localRegionDataSplit->part(i).asPtr() != 0);
-      // }
       free(data);
       jalib::memFence();
       _isLocalRegionDataSplitReady = true;
