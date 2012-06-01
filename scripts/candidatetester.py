@@ -60,6 +60,7 @@ class CrashException(Exception):
 
 def debug_logcmd(cmd):
   #print ' '.join(cmd)
+  #open("lastcmd",'w').write(' '.join(cmd))
   pass
 
 class Results:
