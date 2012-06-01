@@ -12,7 +12,7 @@ class config_defaults:
   min_input_size           = 1
   max_time                 = 60*150
   rounds_per_input_size    = 1
-  final_rounds             = 10
+  final_rounds             = 50
 
   #number of trials to run
   confidence_pct   = 0.75

@@ -35,8 +35,15 @@ class NoMutators(Exception):
   pass
 
 class InputGenerationException(Exception):
-  def __init__(self, testNumber):
-    self.testNumber=testNumber
+  def __init__(self, testNumber, cmd):
+    self.testNumber = int(testNumber)
+    self.cmd = cmd
+
+  def __str__(self):
+    return repr(self)
+  
+  def __repr__(self):
+    return 'InputGenerationException(%d, "%s")' % (self.testNumber, str(self.cmd))
 
 class CrashException(Exception):
   def __init__(self, testNumber, n, candidate, cmd):
@@ -642,7 +649,7 @@ class CandidateTester:
         devnull = open("/dev/null", "w")
         try:
           if subprocess.call(cmd, stdout=devnull, stderr=devnull) != 0:
-            raise InputGenerationException(testNumber)
+            raise InputGenerationException(testNumber, ' '.join(cmd))
           self.inputs.append(Input(pfx))
         finally:
           devnull.close()
