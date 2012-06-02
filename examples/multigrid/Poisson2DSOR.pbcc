@@ -189,4 +189,14 @@ generator Poisson2DSORGenerator
   }
 }
 
+main transform Poisson2DSORMain
+from IN[n,n], B[n,n], weight
+to OUT[n,n]
+{
+  to(OUT out) from(IN in, B b, weight w) {
+    Poisson2DSOR(out, in, b, w, 100);
+  }
+}
+
+
 #endif // POISSON2DSOR_PBCC
