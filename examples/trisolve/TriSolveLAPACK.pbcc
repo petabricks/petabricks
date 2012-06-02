@@ -26,7 +26,7 @@ to X[n,m]
         char side, uplo, transa = 'N', diag;
         const int lda = ah;
         const int ldb = m;
-        double alpha = _alpha;
+        ElementT alpha = _alpha;
         ElementT *A = NULL;
         ElementT *B = NULL;
 

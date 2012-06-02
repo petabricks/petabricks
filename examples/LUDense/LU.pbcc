@@ -122,6 +122,7 @@ to A[n,m], P[m]
                 }
 
                 // scale values below diagonal
+		a.useOnCpu(0);
                 Scale2D(a.region(j, j+1, j+1, m), 1.0 / a.cell(j, j));
             }
         }
@@ -175,6 +176,7 @@ to A[n,m], P[m]
                 }
 
                 // scale values below diagonal
+		a.useOnCpu(0);
                 Scale2D(a.region(j, j+1, j+1, m), 1.0 / a.cell(j, j));
             }
 
