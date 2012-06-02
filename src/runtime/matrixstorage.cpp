@@ -49,21 +49,21 @@ void petabricks::MatrixStorageInfo::storeGpuData(){
 }
 
 void petabricks::MatrixStorage::clearDataOnGpu(MatrixStorageInfoPtr info, IndexT firstRow){
-  if(_donecopyout.size() == 0)
-    return;
+  // if(_donecopyout.size() == 0)
+  //   return;
 
-  std::list<MatrixStorageInfoPtr> stale2;
-  _donecopyoutLock.lock();
-  for(std::set<MatrixStorageInfoPtr>::iterator it = _donecopyout.begin(); it != _donecopyout.end(); ++it) {
-    // std::cout << "+++ info.lastrow = " << (*it)->lastRowOnGpu() << std::endl;
-    if((*it)->dimensions() != info->dimensions() || firstRow < (*it)->lastRowOnGpu()) {
-      stale2.push_back(*it);
-    }
-  }
-  for(std::list<MatrixStorageInfoPtr>::iterator it = stale2.begin(); it != stale2.end(); ++it) {
-    _donecopyout.erase(*it);
-  }
-  _donecopyoutLock.unlock();
+  // std::list<MatrixStorageInfoPtr> stale2;
+  // _donecopyoutLock.lock();
+  // for(std::set<MatrixStorageInfoPtr>::iterator it = _donecopyout.begin(); it != _donecopyout.end(); ++it) {
+  //   // std::cout << "+++ info.lastrow = " << (*it)->lastRowOnGpu() << std::endl;
+  //   if((*it)->dimensions() != info->dimensions() || firstRow < (*it)->lastRowOnGpu()) {
+  //     stale2.push_back(*it);
+  //   }
+  // }
+  // for(std::list<MatrixStorageInfoPtr>::iterator it = stale2.begin(); it != stale2.end(); ++it) {
+  //   _donecopyout.erase(*it);
+  // }
+  // _donecopyoutLock.unlock();
 }
 
 void petabricks::MatrixStorage::updateDataFromGpu(MatrixStorageInfoPtr info, IndexT firstRow){
@@ -93,9 +93,9 @@ void petabricks::MatrixStorage::updateDataFromGpu(MatrixStorageInfoPtr info, Ind
     }
   }
 
-  _donecopyoutLock.lock();
-  _donecopyout.insert(_needcopyout.begin(), _needcopyout.end());
-  _donecopyoutLock.unlock();
+  // _donecopyoutLock.lock();
+  // _donecopyout.insert(_needcopyout.begin(), _needcopyout.end());
+  // _donecopyoutLock.unlock();
 
   _needcopyout.clear();
   _needcopyoutLock.unlock();
@@ -117,14 +117,14 @@ petabricks::MatrixStorageInfoPtr petabricks::MatrixStorage::findStorageInfo(Matr
   }
   _needcopyoutLock.unlock();
 
-  _donecopyoutLock.lock();
-  for(std::set<MatrixStorageInfoPtr>::iterator it = _donecopyout.begin(); it != _donecopyout.end(); ++it) {
-    if((*it)->equal(info) && (*it)->lastRowOnGpu() >= lastRowOnGpu) {
-      _donecopyoutLock.unlock();
-      return *it;
-    }
-  }
-  _donecopyoutLock.unlock();
+  // _donecopyoutLock.lock();
+  // for(std::set<MatrixStorageInfoPtr>::iterator it = _donecopyout.begin(); it != _donecopyout.end(); ++it) {
+  //   if((*it)->equal(info) && (*it)->lastRowOnGpu() >= lastRowOnGpu) {
+  //     _donecopyoutLock.unlock();
+  //     return *it;
+  //   }
+  // }
+  // _donecopyoutLock.unlock();
   return NULL;
 }
 
@@ -153,48 +153,48 @@ void petabricks::MatrixStorage::addNeedCopyOut(MatrixStorageInfoPtr info) {
   }
   _needcopyoutLock.unlock();
 
-  if(_donecopyout.size() == 0)
-    return;
+  // if(_donecopyout.size() == 0)
+  //   return;
 
-  std::list<MatrixStorageInfoPtr> stale;
-  _donecopyoutLock.lock();
-  for(std::set<MatrixStorageInfoPtr>::iterator it = _donecopyout.begin(); it != _donecopyout.end(); ++it) {
-    if((*it)->dimensions() != info->dimensions() || (*it)->equal(info)) {
-    //if((*it)->overlap(info)) {
-      #ifdef GPU_TRACE
-      std::cout << "erase: _storageInfo = " << &(*(*it)) << std::endl;
-      #endif
-      stale.push_back(*it);
-    }
-  }
-  for(std::list<MatrixStorageInfoPtr>::iterator it = stale.begin(); it != stale.end(); ++it) {
-    _donecopyout.erase(*it);
-  }
-  _donecopyoutLock.unlock();
+  // std::list<MatrixStorageInfoPtr> stale;
+  // _donecopyoutLock.lock();
+  // for(std::set<MatrixStorageInfoPtr>::iterator it = _donecopyout.begin(); it != _donecopyout.end(); ++it) {
+  //   if((*it)->dimensions() != info->dimensions() || (*it)->equal(info)) {
+  //   //if((*it)->overlap(info)) {
+  //     #ifdef GPU_TRACE
+  //     std::cout << "erase: _storageInfo = " << &(*(*it)) << std::endl;
+  //     #endif
+  //     stale.push_back(*it);
+  //   }
+  // }
+  // for(std::list<MatrixStorageInfoPtr>::iterator it = stale.begin(); it != stale.end(); ++it) {
+  //   _donecopyout.erase(*it);
+  // }
+  // _donecopyoutLock.unlock();
 }
 
 void petabricks::MatrixStorage::addDoneCopyOut(MatrixStorageInfoPtr info) {
   //TODO: if we deal with in-place, storageinfos that hold the same matrxstorage might get inserted multiple times
-  _donecopyoutLock.lock();
-  std::list<MatrixStorageInfoPtr> stale;
-  for(std::set<MatrixStorageInfoPtr>::iterator it = _donecopyout.begin(); it != _donecopyout.end(); ++it) {
-    if((*it)->getClMem() == info->getClMem()) {
-      _donecopyoutLock.unlock();
-      return;
-    }
-    else if((*it)->dimensions() != info->dimensions() || (*it)->equal(info)) {
-    //else if((*it)->overlap(info)) {
-      stale.push_back(*it);
-    }
-  }
-  for(std::list<MatrixStorageInfoPtr>::iterator it = stale.begin(); it != stale.end(); ++it) {
-    _donecopyout.erase(*it);
-  }
-  #ifdef GPU_TRACE
-  std::cout << "+++ addDoneCopyOut _storageInfo = " << &(*info) << std::endl;
-  #endif
-  _donecopyout.insert(info);
-  _donecopyoutLock.unlock();
+  // _donecopyoutLock.lock();
+  // std::list<MatrixStorageInfoPtr> stale;
+  // for(std::set<MatrixStorageInfoPtr>::iterator it = _donecopyout.begin(); it != _donecopyout.end(); ++it) {
+  //   if((*it)->getClMem() == info->getClMem()) {
+  //     _donecopyoutLock.unlock();
+  //     return;
+  //   }
+  //   else if((*it)->dimensions() != info->dimensions() || (*it)->equal(info)) {
+  //   //else if((*it)->overlap(info)) {
+  //     stale.push_back(*it);
+  //   }
+  // }
+  // for(std::list<MatrixStorageInfoPtr>::iterator it = stale.begin(); it != stale.end(); ++it) {
+  //   _donecopyout.erase(*it);
+  // }
+  // #ifdef GPU_TRACE
+  // std::cout << "+++ addDoneCopyOut _storageInfo = " << &(*info) << std::endl;
+  // #endif
+  // _donecopyout.insert(info);
+  // _donecopyoutLock.unlock();
 }
 #endif
 
@@ -526,9 +526,9 @@ void petabricks::MatrixStorageInfo::startReadBuffer(cl_command_queue& queue, std
         group->erase(*node);
       }
     }
-    if(_coverage == countOnGpu()) {
-      storage()->addDoneCopyOut(this);
-    }
+    // if(_coverage == countOnGpu()) {
+    //   storage()->addDoneCopyOut(this);
+    // }
     resetPending();
   }
   else if(_coverage != countOnGpu()) {
