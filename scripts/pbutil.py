@@ -16,7 +16,6 @@ from xml.dom.minidom import parse,parseString
 from xml.dom import DOMException
 from pprint import pprint
 from configtool import getConfigVal, setConfigVal
-from learningcompiler import LearningCompiler
 
 try:
   import numpy
@@ -312,6 +311,7 @@ def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=Non
   
   
 def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noLearningList=[]):
+  from learningcompiler import LearningCompiler
   NULL=open("/dev/null","w")
   pbc="./src/pbc"
   libdepends=[pbc, "./src/libpbmain.a", "./src/libpbruntime.a", "./src/libpbcommon.a"]
