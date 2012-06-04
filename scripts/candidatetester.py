@@ -258,23 +258,13 @@ class ResultsDB:
 class Candidate:
   nextCandidateId=0
   '''A candidate algorithm in the population'''
-  def __init__(self, cfg, infoxml, mutators=[], pop=None):
+  def __init__(self, cfg, mlog=list()):
     self.config      = ConfigFile(cfg)
     self.metrics     = [ResultsDB(x) for x in config.metrics]
-    self.mutators    = list(mutators)
     self.cid         = Candidate.nextCandidateId
-    self.infoxml     = infoxml
-    self.lastMutator = None
     self.outputdir   = storagedirs.candidate(self.cid)
-    self.C           = config.bandit_c    # exploration/exploitation trade-off in the DMAB algorithm
-    
-    self.mutatorScores = dict()
-    for m in self.mutators:
-      self.mutatorScores[m] = 0
-    
+    self.mutationlog = list(mlog)
     Candidate.nextCandidateId += 1
-    self.pop         = pop # population this candidate is a member of
-
 
   def discardResults(self, n):
     for m in self.metrics:
@@ -285,7 +275,13 @@ class Candidate:
     return "Candidate%d"%self.cid
 
   def clone(self):
-    return Candidate(deepcopy(self.config), self.infoxml, self.mutators, self.pop)
+    return Candidate(deepcopy(self.config), self.mutationlog)
+  
+  def reset_mutation_log(self):
+    self.mutationlog = list()
+
+  def log_mutation(self, m):
+    self.mutationlog.append(m)
 
   def clearResultsAbove(self, val):
     for i in xrange(len(self.metrics)):
@@ -297,204 +293,6 @@ class Candidate:
     for i in xrange(len(self.metrics)):
       for n in self.metrics[i].keys():
         self.metrics[i][n] = Results()
-
-  def addMutator(self, m):
-    self.mutators.append(m)
-
-  ## Adaptive operator selection techniques
-
-  def cloneAndMutate(self, n, adaptive = False, mutatorLog = None, 
-                     objectives = None, mutatorFilter=lambda m: True):
-    c = self.clone()
-
-    if adaptive:
-      if config.os_method == OperatorSelectionMethod.UNIFORM_RANDOM:
-        method = c.uniformRandomMutate
-      elif config.os_method == OperatorSelectionMethod.ROC_AREA:
-        method = c.upperConfidenceBoundMutate
-      elif config.os_method == OperatorSelectionMethod.WEIGHTED_SUM:
-        method = c.weightedSumMutate
-      elif config.os_method == OperatorSelectionMethod.ROULETTE:
-        method = c.rouletteWheelMutate
-      elif config.os_method == OperatorSelectionMethod.ABS_ROC:
-        method = c.absUpperConfidenceBoundMutate
- 
-    for z in xrange(config.mutate_retries):
-      try:
-        if adaptive:
-          method(n, mutatorLog, objectives, mutatorFilter)
-        else:
-          c.mutate(n, mutatorFilter)
-        assert c.lastMutator != None
-        break
-      except mutators.MutateFailed:
-        if z==config.mutate_retries-1:
-          warnings.warn(tunerwarnings.MutateFailed(c, z, n))
-        continue
-      except NoMutators,e:
-        if len(self.mutators):
-          # discard filter
-          return self.cloneAndMutate(n, adaptive, mutatorLog, objectives, mutatorFilter)
-        raise e
-    return c
-
-  '''Uses the bandit algorithm to select a mutator, and applies the mutator to self.
-    Credit assignment technique can be controlled by the scoring function, of the type
-    mutator -> score'''
-  def banditMutate(self, n, mutatorLog, objectives, scoringFunction, mutatorFilter):
-    totalMutations = 0
-    filteredMutators = filter(mutatorFilter, self.mutators)
-
-    
-    for m in self.mutators:
-      totalMutations += m.timesSelected
-    
-    # default to round robin if not enough data
-    if totalMutations < len(self.mutators):
-      self.lastMutator = self.mutators[totalMutations]
-      self.lastMutator.timesSelected += 1
-      self.lastMutator.mutate(self, n)
-      return
-    
-    if config.bandit_verbose:
-      print "\n\nCurrent mutator log (%s): %s" % (mutatorLog.name, map(str, mutatorLog.log))
-      print "\nAvailable mutators (scores):\n"
-
-    self.mutatorScores = dict() # We'll be updating these, so clear old values
-
-
-    ### Loop through mutators, compute bandit scores, and select the best mutator
-
-    bestScore = None # scores *can* be negative, e.g. if the scoring function negates the time
-    bestMutator = None
-
-    # compute average exploitation score
-    minExploitationScore = min(0.0, min(map(scoringFunction, self.mutators)))
-    avgExploitationScore = numpy.mean(map(lambda m: -minExploitationScore + scoringFunction(m), self.mutators))
-        
-    for m in self.mutators:
-      # Compute the bandit score
-      exploitTerm = (-minExploitationScore + scoringFunction(m)) / avgExploitationScore
-      exploreTerm = config.bandit_c*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)
-      score = exploitTerm + exploreTerm
-      self.mutatorScores[m] = (exploitTerm, exploreTerm, score) # for logging purposes
-
-      if m in filteredMutators and (bestScore == None or score > bestScore):
-        bestScore = score
-        bestMutator = m
-
-      if config.bandit_verbose:
-        print "%s (%f)" % (m, score)
-
-    if config.bandit_verbose:
-      print "\nUsing best mutator: %s (%f)\n\n" % (bestMutator, score)
-
-
-    (exploit, explore, total) = self.mutatorScores[bestMutator]
-    print "exploitation" if exploit > explore else "exploration"
-    self.lastMutator = bestMutator
-    self.lastMutator.timesSelected += 1
-    self.lastMutator.mutate(self, n)
-    
-
-  ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
-  def upperConfidenceBoundMutate(self, n, mutatorLog, objectives, mutatorFilter):
-        
-    if(objectives.needAccuracy()):
-      mutatorLog = mutatorLog.getSortedByDeltaAcc()
-    else:
-      mutatorLog = mutatorLog.getSortedByDeltaTime()
-      
-    self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog), mutatorFilter)
-
-
-  def absUpperConfidenceBoundMutate(self, n, mutatorLog, objectives, mutatorFilter):
-      
-    if(objectives.needAccuracy()):
-      mutatorLog = mutatorLog.getSortedByAcc()
-    else:
-      mutatorLog = mutatorLog.getSortedByTime()
-      
-    self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog), mutatorFilter)   
-
-
-  ''' Selects a mutator which maximizes objectives*(1/time) + (1-objectives)*accuracy, summed over times
-  and accuracies of logged offspring produced by the mutator '''
-  def weightedSumMutate(self, n, mutatorLog, objectives, mutatorFilter):    
-
-    def avg(lst):
-      return sum(lst) / len(lst)
-
-    def computeOneScore(m, entry):
-      assert entry.mutator == m
-      dacc = 0 if entry.daccuracy == None else entry.daccuracy
-      w = min(objectives.score(), 1.0)
-      return w*(-entry.dtime) + (1.0-w)*dacc
-        
-
-    def computeScore(m):
-      children = filter(lambda entry: entry.mutator == m, mutatorLog.log)
-      if len(children) == 0:
-        return 0
-      else:
-        return avg(map(lambda entry: computeOneScore(m, entry), children))
-
-    self.banditMutate(n, mutatorLog, objectives, computeScore, mutatorFilter)
-
-
-  ''' like weightedSumMutate, but uses roulette whell instead of bandit selection'''
-  def rouletteWheelMutate(self, n, mutatorLog, objectives):
-    
-    def avg(lst):
-      return sum(lst) / len(lst)
-    
-    def computeOneScore(m, entry):
-      assert entry.mutator == m
-      dacc = 0 if entry.daccuracy == None else entry.daccuracy
-      w = min(objectives.score(), 1.0)
-      return w*(-entry.dtime) + (1.0-w)*dacc
-        
-
-    def computeScore(m):
-      children = filter(lambda entry: entry.mutator == m, mutatorLog.log)
-      if len(children) == 0:
-        return 0
-      else:
-        return avg(map(lambda entry: computeOneScore(m, entry), children))
-
-    # compute unnormalized mutator scores    
-    Z = 0 # normalization constant
-    for m in self.mutators:
-      score = max(0.02, computeScore(m))
-      self.mutatorScores[m] = score
-      Z += score
-
-    # roulette wheel selection
-    r = random.random()
-    
-    for m in self.mutators:
-      if r <= self.mutatorScores[m] / Z:
-        self.lastMutator = m
-        m.mutate(self, n)
-        break
-      else:
-        r -= self.mutatorScores[m] / Z
-      
-      
-
-
-  def uniformRandomMutate(self, n, mutatorLog, objectives):
-    self.mutate(n)
-    
-
-
-  def mutate(self, n, mutatorFilter=lambda m: True):
-    opts=filter(mutatorFilter, self.mutators)
-    if opts:
-      self.lastMutator=random.choice(opts)
-    else:
-      raise NoMutators()
-    self.lastMutator.mutate(self, n)
 
   def reasonableLimit(self, n):
     if self.numTests(n)>0:
@@ -510,6 +308,14 @@ class Candidate:
     for i, m in enumerate(self.metrics):
       s.append("%s: %s" % (config.metrics[i], t(m[n])))
     return ', '.join(s)
+
+  def resultsTable(self, n):
+    l = [('candidate', str(self.cid)),
+         ('trials', str(self.numTests(n)))]
+    for i, m in enumerate(self.metrics):
+      l.append((config.metrics[i], str(m[n])))
+    l.append(('mutation_log', ''.join(map(lambda x: x.short, self.mutationlog)[-10:])))
+    return l
 
   def numTests(self, n):
     return len(self.metrics[config.timing_metric_idx][n])
@@ -529,7 +335,6 @@ class Candidate:
     if len(self.metrics[config.accuracy_metric_idx][n]) == 0:
       return -(2**31)
     return self.metrics[config.accuracy_metric_idx][n].mean()
-
 
   def hasAccuracy(self, n, target):
     if len(self.metrics[config.accuracy_metric_idx][n]) == 0:

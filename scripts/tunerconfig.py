@@ -11,7 +11,7 @@ class config_defaults:
   max_input_size           = 2**30
   min_input_size           = 1
   max_time                 = 60*150
-  rounds_per_input_size    = 1
+  rounds_per_input_size    = 2
   final_rounds             = 50
 
   #number of trials to run
@@ -37,7 +37,7 @@ class config_defaults:
   pop_elitism_pct   = 0.2
   pop_crossover_pct = 0.3
   pop_mutated_pct   = 0.3
-  tournament_size = 6
+  tournament_size = 3
   mutation_rate = 0.15
 
   #how mutation to do
