@@ -311,14 +311,14 @@ def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=Non
   
   
 def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noLearningList=[]):
-  from learningcompiler import LearningCompiler
   NULL=open("/dev/null","w")
   pbc="./src/pbc"
   libdepends=[pbc, "./src/libpbmain.a", "./src/libpbruntime.a", "./src/libpbcommon.a"]
   assert os.path.isfile(pbc)
   benchmarkMaxLen=0
   jobs_per_pbc=max(1, 2*cpuCount() / len(benchmarks))
-  compiler = LearningCompiler(pbc, heuristicSetFileName, jobs=jobs_per_pbc)
+  #from learningcompiler import LearningCompiler
+  #compiler = LearningCompiler(pbc, heuristicSetFileName, jobs=jobs_per_pbc)
 
   def innerCompileBenchmark(name):
     print name.ljust(benchmarkMaxLen)
