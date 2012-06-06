@@ -22,7 +22,7 @@ def rnd_uniform(min, max):
 
 def rnd_loguniform(min, max):
   r = 1-math.log(random.uniform(1, 10*4))/math.log(10*4)
-  return int(min + max*r)
+  return int((max-min)*r+min)
 
 def rnd_lognormal(mean, minv, maxv):
   if maxv-minv < 16:
@@ -31,11 +31,11 @@ def rnd_lognormal(mean, minv, maxv):
   while r is None:
     try:
       r = math.log(random.normalvariate(2, 1), 2)
-      if r<=0:
+      if r<0:
         r=None
     except ValueError:
       pass
-  r = int(r*mean)
+  r = int(r*(mean-minv)+minv)
   return max(minv, min(r, maxv))
 
 def rnd_normal(mean, minv, maxv):
@@ -45,11 +45,11 @@ def rnd_normal(mean, minv, maxv):
   while r is None:
     try:
       r = random.normalvariate(1,0.5)
-      if r<=0:
+      if r<0:
         r=None
     except ValueError:
       pass
-  r = int(r*mean)
+  r = int(r*(mean-minv)+minv)
   return max(minv, min(r, maxv))
 
 class Item(object):
@@ -232,7 +232,7 @@ class HighLevelConfig(object):
         item.copyValues(src1, dst)
 
 
-def test_randoms(mean=25, low=0, high=100, trials = 100000):
+def test_randoms(mean=150, low=100, high=300, trials = 100000):
   randoms = {
       'rnd_uniform'    : lambda: rnd_uniform    (low, high),
       'rnd_loguniform' : lambda: rnd_loguniform (low, high),
@@ -250,7 +250,10 @@ def test_randoms(mean=25, low=0, high=100, trials = 100000):
       if v>high:
         logging.warning(name+" produced a value too low "+str(v))
         continue
-      stats[name][fn()-low] += 1
+      v=fn()
+      if v<low:
+        print "error",name,"returned",v
+      stats[name][v-low] += 1
 
   datafile = open('test_randoms.dat', 'w')
   print >>datafile, "#val ", ' '.join(names)
