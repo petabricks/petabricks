@@ -9,6 +9,7 @@ import candidatetester
 import shutil
 import tunerconfig
 import configtool
+import traceback
 import re
 import math
 import time
@@ -35,7 +36,6 @@ def check_timeout():
     raise TrainingTimeout()
 
 def mainname(cmd):
-  cmd.append("--name")
   p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
   cmd.pop()
   os.waitpid(p.pid, 0)
@@ -227,7 +227,7 @@ class Population:
       self.best = None
       
   def onMembersChanged(self, endOfRound):
-    if config.candidatelog and len(self.members):
+    if config.candidatelog and len(self.members) and 0:    # Connelly: Disable this logging method
       fastCmp = self.testers[-1].comparer(config.timing_metric_idx, 0.00, 0)
       if len(self.members) > 1:
         m = list(self.members)
@@ -461,7 +461,7 @@ class Population:
 #       tunableSets.append(tunable)
 #   return tunableSets
 
-def init(benchmark):
+def init(benchmark, tester_lambda=None, pop_lambda=None, hlconfig_lambda=None, config_lambda=None):
   if config.debug:
     logging.basicConfig(level=logging.DEBUG)
     config.pause_on_crash = True
@@ -469,37 +469,50 @@ def init(benchmark):
     config.threads = pbutil.cpuCount()
   for k in filter(len, config.abort_on.split(',')):
     warnings.simplefilter('error', getattr(tunerwarnings,k))
-  infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
-  hlconfig = HighLevelConfig(infoxml)
-  if not config.main:
-    config.main = mainname([pbutil.benchmarkToBin(benchmark)])
-  tester = CandidateTester(benchmark, config.min_input_size)
-  if config.seed is None:
-    cfg = defaultConfigFile(pbutil.benchmarkToBin(tester.app))
+  if hlconfig_lambda is not None:
+    hlconfig = hlconfig_lambda()
   else:
-    cfg = configtool.ConfigFile(config.seed)
+    infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
+    hlconfig = HighLevelConfig(infoxml)
+  if not config.main:
+    if tester_lambda is None and pop_lambda is None and hlconfig_lambda is None:
+      config.main = mainname([pbutil.benchmarkToBin(benchmark)])
+  if tester_lambda is not None:
+    tester = tester_lambda(benchmark, config.min_input_size)
+  else:
+    tester = CandidateTester(benchmark, config.min_input_size)
+  if config_lambda is not None:
+    cfg = config_lambda()
+  else:
+    if config.seed is None:
+      cfg = defaultConfigFile(pbutil.benchmarkToBin(tester.app))
+    else:
+      cfg = configtool.ConfigFile(config.seed)
   candidate = Candidate(cfg)
-  if not config.delete_output_dir:
-    storagedirs.cur.dumpConfig()
-    storagedirs.cur.dumpGitStatus()
-    storagedirs.cur.saveFile(pbutil.benchmarkToInfo(benchmark))
-    storagedirs.cur.saveFile(pbutil.benchmarkToBin(benchmark))
-  if not infoxml.transform(config.main).isVariableAccuracy() and config.accuracy_target:
-    logging.info("clearing accuracy_target")
-    config.accuracy_target = None
+  if hlconfig_lambda is None:
+    if not config.delete_output_dir:
+      storagedirs.cur.dumpConfig()
+      storagedirs.cur.dumpGitStatus()
+      storagedirs.cur.saveFile(pbutil.benchmarkToInfo(benchmark))
+      storagedirs.cur.saveFile(pbutil.benchmarkToBin(benchmark))
+    if not infoxml.transform(config.main).isVariableAccuracy() and config.accuracy_target:
+      logging.info("clearing accuracy_target")
+      config.accuracy_target = None
   return candidate, tester, hlconfig
 
-def autotuneInner(benchmark, returnBest=None):
+def autotuneInner(benchmark, returnBest=None, tester_lambda=None, pop_lambda=None, hlconfig_lambda=None, config_lambda=None):
   """Function running the autotuning process.
 If returnBest is specified, it should be a list. The best candidate found will 
 be added to that list"""
   with progress.Scope("autotuning "+benchmark,
      config.rounds_per_input_size*math.log(config.max_input_size,2)+config.final_rounds) as pr:
     config.benchmark = benchmark
-    candidate, tester, hlconfig = init(benchmark)
+    candidate, tester, hlconfig = init(benchmark, tester_lambda, pop_lambda, hlconfig_lambda, config_lambda)
     try:
-      pop = Population(candidate, tester, hlconfig)
-      
+      if pop_lambda is not None:
+        pop = pop_lambda(candidate, tester, hlconfig)
+      else:
+        pop = Population(candidate, tester, hlconfig)
 
       stats = storagedirs.openCsvStats("roundstats", 
           ("round",
@@ -536,6 +549,9 @@ be added to that list"""
         
       logging.info("TODO: using acc target: "+str(config.accuracy_target))
       return pop.best
+    except:
+      traceback.print_exc()     # Connelly: Print exceptions (are not otherwise displayed...not sure why)
+      raise
     finally:
       if pop.best and config.output_cfg:
         print pop.best.cfgfile(),"=>" , config.output_cfg
@@ -545,11 +561,11 @@ be added to that list"""
       at = storagedirs.getactivetimers()
       if len(at):
         storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
-      if tester:
+      if tester and hasattr(tester, 'cleanup'):     # Connelly: only call if has cleanup attr
         tester.cleanup()
 
-def autotune(benchmark, returnBest=None):
-  return storagedirs.callWithLogDir(lambda: autotuneInner(benchmark, returnBest),
+def autotune(benchmark, returnBest=None, tester_lambda=None, pop_lambda=None, hlconfig_lambda=None, config_lambda=None):
+  return storagedirs.callWithLogDir(lambda: autotuneInner(benchmark, returnBest, tester_lambda, pop_lambda, hlconfig_lambda, config_lambda),
                                     config.output_dir,
                                     config.delete_output_dir)
 
@@ -567,7 +583,7 @@ def recompile():
     pbutil.compilePetabricks();
     pbutil.compileBenchmarks([config.benchmark])
 
-if __name__ == "__main__":
+def main(tester_lambda=None, pop_lambda=None, hlconfig_lambda=None, config_lambda=None):
   from optparse import OptionParser
   parser = OptionParser(usage="usage: sgatuner.py [options] Benchmark")
   parser.add_option("--check",
@@ -599,9 +615,10 @@ if __name__ == "__main__":
   if options.n:
     tunerconfig.applypatch(tunerconfig.patch_n(options.n))
   config.benchmark=args[0]
-  recompile()
-  autotune(config.benchmark)
+  if tester_lambda is None and pop_lambda is None and hlconfig_lambda is None:
+    recompile()
+  autotune(config.benchmark, None, tester_lambda, pop_lambda, hlconfig_lambda, config_lambda)
 
-
-
-
+if __name__ == '__main__':
+  main()
+  
