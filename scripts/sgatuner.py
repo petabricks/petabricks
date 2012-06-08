@@ -36,6 +36,7 @@ def check_timeout():
     raise TrainingTimeout()
 
 def mainname(cmd):
+  cmd.append("--name")
   p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
   cmd.pop()
   os.waitpid(p.pid, 0)
