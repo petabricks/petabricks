@@ -9,7 +9,7 @@
 #include "assignclusters.pbcc"
 #include "distance.pbcc"
 #include "../simple/rollingsum.pbcc"
-//#include "clusterinputgen.pbcc"
+#include "clusterinputgen.pbcc"
 
 transform GetD
 from X[m,2], C[n,2]
@@ -141,23 +141,21 @@ generator kmeansinputgen
     centerplus(ctemp, x);
   }
 
- ////iteratively find local optimum
- //to (C c, A a) from (X x, Ctemp ctemp)
- //{
- //  ElementT change=1;
- //  Copy2D(c,ctemp);    
- //  AssignClusters(a,change,x,c,a);
- //  for_enough {
- //    if (change > 0) { 
- //      NewClusterLocations(c, x, a);
- //    }else{
- //      break;
- //    }
- //    AssignClusters(a,change,x,c,a);
- //  }
- //}
-
-
+  //iteratively find local optimum
+  to (C c, A a) from (X x, Ctemp ctemp)
+  {
+    ElementT change=1;
+    Copy2D(c,ctemp);    
+    AssignClusters(a,change,x,c,a);
+    for_enough {
+      if (change > 0) { 
+        NewClusterLocations(c, x, a);
+      }else{
+        break;
+      }
+      AssignClusters(a,change,x,c,a);
+    }
+  }
 
   // classic kmeans
   to (C c, A a) from (X x, Ctemp ctemp)
@@ -256,12 +254,6 @@ to Accuracy
     return sqrt(2*n/sum);
   }
 
-}
-
-transform kmeansinputgen
-to X[n,2]
-{
-  X.cell(i,j) from() { return PetabricksRuntime::randDouble(-250,250); }
 }
 
 #endif // KMEANS_PBCC

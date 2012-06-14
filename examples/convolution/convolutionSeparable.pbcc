@@ -1,4 +1,4 @@
-#define KERNEL_RADIUS 2
+#define KERNEL_RADIUS 3
 #define KERNEL_LENGTH ((KERNEL_RADIUS)*2+1)
 transform convolutionRows
 from Input[w,h], Kernel[KERNEL_LENGTH]
