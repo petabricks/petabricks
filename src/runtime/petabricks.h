@@ -60,6 +60,18 @@
 # include <cblas.h>
 #endif
 
+#ifdef HAVE_EMMINTRIN_H
+#include <emmintrin.h>
+#endif
+
+#ifdef HAVE_PMMINTRIN_H
+#include <pmmintrin.h>
+#endif
+
+#ifdef HAVE_XMMINTRIN_H
+#include <xmmintrin.h>
+#endif
+
 //these must be declared in the user code
 petabricks::PetabricksRuntime::Main* petabricksMainTransform();
 petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);

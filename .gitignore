@@ -49,6 +49,7 @@ configure
 test
 rttest1
 rttest2
+rttestmm
 regiondatatest
 regionmatrixtest
 regionremotetest
