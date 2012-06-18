@@ -52,6 +52,15 @@ def rnd_normal(mean, minv, maxv):
   r = int(r*(mean-minv)+minv)
   return max(minv, min(r, maxv))
 
+def hillclimb(p1, p2, minv, maxv):
+  delta = p2-p1
+  v = p2+delta
+  if minv is not None and v < minv:
+    return minv
+  if maxv is not None and v > maxv:
+    return maxv
+  return v
+
 class Item(object):
   def __init__(self, info, name, min=None, max=None, type='algchoice'):
     if min is not None:
@@ -91,6 +100,10 @@ class Item(object):
       return
     for t in self.tunables():
       dst[t] = src[t]
+
+  def hillclimb(self, p1, p2, output, n):
+    for t in self.tunables():
+      output[t] = hillclimb(p1[t], p2[t], self._min, self._max)
 
 class Selector(Item):
   max_levels = 13
@@ -135,6 +148,20 @@ class Selector(Item):
         if roll():
           cfg[self.tunable_cutoff(i)] = rnd_lognormal(cfg[self.tunable_cutoff(i)], low, high)
 
+  def hillclimb(self, p1, p2, output, n):
+    for i in xrange(2, Selector.max_levels):
+      if i==2:
+        low = 0
+      else:
+        low = output[self.tunable_cutoff(i-1)]
+      if i==Selector.max_levels-1:
+        high = n
+      else:
+        high = min(n, output[self.tunable_cutoff(i+1)])
+      if p1[self.tunable_cutoff(i)] >= Selector.disabled \
+          and p2[self.tunable_cutoff(i)] >= Selector.disabled:
+        output[self.tunable_cutoff(i)] = hillclimb(p1[self.tunable_cutoff(i)], p2[self.tunable_cutoff(i)], low, high)
+
   def randomrule(self):
     return random.choice(range(self.rulecount))
 
@@ -173,6 +200,9 @@ class Cutoff(Tunable):
 class Switch(Tunable):
   def randomize(self, cfg, n):
     cfg[self.name] = rnd_uniform(self._min, self._max)
+
+  def hillclimb(self, p1, p2, output, n):
+    pass
   
 class Ignore(Item):
   def randomize(self, cfg, n):
@@ -230,6 +260,10 @@ class HighLevelConfig(object):
         item.copyValues(src2, dst)
       else:
         item.copyValues(src1, dst)
+
+  def hillclimb(self, p1, p2, output, n):
+    for item in self.items:
+      item.hillclimb(p1, p2, output, n)
 
 
 def test_randoms(mean=150, low=100, high=300, trials = 100000):

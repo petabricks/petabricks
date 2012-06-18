@@ -34,9 +34,10 @@ class config_defaults:
   bandit_verbose        = False
   os_method             = OperatorSelectionMethod.WEIGHTED_SUM
 
-  pop_elitism_pct   = 0.2
-  pop_crossover_pct = 0.3
-  pop_mutated_pct   = 0.3
+  pop_elitism_pct   = 0.20
+  pop_crossover_pct = 0.25
+  pop_mutated_pct   = 0.25
+  pop_hillclimb_pct = 0.20
   tournament_size = 3
   mutation_rate = 0.15
 

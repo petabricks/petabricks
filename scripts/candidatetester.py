@@ -259,11 +259,12 @@ class Candidate:
   nextCandidateId=0
   '''A candidate algorithm in the population'''
   def __init__(self, cfg, mlog=list()):
-    self.config      = ConfigFile(cfg)
-    self.metrics     = [ResultsDB(x) for x in config.metrics]
-    self.cid         = Candidate.nextCandidateId
-    self.outputdir   = storagedirs.candidate(self.cid)
-    self.mutationlog = list(mlog)
+    self.config         = ConfigFile(cfg)
+    self.startconfig    = ConfigFile(deepcopy(self.config))
+    self.metrics        = [ResultsDB(x) for x in config.metrics]
+    self.cid            = Candidate.nextCandidateId
+    self.outputdir      = storagedirs.candidate(self.cid)
+    self.mutationlog    = list(mlog)
     Candidate.nextCandidateId += 1
 
   def discardResults(self, n):

@@ -57,7 +57,8 @@ class MutationLog:
   crossover = MutationLogItem("crossover")
   mutate    = MutationLogItem("mutate")
   elitism   = MutationLogItem("elitism")
-  seed = MutationLogItem("seed")
+  hillclimb = MutationLogItem("hillclimb")
+  seed      = MutationLogItem("seed")
 
 class Population:
   def __init__(self, initial, tester, hlconfig):
@@ -136,6 +137,7 @@ class Population:
     b=self.tournament_select()
     c=a.clone()
     self.hlconfig.crossover(a.config, b.config, c.config)
+    c=c.clone() # snapshot config to support hillclimb
     self.hlconfig.mutateChance(config.mutation_rate, c.config, self.inputSize())
     c.log_mutation(MutationLog.crossover)
     return c
@@ -144,6 +146,12 @@ class Population:
     c=self.tournament_select().clone()
     self.hlconfig.mutateChance(config.mutation_rate, c.config, self.inputSize())
     c.log_mutation(MutationLog.mutate)
+    return c
+
+  def genConfigHillclimb(self, p):
+    c = p.clone()
+    self.hlconfig.hillclimb(p.startconfig, p.config, c.config, self.inputSize())
+    c.log_mutation(MutationLog.hillclimb)
     return c
   
   def randomMutation(self, maxpopsize=None, mutatorFilter=lambda m: True):
@@ -340,11 +348,21 @@ class Population:
     n = config.population_size
     zz = lambda pct: int(round(pct*n))
     pop = list()
+
     pop.extend(self.members[0:zz(config.pop_elitism_pct)])
+
     for z in xrange(zz(config.pop_mutated_pct)):
       pop.append(self.genConfigMutate())
+
     for z in xrange(zz(config.pop_crossover_pct)):
       pop.append(self.genConfigCrossover())
+
+    z = zz(config.pop_hillclimb_pct)
+    for m in self.members:
+      if z>0 and m.mutationlog[-1] in (MutationLog.mutate, MutationLog.crossover, MutationLog.hillclimb):
+        pop.append(self.genConfigHillclimb(m))
+        z -= 1
+    
     while len(pop)<n:
       pop.append(self.genConfigRandom())
 
