@@ -132,7 +132,7 @@ class Selector(Item):
     roll = lambda: random.random()<chance
     for i in xrange(2, Selector.max_levels):
       if i==2:
-        low = 0
+        low = 1
       else:
         low = cfg[self.tunable_cutoff(i-1)]
       if i==Selector.max_levels-1:
