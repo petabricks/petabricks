@@ -368,7 +368,15 @@ class Population:
 
     for c in pop[0:zz(config.pop_elitism_pct)]:
       c.log_mutation(MutationLog.elitism)
-    return pop
+
+    hashes=set()
+    popunique = list()
+    for m in list(pop):
+      h = hash(m.config)
+      if h not in hashes:
+        hashes.add(h)
+        popunique.append(m)
+    return popunique
 
   def tournament_select(self):
     if len(self.members)<=config.tournament_size:
@@ -385,7 +393,6 @@ class Population:
         self.failed   = set()
     
         self.members = self.next_population()
-
 
         self.test(config.min_trials)
         self.failed = self.failed.union(set(filter(lambda x: x.numTests(self.inputSize())<=x.numTimeouts(self.inputSize()),
