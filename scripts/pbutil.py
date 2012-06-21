@@ -330,10 +330,10 @@ def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noL
       print "compile SKIPPED"
       return True  
     try:
-      if learning and (name not in noLearningList):
-        status=compiler.compileLearningHeuristics(src, finalBinary=binary)
-      else:
-        status=compileBenchmark(pbc, src, binary=binary, jobs=jobs_per_pbc)
+     #if learning and (name not in noLearningList):
+     #  status=compiler.compileLearningHeuristics(src, finalBinary=binary)
+     #else:
+      status=compileBenchmark(pbc, src, binary=binary, jobs=jobs_per_pbc)
       if status == 0:
         print "compile PASSED"
         return True
