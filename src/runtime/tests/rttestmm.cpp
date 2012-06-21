@@ -29,6 +29,7 @@
 
 #if defined(HAVE_EMMINTRIN_H) && defined(HAVE_PMMINTRIN_H)
 
+
 #include <emmintrin.h>
 #include <pmmintrin.h>
 
@@ -305,6 +306,44 @@ void sse_v5(sequential::MatrixRegion2D a, sequential::MatrixRegion2D b, sequenti
 }
 
 
+void x(sequential::MatrixRegion2D a, sequential::MatrixRegion2D b, sequential::MatrixRegion2D c) {
+  a = a.transposed();
+  int i=0;
+  int j=0;
+
+  for(; i<n; i+=2) {
+    for(j=0; j<n; j+=2) {
+      __m128d sumx0 = _mm_setzero_pd();
+      __m128d sumx1 = _mm_setzero_pd();
+      int k00=0;
+      int k01=0;
+      int k10=0;
+      int k11=0;
+      for(; k00<n && k01<n && k10<n && k11<n; ++k00,++k01,++k10,++k11) {
+        sumx0 = _mm_add_pd(sumx0,
+                  _mm_mul_pd(_mm_setr_pd(a.cell(i+0,k00), a.cell(i+1,k10)),
+                             _mm_setr_pd(b.cell(k00,j+0), b.cell(k10,j+0 ))));
+        sumx1 = _mm_add_pd(sumx1,
+                  _mm_mul_pd(_mm_setr_pd(a.cell(i+0,k01), a.cell(i+1,k11)),
+                             _mm_setr_pd(b.cell(k01,j+1), b.cell(k11,j+1 ))));
+      }
+      _mm_storeu_pd(&c.cell(i+0,j+0), sumx0);
+      _mm_storeu_pd(&c.cell(i+0,j+1), sumx1);
+    }
+  }
+
+  for(; i<n; ++i) {
+    for(j=0; j<n; ++j) {
+      ElementT sum = 0.0;
+      for(int k=0; k<n; ++k) {
+        sum += a.cell(i,k) * b.cell(k,j);
+      }
+      c.cell(i,j) = sum;
+    }
+  }
+}
+
+
 
 
 typedef void (*testfn)(sequential::MatrixRegion2D a, sequential::MatrixRegion2D b, sequential::MatrixRegion2D c);
@@ -334,6 +373,7 @@ int main(int /*argc*/, const char** /*argv*/){
   test("sse_load_2blocked", &sse_v3);
   test("sse_setr_2blocked", &sse_v4);
   test("sse_setr_4blocked", &sse_v5);
+  test("x", &x);
   return 0;
 }
 

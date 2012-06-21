@@ -106,7 +106,6 @@ AC_CHECK_HEADERS([boost/random.hpp], [], [AC_MSG_WARN([missing boost/random, fal
 AC_CHECK_HEADERS([cblas.h],  [], [])
 AC_CHECK_HEADERS([Accelerate/Accelerate.h], [], [])
 AC_CHECK_HEADERS([sqlite3.h],      [], [AC_MSG_ERROR([failed to find sqlite3.h header file])])
-AC_CHECK_HEADERS([emmintrin.h pmmintrin.h xmmintrin.h])
 
 AC_CHECK_LIB([fftw3],      [fftw_malloc],    [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
 AC_CHECK_LIB([m],          [cos],            [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
@@ -439,6 +438,10 @@ do
                  [AC_MSG_RESULT([yes])],
                  [AC_MSG_RESULT([no]);      LDFLAGS="$save_LDFLAGS"])
 done
+
+
+#check these headers down here since the depend on march=native
+AC_CHECK_HEADERS([emmintrin.h pmmintrin.h xmmintrin.h])
 
 ################################################################################
 ################################################################################
