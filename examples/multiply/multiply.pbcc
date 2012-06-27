@@ -58,7 +58,7 @@ to AB[w,h]
   //compute a cell the straightforward way
   AB.cell(x,y) from(A.row(y) a, B.column(x) b){
     ElementT sum=0;
-    for(IndexT i=0, w=a.width(); i<w; ++i)
+    for(IndexT i=0, w=c; i<w; ++i)
       sum+=a.cell(i)*b.cell(i);
     return sum;
   }
