@@ -1899,9 +1899,11 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
     break;
   case RuleFlavor::WORKSTEALING:
   case RuleFlavor::DISTRIBUTED:
+#ifdef HAVE_OPENCL
     if(wrap)
       o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+"_"+flavor.str()+"_wrap", region);
     else
+#endif
       o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+"_"+flavor.str(), region);
     break;
   default:

@@ -458,7 +458,9 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.createTunable(true, "system.cutoff.sequential", _name + "_sequentialcutoff", 64);
   o.createTunable(true, "system.cutoff.distributed", _name + "_distributedcutoff", 512);
 #endif
+#ifdef HAVE_OPENCL
   o.createTunable(true, "system.gpuratio", _name + "_gpuratio", 8, 1, 8);
+#endif
 
   _scheduler->generateGlobalCode(*this, o);
 
