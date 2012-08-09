@@ -63,6 +63,7 @@ class GpuRule : public SyntheticRule {
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor,
+			bool wrap,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         int gpuCopyOut);

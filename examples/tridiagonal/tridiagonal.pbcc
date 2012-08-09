@@ -10,17 +10,15 @@
 
 //------------------------------------------------------------
 transform Base		// base case when n=2
-from A[n], B[n], C[n], D[n]
-to X[n]
+from A[2], B[2], C[2], D[2]
+to X[2]
 {
 	to (X x) from (A a, B b, C c, D d){
-		if (n == 2) {
 			// two unknowns x0, x1 in the form: b0.x0 + c0.x1 = d0, a1.x0 + b1.x1 = d1
 			// note, a0 = c1 = 0
 			ElementT temp = b.cell(0) * b.cell(1) - a.cell(1) * c.cell(0);
 			x.cell(0) = (b.cell(1) * d.cell(0) - c.cell(0) * d.cell(1) ) / temp;
 			x.cell(1) = (b.cell(0) * d.cell(1) - a.cell(1) * d.cell(0) ) / temp;		
-		}
 	}	
 } 
 //------------------------------------------------------------
@@ -32,6 +30,28 @@ to X[n]
 		IndexT i;		
 		Copy1D(ct, c);
 		Copy1D(dt, d);
+		// forward elimination (note a[0]=0, c[n-1]=0)
+		ct.cell(0) = ct.cell(0) / b.cell(0); 	// c0' = c0 / b0
+		dt.cell(0) = dt.cell(0) / b.cell(0); 	// d0' = d0 / b0
+		for ( i = 1; i < n ; i++) {
+			ElementT temp = b.cell(i) - a.cell(i) * ct.cell(i-1);			
+			ct.cell(i) /= temp; 		// last one redundant
+			dt.cell(i) = (dt.cell(i) - a.cell(i) * dt.cell(i-1))/temp;
+		}
+		// backward substitution
+		x.cell(n-1) = dt.cell(n-1);
+		for (i = n-2; i >= 0 ; i--) {
+			x.cell(i) = dt.cell(i) - x.cell(i+1) * ct.cell(i);
+		}
+	}	
+}
+//------------------------------------------------------------
+transform Sequential2	// Sequential (Thomas) algorithm 
+from A[n], B[n]
+to X[n], C[n], D[n]
+{
+	to (X x, C ct, D dt) from (A a, B b) {
+		IndexT i;		
 		// forward elimination (note a[0]=0, c[n-1]=0)
 		ct.cell(0) = ct.cell(0) / b.cell(0); 	// c0' = c0 / b0
 		dt.cell(0) = dt.cell(0) / b.cell(0); 	// d0' = d0 / b0
@@ -145,13 +165,25 @@ transform TridiagonalSystem
 from A[n], B[n], C[n], D[n]
 to X[n] 	
 {
-	// Sequential (Thomas) algorithm 	
+	// Sequential 1 (Thomas) algorithm 	
 	rule Sequential	
 	to (X x) from (A a, B b, C c, D d) {
 		if (n == 2)
 			Base(x, a, b, c, d);
 		else 
 			Sequential(x, a, b, c, d);
+	}
+	
+	// Sequential 2 (Thomas) algorithm 	
+	rule Sequential	
+	to (X x) from (A a, B b, C c, D d) using (ct[n], dt[n]){
+		if (n == 2)
+			Base(x, a, b, c, d);
+		else {
+		  Copy1D(ct, c);
+		  Copy1D(dt, d);
+			Sequential(x, ct, dt, a, b);
+		}
 	}
 	
 	// CR (Cyclic Reduction) Algorithm

@@ -458,6 +458,9 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.createTunable(true, "system.cutoff.sequential", _name + "_sequentialcutoff", 64);
   o.createTunable(true, "system.cutoff.distributed", _name + "_distributedcutoff", 512);
 #endif
+#ifdef HAVE_OPENCL
+  o.createTunable(true, "system.gpuratio", _name + "_gpuratio", 8, 1, 8);
+#endif
 
   _scheduler->generateGlobalCode(*this, o);
 
@@ -1015,16 +1018,6 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   }
   o.endFunc();
 
-  /*o.beginFunc("void", "copyOutputs");
-  {
-    int a=firstOutput;
-    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      o.write((*i)->name()+".useOnCpu();");
-    }
-  }
-  o.endFunc();*/
-
-
   std::vector<std::string> outputArgTypes;
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     outputArgTypes.push_back("const "+(*i)->typeName(rf)+"& _"+(*i)->name());
@@ -1043,9 +1036,11 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.call(name()+"_"+rf.str(), argNames);
   argNames.erase(argNames.begin());
   o.write("petabricks::enqueue_and_wait(p);");
+#ifdef HAVE_OPENCL
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     o.write((*i)->name()+".useOnCpu();");
   }
+#endif
   o.endFunc();
 
   o.beginFunc("const char*", "name");

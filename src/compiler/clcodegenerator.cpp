@@ -86,7 +86,7 @@ CLCodeGenerator::localMemoryBarrier( )
   os() << "barrier( CLK_LOCAL_MEM_FENCE );\n";
 }
 
-void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned int dims, Transform& trans, bool local)
+  void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, RegionSet& _loads, unsigned int dims, Transform& trans, bool local)
 {
   // Kernel's arguments need to be conformed with UserRule's codegen
 
@@ -113,6 +113,7 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
 
   for(RegionList::const_iterator it = _from.begin(); it != _from.end(); ++it)
   { 
+    if(_loads.find(*it) == _loads.end()) continue;
     std::string matrix_name = (*it)->matrix( )->name( );
     if(map[matrix_name] == "") {
       (*it)->setBuffer(true);
@@ -149,6 +150,7 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   }
   for(RegionList::const_iterator it = _from.begin(); it != _from.end(); ++it)
   {
+    if(_loads.find(*it) == _loads.end()) continue;
     if((*it)->isBuffer()) {
       for( int i = 0; i < (int) (*it)->size(); ++i ) //match with userrule
 	      os() << ", int dim_" << (*it)->name() << "_d" << i;
@@ -170,7 +172,7 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   }
   for(RegionList::const_iterator it = _from.begin(); it != _from.end(); ++it)
   {
-    if(!(*it)->isBuffer()) {
+    if(!(*it)->isBuffer() && _loads.find(*it) != _loads.end()) {
       os() << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << (*it)->name() << " = _region_" << map[(*it)->matrix( )->name( ).c_str()] << ";\n";
       for( int i = 0; i < (int) (*it)->size() - 1; ++i )
 	      os() << "int dim_" << (*it)->name() << "_d" << i << " = dim_" << map[(*it)->matrix( )->name( ).c_str()] << "_d" << i << ";\n";

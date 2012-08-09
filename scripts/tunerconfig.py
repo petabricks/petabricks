@@ -96,14 +96,13 @@ class config_defaults:
   recompile = True
 
   #types of mutatators to generate
-  lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential', 'system.cutoff.distributed', 'system.flag.localmem', 'system.size.blocksize']
-  uniform_tunable_types       = []
+  lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential', 'system.cutoff.distributed', 'system.size.blocksize']
+  uniform_tunable_types       = ['system.flag.localmem', 'system.gpuratio']
   autodetect_tunable_types    = ['user.tunable']
   lognorm_sizespecific_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.array']
   optimize_tunable_types      = ['user.tunable.double', 'user.tunable.double.array']
   sizespecific_tunable_types  = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.double.array', 'user.tunable.array']
-  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg', 'system.runtime.threads', 'system.flag.unrollschedule']
-  
+  ignore_tunable_types        = ['system.runtime.threads', 'system.flag.unrollschedule', 'algchoice.cutoff', 'algchoice.alg']  
   #metric information, dont change
   metrics               = ['timing', 'accuracy']
   metric_orders         = [1, -1] #1 = minimize, -1 = maximize

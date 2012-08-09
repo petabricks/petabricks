@@ -236,6 +236,37 @@ std::string petabricks::SimpleRegion::getIterationUpperBounds() const {
   return s + ", " + _removedDimensions.maxCoord.toString();
 }
 
+std::string petabricks::SimpleRegion::getIterationMiddleEnd(std::string& middle) const {
+  std::stringstream os;
+  for(size_t i = 0; i < maxCoord().size() - 1; ++i) {
+    os << maxCoord()[i] << ",";
+  }
+  os << middle;
+
+  std::string s = os.str();
+  
+  if(removedDimensions() == 0) {
+    return s;
+  }
+  
+  return s + ", " + _removedDimensions.maxCoord.toString();
+}
+
+std::string petabricks::SimpleRegion::getIterationMiddleBegin(std::string& middle) const {
+  std::stringstream os;
+  for(int i = 0; i < maxCoord().size() - 1; ++i) {
+    os << minCoord()[i] << ",";
+  }
+  os << middle;
+
+  std::string s = os.str();
+  
+  if(removedDimensions() == 0) {
+    return s;
+  }
+  
+  return s + ", " + _removedDimensions.minCoord.toString();
+}
   
 petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList&, bool isOutput){
   CoordinateFormula min;

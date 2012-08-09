@@ -194,11 +194,13 @@ public:
     _gpuCopyOut = 0;
   }
 
-  virtual RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const = 0;
+  virtual RegionList getFromRegion(const RuleChoiceAssignment& choice) const = 0;
+  virtual RegionSet getFromRegionOnCpu(const RuleChoiceAssignment& choice) const = 0;
   virtual int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix) = 0; //TODO: get rid of this
   virtual int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region) = 0;
   virtual int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix) = 0;
   virtual void print(const RuleChoiceAssignment& choice) = 0;
+  virtual bool isGpuRule(const RuleChoiceAssignment& choice) = 0;
 
   void addGroup(const std::string& name, std::vector<int>& ids) { _regionNodesGroups.push_back(RegionNodeGroup(name,ids)); }
   std::vector<RegionNodeGroup>& getRegionNodesGroups() { return _regionNodesGroups; }
@@ -247,10 +249,14 @@ public:
   void removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension);
   void fixVersionedRegionsType();
 
-  RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
+  RegionList getFromRegion(const RuleChoiceAssignment& choice) const;
+  RegionSet getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
   int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
+  bool isGpuRule(const RuleChoiceAssignment& choice) {
+    return choice.find(this)->second->isEnabledGpuRule();
+  }
   void print(const RuleChoiceAssignment& choice){
     std::cout << "BasicChoiceDepGraphNode " << this << ":" << std::endl;
     std::cout << "out matrix = " << _matrix->name() << std::endl;
@@ -301,10 +307,16 @@ public:
     UNIMPLEMENTED();
   }
 
-  RegionList getFromRegionOnCpu(const RuleChoiceAssignment&) const { 
+  RegionList getFromRegion(const RuleChoiceAssignment&) const { 
     UNIMPLEMENTED(); 
     return RegionList();
   }
+
+  RegionSet getFromRegionOnCpu(const RuleChoiceAssignment&) const { 
+    UNIMPLEMENTED(); 
+    return RegionSet();
+  }
+
   int numOutMatrixOnGpu(const RuleChoiceAssignment& , MatrixDefPtr){
     UNIMPLEMENTED(); 
     return 0;
@@ -317,6 +329,12 @@ public:
     UNIMPLEMENTED(); 
     return 0;
   }
+
+  bool isGpuRule(const RuleChoiceAssignment&) {
+    UNIMPLEMENTED(); 
+    return 0;
+  }
+
   void print(const RuleChoiceAssignment& choice){
     std::cout << "MetaChoiceDepGraphNode " << this << "--------" << std::endl;
     for(ChoiceDepGraphNodeSet::iterator i = _originalNodes.begin(); i != _originalNodes.end(); ++i)
@@ -340,10 +358,16 @@ public:
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
                             const RuleChoiceAssignment& choice);
 
-  RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
+  RegionList getFromRegion(const RuleChoiceAssignment& choice) const;
+  RegionSet getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
   int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
+
+  bool isGpuRule(const RuleChoiceAssignment& choice) {
+    return choice.find(*_originalNodes.begin())->second->isEnabledGpuRule();
+  }
+
   void print(const RuleChoiceAssignment& choice){
     std::cout << "MultiOutputChoiceDepGraphNode " << this << "--------" << std::endl;
     for(ChoiceDepGraphNodeSet::iterator i = _originalNodes.begin(); i != _originalNodes.end(); ++i)
@@ -366,10 +390,16 @@ public:
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
                             const RuleChoiceAssignment& choice);
 
-  RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
+  RegionList getFromRegion(const RuleChoiceAssignment& choice) const;
+  RegionSet getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
   int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
+
+  bool isGpuRule(const RuleChoiceAssignment& choice) {
+    return choice.find(*_originalNodes.begin())->second->isEnabledGpuRule();
+  }
+
   void print(const RuleChoiceAssignment& choice){
     std::cout << "SlicedChoiceDepGraphNode " << this << "--------" << std::endl;
     for(ChoiceDepGraphNodeSet::iterator i = _originalNodes.begin(); i != _originalNodes.end(); ++i)

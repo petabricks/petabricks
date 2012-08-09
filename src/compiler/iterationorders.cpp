@@ -211,7 +211,7 @@ void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& 
 
   for(size_t a=0; a<regions.size(); ++a){
     SimpleRegionPtr r= new SimpleRegion(regions[a]);
-    rule.generateCallCode("(*_split_task)["+jalib::XToString(a)+"]", trans, o, r, rf);
+    rule.generateCallCode("(*_split_task)["+jalib::XToString(a)+"]", trans, o, r, rf, false);
     if(rf != RuleFlavor::SEQUENTIAL){
       for(size_t b=0; b<a; ++b){
         if(canDependOn(regions[a], regions[b])){

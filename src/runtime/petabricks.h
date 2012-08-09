@@ -43,6 +43,7 @@
 #include "common/openclutil.h"
 
 #include <algorithm>
+#include <limits.h>
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"

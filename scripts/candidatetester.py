@@ -66,8 +66,9 @@ class CrashException(Exception):
       progress.pause('press any key to continue')
 
 def debug_logcmd(cmd):
-  #print ' '.join(cmd)
-  #open("lastcmd",'w').write(' '.join(cmd))
+ #print ' '.join(cmd)
+ #sys.stdout.flush()
+ #open("lastcmd","w").write(' '.join(cmd))
   pass
 
 class Results:
@@ -469,6 +470,7 @@ class CandidateTester:
       self.inputs[i].firstCandidate = candidate
     elif self.inputs[i].outputHash != value:
       warnings.warn(InconsistentOutput(self.inputs[i].firstCandidate, candidate, self.inputs[i].pfx))
+      sys.stdout.flush()
 
   def test(self, candidate, limit=None):
     self.testCount += 1

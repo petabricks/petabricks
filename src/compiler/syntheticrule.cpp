@@ -95,10 +95,11 @@ void petabricks::WrapperSyntheticRule::generateCallCode(const std::string& name,
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor,
+							bool wrap,
                                             std::vector<RegionNodeGroup>& regionNodesGroups,
                                             int nodeID,
                                             int gpuCopyOut){
-  _rule->generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut);
+  _rule->generateCallCode(name, trans, o, region, flavor, wrap, regionNodesGroups, nodeID, gpuCopyOut);
 }
 
 void petabricks::WrapperSyntheticRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
@@ -160,6 +161,7 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor,
+						      bool,
                                             std::vector<RegionNodeGroup>&,
                                             int,
                                             int){
@@ -281,12 +283,13 @@ void petabricks::DuplicateExpansionRule::generateCallCode(const std::string& nam
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor,
+							  bool wrap,
                                             std::vector<RegionNodeGroup>& regionNodesGroups,
                                             int nodeID,
                                             int gpuCopyOut){
   SRCPOSSCOPE();
   size_t old = _rule->setDuplicateNumber(_dup);
-  WrapperSyntheticRule::generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut);
+  WrapperSyntheticRule::generateCallCode(name, trans, o, region, flavor, wrap, regionNodesGroups, nodeID, gpuCopyOut);
   _rule->setDuplicateNumber(old);
 }
 
@@ -306,19 +309,20 @@ void petabricks::DuplicateExpansionRule::generateTrampCode(Transform& trans, Cod
 
 
 void petabricks::CallInSequenceRule::generateCallCode(const std::string& name,
-                                            Transform& trans,
-                                            CodeGenerator& o,
-                                            const SimpleRegionPtr& region,
-                                            RuleFlavor flavor,
-                                            std::vector<RegionNodeGroup>& regionNodesGroups,
-                                            int nodeID,
-                                            int gpuCopyOut){
+						      Transform& trans,
+						      CodeGenerator& o,
+						      const SimpleRegionPtr& region,
+						      RuleFlavor flavor,
+						      bool wrap,
+						      std::vector<RegionNodeGroup>& regionNodesGroups,
+						      int nodeID,
+						      int gpuCopyOut){
   SRCPOSSCOPE();
   if(flavor != RuleFlavor::SEQUENTIAL)
     o.write("{ DynamicTaskPtr __last;");
   RuleList::iterator i;
   for(i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut);
+    (*i)->generateCallCode(name, trans, o, region, flavor, wrap, regionNodesGroups, nodeID, gpuCopyOut);
     if(flavor != RuleFlavor::SEQUENTIAL) {
       if(i!=_rules.begin()) {
         o.write(name+"->dependsOn(__last);");

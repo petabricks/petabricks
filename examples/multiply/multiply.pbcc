@@ -39,6 +39,14 @@ inline void toMatrix(ElementT* array, T&matrix) {
   return;
 }
 
+void gemm_wrap(const enum CBLAS_ORDER Order, const enum CBLAS_TRANSPOSE TransA, const enum CBLAS_TRANSPOSE TransB, const int M, const int N, const int K, const float alpha, const float * A, const int lda, const float * B, const int ldb, const float beta, float * C, const int ldc) {
+  cblas_sgemm(Order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+}
+
+void gemm_wrap(const enum CBLAS_ORDER Order, const enum CBLAS_TRANSPOSE TransA, const enum CBLAS_TRANSPOSE TransB, const int M, const int N, const int K, const double alpha, const double * A, const int lda, const double * B, const int ldb, const double beta, double * C, const int ldc) {
+  cblas_dgemm(Order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+}
+
 %}
 
 
@@ -50,7 +58,7 @@ to AB[w,h]
   //compute a cell the straightforward way
   AB.cell(x,y) from(A.row(y) a, B.column(x) b){
     ElementT sum=0;
-    for(IndexT i=0, w=a.width(); i<w; ++i)
+    for(IndexT i=0, w=c; i<w; ++i)
       sum+=a.cell(i)*b.cell(i);
     return sum;
   }
@@ -70,8 +78,8 @@ to AB[w,h]
     int rowAB=ab.height();
     int colAB=ab.width();
 
-    double alpha=1;
-    double beta=0;
+    ElementT alpha=1;
+    ElementT beta=0;
     
     if(colA != rowB) {
       fprintf(stderr, "Unable to perform a matrix multiplication. Wrong input size.\n"
@@ -87,7 +95,7 @@ to AB[w,h]
     
     ElementT* arrayAB = new ElementT[rowAB*colAB];
     
-    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, rowA, colB, rowB, alpha, arrayA, colA, arrayB, colB, beta, arrayAB, colAB);
+    gemm_wrap(CblasRowMajor, CblasNoTrans, CblasNoTrans, rowA, colB, rowB, alpha, arrayA, colA, arrayB, colB, beta, arrayAB, colAB);
     
     toMatrix(arrayAB, ab);
     
