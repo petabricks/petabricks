@@ -3,6 +3,7 @@
 
 #include "../simple/copy.pbcc"
 #include "../multiply/multiply.pbcc"
+#include "../multiply/multiplyAdd.pbcc"
 #include "../trisolve/TriSolveRU.pbcc"
 
 transform Zero2D
