@@ -66,7 +66,7 @@ to OUT[n,m]
         if (m > 1 && n > 1) {
             DGER(out.region(1, 1, n, m), -1.0,
                  out.region(0, 1, 1, m),
-                 out.region(1, 0, n, 1));
+                 out.region(1, 0, n, 1), 1.0);
             LUNoPivotBaseInPlace(out.region(1, 1, n, m), 1);
         }
     }

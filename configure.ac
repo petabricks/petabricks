@@ -119,7 +119,8 @@ AC_CHECK_LIB([sqlite3],	   [sqlite3_open],   [], [AC_MSG_ERROR([failed to find -
 
 AC_SEARCH_LIBS([MD5_Init], [crypto ssl], [], [AC_MSG_ERROR([missing package libssl-dev])])
 AC_SEARCH_LIBS([cblas_dgemm], [cblas blas])
-AC_SEARCH_LIBS([dposv_], [lapack])
+AC_SEARCH_LIBS([dtrsm_],      [cblas blas lapack])
+AC_SEARCH_LIBS([dposv_],      [lapack])
 
 ################################################################################
 # COMPILER PROPERTIES ##########################################################

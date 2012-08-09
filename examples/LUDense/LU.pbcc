@@ -70,7 +70,7 @@ to A[n,m], P[m]
                     // rank 1 trailing matrix update
                     DGER(a.region(j+1, j+1, n  , m  ), -1.0,
                          a.region(j  , j+1, j+1, m  ),
-                         a.region(j+1, j  , n  , j+1));
+                         a.region(j+1, j  , n  , j+1), 1.0);
                 }
             }
         }
