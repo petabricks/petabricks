@@ -290,12 +290,14 @@ def p_define(p):
   'define : DEFINE ID'
   if not define_on[-1]:
     return
-  define_dict[p[2]] = ""
+  current_dict = define_dict_list[-1]
+  current_dict[p[2]] = ""
 
 def p_define_macro(p):
   'define : DEFINE ID LPAREN id_list RPAREN LINE'
   if not define_on[-1]:
     return
+  current_dict = macro_dict_list[-1]
   template = generate_template(p[4], p[6])
   template = (template[0], template[1], 'expression')
   if p[2] not in macro_dict or macro_dict[p[2]] != template:
@@ -307,7 +309,8 @@ def p_define_const(p):
   'define : DEFINE ID LINE'
   if not define_on[-1]:
     return
-  define_dict[p[2]] = p[3]
+  current_dict = define_dict_list[-1]
+  current_dict[p[2]] = p[3]
 
 def p_define_un(p):
   '''define : UNDEF ID
@@ -316,8 +319,9 @@ def p_define_un(p):
 	    | UNDEF ID LINE'''
   if not define_on[-1]:
     return
-  if p[2] in define_dict:
-    del define_dict[p[2]]
+  current_dict = define_dict_list[-1]
+  if p[2] in current_dict:
+    del current_dict[p[2]]
 
   if p[2] in macro_dict:
     del macro_dict[p[2]]
@@ -397,12 +401,12 @@ def p_elif_block_endif(p):
 
 def p_cond_id(p):
   'cond_id : ID'
-  p[0] = p[1] in define_dict
+  p[0] = p[1] in define_dict_list[-1]
   append_define_on(p[0])
 
 def p_cond_id_line(p):
   'cond_id : LINE'
-  p[0] = p[1] in define_dict
+  p[0] = p[1] in define_dict_list[-1]
   append_define_on(p[0])
 
 def p_cond_number(p):
@@ -1028,8 +1032,10 @@ def replace_macro(macro, (no_args, expanded, t), s, head_index, lineno):
 # Global variable
 parsed_set = set()
 queue = []
-define_dict = {}
-macro_dict = {}
+define_dict_list = []
+macro_dict_list = []
+define_dict_map = {}
+macro_dict_map = {}
 define_on = [True]
 
 current_file = ""

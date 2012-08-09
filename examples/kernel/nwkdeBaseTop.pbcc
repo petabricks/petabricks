@@ -2,6 +2,8 @@
 #define NWKDE_BASE
 
 #define DEBUG
+#define FIRSTMETHOD
+#define SECONDMETHOD
 
 #define FIRSTMETHOD
 //#define SECONDMETHOD
