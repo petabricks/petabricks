@@ -1,4 +1,5 @@
 import warnings
+import sys
 from tunerconfig import config
 
 class TunerWarning(UserWarning):
