@@ -143,17 +143,20 @@ public:
                                 CodeGenerator& o,
                                 const SimpleRegionPtr& region,
                                 RuleFlavor flavor,
+                                bool wrap, 
                                 std::vector<RegionNodeGroup>& regionNodesGroups,
                                 int nodeID,
                                 int gpuCopyOut,
                                 SpatialCallType spatialCallType = SpatialCallTypes::INVALID) = 0;
+
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor) {
+                        RuleFlavor flavor,
+                        bool wrap) {
     std::vector<RegionNodeGroup> empty;
-    generateCallCode(nodename, trans, o, region, flavor, empty, 0, 0, SpatialCallTypes::INVALID);
+    generateCallCode(nodename, trans, o, region, flavor, wrap, empty, 0, 0, SpatialCallTypes::INVALID);
   }
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
@@ -162,7 +165,18 @@ public:
                         RuleFlavor flavor,
                         SpatialCallType spatialCallType = SpatialCallTypes::INVALID) {
     std::vector<RegionNodeGroup> empty;
-    generateCallCode(nodename, trans, o, region, flavor, empty, 0, 0, spatialCallType);
+    generateCallCode(nodename, trans, o, region, flavor, true, empty, 0, 0, spatialCallType);
+  }
+
+  void generateCallCode(const std::string& nodename,
+			Transform& trans,
+			CodeGenerator& o,
+			const SimpleRegionPtr& region,
+			RuleFlavor flavor,
+			std::vector<RegionNodeGroup>& regionNodesGroups,
+			int nodeID,
+			int gpuCopyOut) {
+    generateCallCode(nodename, trans, o, region, flavor, true, regionNodesGroups, nodeID, gpuCopyOut);
   }
   virtual void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
   virtual void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
@@ -233,6 +247,8 @@ public:
 
   virtual RegionList getFromRegions( ) const { return RegionList(); }
 
+  virtual RegionSet getFromRegionsOnCpu( ) const { return RegionSet(); }
+  
 protected:
   int _id;
   SimpleRegionPtr _applicableRegion;

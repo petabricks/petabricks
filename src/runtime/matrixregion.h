@@ -33,8 +33,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-//#define GPU_TRACE 1
-
 //
 // Class structure looks like this:
 //
@@ -129,6 +127,7 @@ public:
       else
         memset(this->_sizes, -1, sizeof_sizes);
     }
+
     _base = b;
     _storage = s;
     if(count()>0){
@@ -198,6 +197,9 @@ private:
   ElementT* _base;
   IndexT _multipliers[D];
   IndexT _sizes[D];
+
+protected:
+  ssize_t _count;
 };
 
 /**
@@ -306,14 +308,14 @@ public:
 
   ///
   /// Decide to make a copy or return the orginal for making GPU buffer.s
-	ElementT* getGpuInputBufferPtr() {
+  ElementT* getGpuInputBufferPtr() {
 #ifdef HAVE_OPENCL
-    if(isEntireBuffer()) {
+    if(isEntireBuffer() && (D == 0 || this->multipliers()[0] == 1)) {
       return this->base();
     }
-
-		_gpuInputBuffer = new MatrixStorage(count());
-		MutableMatrixRegion t = MutableMatrixRegion(_gpuInputBuffer, _gpuInputBuffer->data(), this->sizes());
+    
+    _gpuInputBuffer = new MatrixStorage(count());
+    MutableMatrixRegion t = MutableMatrixRegion(_gpuInputBuffer, _gpuInputBuffer->data(), this->sizes());
     IndexT coord[D];
     memset(coord, 0, sizeof coord);
     do {
@@ -321,13 +323,12 @@ public:
     } while(this->incCoord(coord)>=0);
     //this->storageInfo()->addGpuInputBuffer(_gpuInputBuffer);
     // Store buffer in the global storage so that it won't be derefferenced before enqueueWriteBuffer is done
-    CopyPendingMap::_pendingMap.addBuffer(_gpuInputBuffer);
     return _gpuInputBuffer->data();
 #else
     UNIMPLEMENTED();
     return 0;
 #endif
-	}
+  }
 
   ///
   /// Decide to make a copy or return the orginal for making GPU buffer.
@@ -386,8 +387,15 @@ public:
   /// Copy data of this to dst
   void copyTo(const MutableMatrixRegion& dst)
   {
-    if(this->storage() == dst.storage())
+    if(this->storage() == dst.storage()) {
+#ifdef GPU_TRACE
+      std::cout << "copyTo no need to copy ^^" << std::endl;
+#endif
       return;
+    }
+#ifdef GPU_TRACE
+      std::cout << "copyTo entire region" << std::endl;
+#endif
     IndexT coord[D] = {0};
     do {
       dst.cell(coord) = this->cell(coord);
@@ -491,10 +499,17 @@ public:
     }
   }
 
-  void useOnCpu() {
+  void useOnCpu(IndexT firstRow = 0) {
 #ifdef HAVE_OPENCL
-    if(D == 0) return;
-    this->storage()->updateDataFromGpu();
+    if(D == 0 || count() == 0) return;
+    this->storage()->updateDataFromGpu(this->storageInfo(), firstRow);
+#endif
+  }
+
+  void modifyOnCpu(IndexT firstRow = 0) {
+#ifdef HAVE_OPENCL
+    if(D == 0 || count() == 0) return;
+    this->storageInfo()->modifyOnCpu(firstRow);
 #endif
   }
 
@@ -574,7 +589,7 @@ public:
 
   ///
   /// Number of elements in this region
-  ssize_t count() const {
+  ssize_t count() const { 
     ssize_t s=1;
     for(int i=0; i<D; ++i)
       s*=this->sizes()[i];
@@ -670,8 +685,10 @@ public:
       memset(coord, 0, sizeof coord);
       do {
         float temp = *(this->coordToPtr(coord));
-        if (fpclassify(temp) == FP_ZERO) temp = 0;
-        if (fpclassify(temp) == FP_NAN) temp = fabs(temp);
+        //if (fpclassify(temp) == FP_ZERO) temp = 0;
+        //if (fpclassify(temp) == FP_NAN) temp = fabs(temp);
+	if (temp == -0) temp = 0;
+	if (isnan(temp)) temp = fabs(temp);
         gen.update(&temp, sizeof(temp));
       } while(this->incCoord(coord)>=0);
     }
@@ -679,6 +696,7 @@ public:
 
 protected:
   bool _hasStorageInfo;
+
   ///
   /// Compute the offset in _base for a given coordinate
   ElementT* coordToPtr(const IndexT coord[D]) const{
@@ -686,7 +704,7 @@ protected:
     if (D == 2) {
       rv = (this->multipliers()[0] * coord[0]) + (this->multipliers()[1] * coord[1]);
 
-    } else  {
+    } else {
       for(int i=0; i<D; ++i){
 #ifdef DEBUG
         JASSERT(0<=coord[i] && coord[i]<size(i))(coord[i])(size(i))

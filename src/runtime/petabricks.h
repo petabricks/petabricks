@@ -43,6 +43,7 @@
 #include "common/openclutil.h"
 
 #include <algorithm>
+#include <limits.h>
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -62,6 +63,18 @@
 
 #ifdef HAVE_MKL_H
 #  include <mkl.h>
+#endif
+
+#ifdef HAVE_EMMINTRIN_H
+#include <emmintrin.h>
+#endif
+
+#ifdef HAVE_PMMINTRIN_H
+#include <pmmintrin.h>
+#endif
+
+#ifdef HAVE_XMMINTRIN_H
+#include <xmmintrin.h>
 #endif
 
 //these must be declared in the user code

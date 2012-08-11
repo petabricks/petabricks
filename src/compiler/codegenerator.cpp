@@ -477,37 +477,123 @@ void petabricks::CodeGenerator::mkIterationTrampTask(const std::string& taskname
 
 #ifdef HAVE_OPENCL
 void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(
-    const std::string& taskname,
-    const std::string& objname,
-    const std::string& methodname,
-    const SimpleRegion& region,
-    std::vector<RegionNodeGroup>& regionNodesGroups,
-    int nodeID,
-    int gpuCopyOut) {
-  std::string taskclass = "petabricks::CreateGpuSpatialMethodCallTask<"+objname
-                        + ", " + jalib::XToString(region.totalDimensions())
-                        + ", &" + objname + "::" + methodname
-                        + ">";
-  write("{");
-  incIndent();
-  comment("MARKER 6");
-  write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
-  write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
-  write("RegionNodeGroupMapPtr groups = new RegionNodeGroupMap();");
-  for(std::vector<RegionNodeGroup>::iterator group = regionNodesGroups.begin(); group != regionNodesGroups.end(); ++group){
-    write("{");
-    incIndent();
-    write("std::set<int> ids;");
-    for(std::vector<int>::iterator id = group->nodeIDs().begin(); id != group->nodeIDs().end(); ++id){
-      write("ids.insert("+jalib::XToString(*id)+");");
+    const std::string& transname,
+    const std::string& taskname, 
+    const std::string& objname, 
+    const std::string& methodname, 
+    const SimpleRegion& region, 
+    std::vector<RegionNodeGroup>& regionNodesGroups, 
+    int nodeID, 
+    int gpuCopyOut, 
+    RegionList to, 
+    bool divisible) {
+  std::string taskclass
+;
+  int dim_int = region.totalDimensions();
+  std::string lastdim = jalib::XToString(dim_int - 1);
+  std::string max = region.maxCoord()[dim_int - 1]->toString();
+  std::string min = region.minCoord()[dim_int - 1]->toString();
+
+  if(!divisible) {
+    taskclass = "petabricks::CreateGpuSpatialMethodCallTask<"+objname
+      + ", " + jalib::XToString(region.totalDimensions())
+      + ", &" + objname + "::" + methodname + TX_OPENCL_POSTFIX + "_createtasks"
+      + ">";
+    //beginIf(min+"<"+max);
+    comment("MARKER 6");
+    write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
+    write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
+    write("RegionNodeGroupMapPtr groups = new RegionNodeGroupMap();");
+    for(std::vector<RegionNodeGroup>::iterator group = regionNodesGroups.begin(); group != regionNodesGroups.end(); ++group){
+      write("{");
+      incIndent();
+      write("std::set<int> ids;");
+      for(std::vector<int>::iterator id = group->nodeIDs().begin(); id != group->nodeIDs().end(); ++id){
+	write("ids.insert("+jalib::XToString(*id)+");");
+      }
+      write("groups->insert(RegionNodeGroup(\""+group->matrixName()+"\",ids));");
+      decIndent();
+      write("}");
     }
-    write("groups->insert(RegionNodeGroup(\""+group->matrixName()+"\",ids));");
-    decIndent();
-    write("}");
+    write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end, "+jalib::XToString(nodeID)+", groups, "+jalib::XToString(gpuCopyOut)+");");
+    //endIf();
+
+    return;
   }
-  write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end, "+jalib::XToString(nodeID)+", groups, "+jalib::XToString(gpuCopyOut)+");");
-  decIndent();
-  write("}");
+
+  std::string n_div = "cont_" + jalib::XToString(_contCounter++);
+  write(taskname + " = new petabricks::MethodCallTask<"+_curClass+", &"+_curClass+"::"+n_div+">( this );");
+
+  // Add divider function
+  CodeGenerator helper = forkhelper();
+  helper.beginFunc("DynamicTaskPtr", n_div);
+  helper.write("DynamicTaskPtr _fini = new NullDynamicTask();");
+
+  // Assign the gpu-cpu division point.
+  helper.write("ElementT gpu_ratio = "+transname+"_gpuratio/8.0;");
+
+  std::string div = "div";
+  RegionPtr proxy = to.front();
+  helper.write("IndexT totalRow = "+proxy->matrix()->name()+".size("+jalib::XToString(dim_int - 1)+");");
+  helper.write("IndexT div = ceil(gpu_ratio * totalRow);");
+  helper.beginIf("div > " + max);
+  helper.write("div = "+max+";");
+  helper.endIf();
+
+  // GPU
+
+  taskclass = "petabricks::CreateGpuSpatialMethodCallTask<"+objname
+              + ", " + jalib::XToString(dim_int)
+              + ", &" + objname + "::" + methodname + TX_OPENCL_POSTFIX + "_createtasks"
+              + ">";
+  helper.comment("MARKER 6");
+  
+  //helper.beginIf(min+" < div");
+  helper.write("IndexT _gpu_begin[] = {" + region.getIterationLowerBounds() + "};");
+  helper.write("IndexT _gpu_end[] = {" + region.getIterationMiddleEnd(div) + "};");
+  helper.write("RegionNodeGroupMapPtr groups = new RegionNodeGroupMap();");
+
+  for(std::vector<RegionNodeGroup>::iterator group = regionNodesGroups.begin(); group != regionNodesGroups.end(); ++group){
+    helper.write("{");
+    helper.incIndent();
+    helper.write("std::set<int> ids;");
+    for(std::vector<int>::iterator id = group->nodeIDs().begin(); id != group->nodeIDs().end(); ++id){
+      helper.write("ids.insert("+jalib::XToString(*id)+");");
+    }
+    helper.write("groups->insert(RegionNodeGroup(\""+group->matrixName()+"\",ids));");
+    helper.decIndent();
+    helper.write("}");
+  }
+
+  helper.write("DynamicTaskPtr gpu_task = new "+taskclass+"(this,_gpu_begin, _gpu_end, "+jalib::XToString(nodeID)+", groups, "+jalib::XToString(gpuCopyOut)+");");
+  helper.write("gpu_task->enqueue();");
+  helper.write("_fini->dependsOn(gpu_task);");
+  //helper.endIf();
+
+  // CPU
+  taskclass = "petabricks::SpatialMethodCallTask<CLASS"
+              ", " + jalib::XToString(dim_int)
+              + ", &CLASS::" + methodname + "_workstealing_wrap"
+    //+ ", &CLASS::" + methodname + "_workstealing"
+              + ">";
+  helper.beginIf("div < " + max);
+  helper.beginIf("div < " + min);
+  helper.write("div = "+min+";");
+  helper.endIf();
+  helper.comment("MARKER 6");
+  helper.write("IndexT _cpu_begin[] = {" + region.getIterationMiddleBegin(div) + "};");
+  helper.write("IndexT _cpu_end[] = {"   + region.getIterationUpperBounds() + "};");
+  helper.write("DynamicTaskPtr cpu_task = new "+taskclass+"(this,_cpu_begin, _cpu_end);");
+  helper.write("cpu_task->enqueue();");
+  helper.write("_fini->dependsOn(cpu_task);");
+  helper.endIf();
+  
+  helper.write("return _fini;");
+  helper.endFunc();
+}
+
+void petabricks::CodeGenerator::cout(const std::string& s) {
+  write("std::cout << \"" + s + "\" << std::endl;");
 }
 
 void petabricks::CodeGenerator::cout(const std::string& s) {

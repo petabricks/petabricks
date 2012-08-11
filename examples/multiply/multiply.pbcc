@@ -1,17 +1,134 @@
 #ifndef MULTIPLY_PBCC
 #define MULTIPLY_PBCC
-#include "multiplyAdd.pbcc"
 
-// Computes C = A * B.  Special case of matrix-multiply-add transform, with
-// ALPHA = 1, BETA = 0.
-transform MatrixMultiply
-from A[k,m], B[n,k]
-to C[n,m]
+#include "../simple/add.pbcc"
+#include "../simple/transpose.pbcc"
+#include "lapackwrapper.pbcc"
+
+transform MatrixMultiplyBase
+from A[c,h], B[w,c] 
+to AB[w,h]
 {
+  //compute a cell the straightforward way
+  AB.cell(x,y) from(A.row(y) a, B.column(x) b){
+    ElementT sum=0;
+    for(IndexT i=0, w=c; i<w; ++i)
+      sum+=a.cell(i)*b.cell(i);
+    return sum;
+  }
+  
 
-  to(C c) from(A a, B b) {
-    MatrixMultiplyAdd(c, 1, a, b, 0);
+ //to(AB c) from(A a, B b) {
+ //    MatrixMultiplyAdd(c, 1, a, b, 0);
+ //}
+  
+  to(AB ab) from (A a, B b) {
+    int rowA=a.height();
+    int colA=a.width();
+
+    int rowB=b.height();
+    int colB=b.width();
+
+    int rowAB=ab.height();
+    int colAB=ab.width();
+
+    ElementT alpha=1;
+    ElementT beta=0;
+    
+    if(colA != rowB) {
+      fprintf(stderr, "Unable to perform a matrix multiplication. Wrong input size.\n"
+	      "#columns of matrix A = %d\n"
+	      "#rows of matrix B = %d\n"
+	      "They should be equal!\n", colA, rowB);
+      exit(4);
+    }
+    
+    ElementT* arrayA = toArray(a);
+    ElementT* arrayB = toArray(b);
+    
+    
+    ElementT* arrayAB = new ElementT[rowAB*colAB];
+    
+    gemm_wrap(CblasRowMajor, CblasNoTrans, CblasNoTrans, rowA, colB, rowB, alpha, arrayA, colA, arrayB, colB, beta, arrayAB, colAB);
+    
+    toMatrix(arrayAB, ab);
+    
+    delete arrayA;
+    delete arrayB;
+    delete arrayAB;
   }
 }
 
-#endif // MULTIPLY_PBCC
+transform MatrixMultiply
+from A[c,h], B[w,c] 
+to AB[w,h]
+{
+  to(AB ab) from (A a, B b) {
+    MatrixMultiplyBase(ab,a,b);
+  }
+
+  to(AB ab) from (A a, B b) using(t1[w,h], t2[w,h]) {
+    if (c<=1) {
+      MatrixMultiplyBase(ab,a,b);
+    }else{
+      spawn MatrixMultiply(t1, a.region(0,   0, c/2, h), b.region(0, 0,   w, c/2));
+      spawn MatrixMultiply(t2, a.region(c/2, 0, c,   h), b.region(0, c/2, w, c));
+      sync;
+      MatrixAdd(ab, t1, t2);
+    }
+  }
+
+  to(AB ab) from (A a, B b){
+    if (w<=1 || h<=1) {
+      MatrixMultiplyBase(ab,a,b);
+    }else{
+      spawn MatrixMultiply(ab.region(0,   0,   w/2, h/2), a.region(0, 0,   c, h/2), b.region(0,   0, w/2, c));
+      spawn MatrixMultiply(ab.region(w/2, 0,   w,   h/2), a.region(0, 0,   c, h/2), b.region(w/2, 0, w,   c));
+      spawn MatrixMultiply(ab.region(0,   h/2, w/2, h),   a.region(0, h/2, c, h),   b.region(0,   0, w/2, c));
+      spawn MatrixMultiply(ab.region(w/2, h/2, w,   h),   a.region(0, h/2, c, h),   b.region(w/2, 0, w,   c));
+    }
+  }
+
+  to(AB ab) from (A a, B b) using(t1[w,h], t2[w,h]) {
+    if (w<=1 || h<=1 || c<=1) {
+      MatrixMultiplyBase(ab,a,b);
+    }else{
+      spawn MatrixMultiply(t1.region(0,   0,   w/2, h/2), a.region(0, 0,   c/2, h/2), b.region(0,   0, w/2, c/2));
+      spawn MatrixMultiply(t1.region(w/2, 0,   w,   h/2), a.region(0, 0,   c/2, h/2), b.region(w/2, 0, w,   c/2));
+      spawn MatrixMultiply(t1.region(0,   h/2, w/2, h),   a.region(0, h/2, c/2, h),   b.region(0,   0, w/2, c/2));
+      spawn MatrixMultiply(t1.region(w/2, h/2, w,   h),   a.region(0, h/2, c/2, h),   b.region(w/2, 0, w,   c/2));
+      spawn MatrixMultiply(t2.region(0,   0,   w/2, h/2), a.region(c/2, 0,   c, h/2), b.region(0,   c/2, w/2, c));
+      spawn MatrixMultiply(t2.region(w/2, 0,   w,   h/2), a.region(c/2, 0,   c, h/2), b.region(w/2, c/2, w,   c));
+      spawn MatrixMultiply(t2.region(0,   h/2, w/2, h),   a.region(c/2, h/2, c, h),   b.region(0,   c/2, w/2, c));
+      spawn MatrixMultiply(t2.region(w/2, h/2, w,   h),   a.region(c/2, h/2, c, h),   b.region(w/2, c/2, w,   c));
+      sync;
+      MatrixAdd(ab, t1, t2);
+    }
+  }
+
+}
+
+
+transform MatrixMultiplyTransposed
+from A[n,n], B[n,n] 
+through T[n,n]
+to C[n,n]
+{
+  // no transpose
+  to(C c, T t) from(A a, B b) {
+    MatrixMultiply(c, a, b);
+  }
+  // transpose b
+  to(C c, T t) from(A a, B b) {
+    Transpose(t,b);
+    MatrixMultiply(c, a, t.transposed());
+  }
+  // transpose a
+  to(C c, T t) from(A a, B b) {
+    Transpose(t,a);
+    MatrixMultiply(c, t.transposed(), b);
+  }
+}
+
+#endif
+

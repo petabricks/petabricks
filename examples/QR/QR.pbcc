@@ -7,6 +7,7 @@
 #include "../simple/norm.pbcc"
 #include "../simple/scale.pbcc"
 #include "../multiply/multiply.pbcc"
+#include "../multiply/multiplyAdd.pbcc"
 #include "../multiply/triMultiply.pbcc"
 #include "../kernel/utils.pbcc"
 #include "QRLAPACK.pbcc"
@@ -36,6 +37,7 @@ to Q[n,m], R[n,m]
                 r.cell(j, i) = 0;
             }
         }
+	r.modifyOnCpu(0);
         Init2D(r2, 0);
 
         // compute Q
@@ -81,9 +83,10 @@ to A[n,m], TAU[n]
                 beta = alpha > 0 ? -beta : beta;
                 tau.cell(i) = (beta - alpha) / beta;
                 Scale2D(a.region(i, i+1, i+1, m), 1.0 / (alpha - beta));
-
+		
                 // if last column, we're done
                 if (i >= n-1) {
+		    a.useOnCpu(0);
                     a.cell(i, i) = beta;
                     break;
                 }
@@ -93,10 +96,15 @@ to A[n,m], TAU[n]
                 w2 = work.region(0, i+1, 1, n);
 
                 // apply reflector to trailing matrix
+		a.useOnCpu(0);
                 a.cell(i, i) = 1;
+		a.modifyOnCpu(0);
+		
                 MatrixMultiply(w2, a2.transposed(), v);
                 MatrixMultiplyAdd(a2, -tau.cell(i), v, w2.transposed(), 1.0);
+		a.useOnCpu(0);
                 a.cell(i, i) = beta;
+		a.modifyOnCpu(0);
             }
         }
     }
@@ -135,12 +143,15 @@ to A[n,m], TAU[n]
             // could use a continue instead
             } else {
                 // compute reflector
+		a.useOnCpu(0);
                 alpha = a.cell(i, i);
                 beta = sqrt(alpha * alpha + xnorm * xnorm);
                 beta = alpha > 0 ? -beta : beta;
                 tau.cell(i) = (beta - alpha) / beta;
                 Scale2D(a.region(i, i+1, i+1, m), 1.0 / (alpha - beta));
+		a.useOnCpu(0);
                 a.cell(i, i) = beta;
+		a.modifyOnCpu(0);
             }
         }
     }
@@ -302,11 +313,15 @@ to T[k,k], V[k,m]
                 MatrixMultiplyAdd(t.region(i, 0, i+1, i), -tau.cell(i),
                                   v.region(0, i, i  , m).transposed(),
                                   v.region(i, i, i+1, m), 0.0);
+	  	v.useOnCpu(0);
                 v.cell(i, i) = vii;
+		v.modifyOnCpu(0);
                 TriMatrixMultiplyInPlace(t.region(i, 0, i+1, i), 1, 0,
                                          t.region(0, 0, i  , i));
             }
+	    t.useOnCpu(0);
             t.cell(i, i) = tau.cell(i);
+	    t.modifyOnCpu(0);
         }
     }
 

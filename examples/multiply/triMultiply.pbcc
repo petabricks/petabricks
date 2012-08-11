@@ -21,8 +21,10 @@ to C[n,m]
         iInc = (upFlag ? 1 : -1 );
         for (IndexT idx = 0, i = i0; idx < m; ++idx, i += iInc) {
             for (j = 0; j < n; ++j) {
-                ElementT temp = c.cell(j,i) * beta;
-                temp += alpha * (unitFlag ? 1.0 : (double)(a.cell(i,i))) * c.cell(j,i);
+	    	ElementT temp = 0;
+	    	if(beta != 0)
+	        	temp = c.cell(j,i) * beta;
+                temp += alpha * (unitFlag ? 1.0 : a.cell(i,i)) * c.cell(j,i);
                 for (k = (upFlag ? i+1 : 0); k < (upFlag ? m : i); ++k) {
                     temp += alpha * a.cell(k,i) * c.cell(j,k);
                 }
@@ -53,12 +55,9 @@ to C[n,m]
     to (C.cell(j,i) c)
     from (UPFLAG upFlag, UNITFLAG unitFlag, ALPHA alpha, A a, B b, BETA beta)
     {
-        if (beta == 0) {
-          c = 0;
-        } else {
-          c *= beta;
-        }
-        c += alpha * (unitFlag ? 1.0 : (double)(a.cell(i,i))) * b.cell(j,i);
+	if(beta != 0) c *= beta;
+	else c = 0;
+        c += alpha * (unitFlag ? 1.0 : a.cell(i,i)) * b.cell(j,i);
         for (IndexT k = (upFlag ? i+1 : 0); k < (upFlag ? m : i); ++k) {
             c += alpha * a.cell(k,i) * b.cell(j,k);
         }
@@ -71,12 +70,9 @@ to C[n,m]
         IndexT i, j, k;
         for (i = 0; i < m; ++i) {
             for (j = 0; j < n; ++j) {
-                if (beta == 0) {
-                  c.cell(j,i) = 0;
-                } else {
-                  c.cell(j,i) *= beta;
-                }
-                c.cell(j,i) += alpha * (unitFlag ? 1.0 : (double)(a.cell(i,i))) *
+                if(beta != 0) c.cell(j,i) *= beta;
+		else c.cell(j,i) = 0;
+                c.cell(j,i) += alpha * (unitFlag ? 1.0 : a.cell(i,i)) *
                                b.cell(j,i);
                 for (k = (upFlag ? i+1 : 0); k < (upFlag ? m : i); ++k) {
                     c.cell(j,i) += alpha * a.cell(k,i) * b.cell(j,k);

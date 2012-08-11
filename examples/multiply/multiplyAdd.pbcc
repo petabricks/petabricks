@@ -3,66 +3,8 @@
 
 #include "../simple/add.pbcc"
 #include "../simple/transpose.pbcc"
+#include "lapackwrapper.pbcc"
 
-%{
-
-#ifdef PRINT
-inline void printArray(int height, int width, ElementT *array){
-  int i, j;
-
-  for(i=0; i<height; ++i) {
-    for(j=0; j<width; ++j) {
-      printf("%2.1lf ", array[i*width+ j]);
-    }
-    printf("\n");
-  }
-}
-#endif
-
-template < typename T >
-inline ElementT *toArray(const T&matrix) {
-  ElementT *array;
-
-  IndexT rows = matrix.height();
-  IndexT columns = matrix.width();
-
-#ifdef PRINT
-  printf("Matrix size: %d rows, %d columns\n", rows, columns);
-#endif
-
-  array = new ElementT[rows * columns];
-
-  for(IndexT i=0; i<rows; ++i) {
-    for(IndexT j=0; j<columns; ++j) {
-      array[i*columns + j] = matrix.cell(j,i);
-    }
-  }
-
-  return array;
-}
-
-template < typename T >
-inline void toMatrix(ElementT* array, T&matrix) {
-  IndexT rows = matrix.height();
-  IndexT columns = matrix.width();
-
-  for(IndexT i=0; i<rows; ++i) {
-    for(IndexT j=0; j<columns; ++j) {
-      matrix.cell(j,i) = array[i*columns + j];
-    }
-  }
-
-  return;
-}
-
-void gemm_wrap(const int M, const int N, const int K, const float alpha, const float * A, const int lda, const float * B, const int ldb, const float beta, float * C, const int ldc) {
-  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
-}
-
-void gemm_wrap(const int M, const int N, const int K, const double alpha, const double * A, const int lda, const double * B, const int ldb, const double beta, double * C, const int ldc) {
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
-}
-%}
 
 transform MatrixMultiplyAddInner
 from ALPHA, A[k,h], B[w,k], BETA
@@ -78,11 +20,10 @@ to C[w,h]
     ElementT temp = 0;
     for(IndexT i=0; i<k; ++i)
       temp += a.cell(i)*b.cell(i);
-    if (beta == 0) {
-      c = alpha*temp;
-    } else {
+    if(beta != 0)
       c = alpha*temp + beta*c;
-    }
+    else
+      c = alpha*temp;
   }
 
 #if 0
@@ -140,11 +81,7 @@ to C[w,h]
         for(IndexT l=0, maxL=a.width(); l<maxL; ++l) {
 	  temp += a.cell(l,i) * b.cell(j,l);
 	}
-        if (beta == 0) {
-          c.cell(j,i) = alpha * temp;
-        } else {
-          c.cell(j,i) = alpha * temp + beta * c.cell(j,i);
-        }
+        c.cell(j,i) = alpha * temp + beta * c.cell(j,i);
       }
     }
   }

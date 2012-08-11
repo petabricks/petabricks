@@ -27,10 +27,9 @@
 #ifndef PETABRICKSMATRIXSTORAGE_H
 #define PETABRICKSMATRIXSTORAGE_H
 
-//#define GPU_TRACE 1
-
 #include <set>
 #include <map>
+#include <cmath>
 #include <math.h>
 
 #include "common/hash.h"
@@ -54,7 +53,6 @@ public:
 
 class CopyoutInfo;
 typedef jalib::JRef<CopyoutInfo> CopyoutInfoPtr;
-class CopyPendingMap;
 
 class ClMemWrapper: public jalib::JRefCounted {
 public:
@@ -134,8 +132,10 @@ public:
     float *temp = new float[_count];
     for (unsigned int i = 0; i < _count; ++i) {
         temp[i] = _data[i];
-        if (fpclassify(temp[i]) == FP_ZERO) temp[i] = 0;
-        if (fpclassify(temp[i]) == FP_NAN) temp[i] = fabs(temp[i]);
+        //if (fpclassify(temp[i]) == FP_ZERO) temp[i] = 0;
+        //if (fpclassify(temp[i]) == FP_NAN) temp[i] = fabs(temp[i]);
+	if (temp[i] == -0) temp[i] = 0;
+	if (isnan(temp[i])) temp[i] = fabs(temp[i]);
     }
     g.update(temp, _count*sizeof(float));
     delete [] temp;
@@ -149,19 +149,21 @@ public:
   }
 
 #ifdef HAVE_OPENCL
-  void lock() { _lock.lock(); }
-  void unlock() { _lock.unlock(); }
-  void updateDataFromGpu();
-#else
-  void lock()   { UNIMPLEMENTED(); }
-  void unlock() { UNIMPLEMENTED(); }
+  void updateDataFromGpu(MatrixStorageInfoPtr info, IndexT firstRow = 0);
+  void clearDataOnGpu(MatrixStorageInfoPtr info, IndexT firstRow);
+  MatrixStorageInfoPtr findStorageInfo(MatrixStorageInfoPtr info, int lastRowOnGpu);
+  void addNeedCopyOut(MatrixStorageInfoPtr info);
+  void addDoneCopyOut(MatrixStorageInfoPtr info);
 #endif
 
 private:
   ElementT* _data;
   size_t _count;
 #ifdef HAVE_OPENCL
-  jalib::JMutex  _lock;
+  std::set<MatrixStorageInfoPtr> _needcopyout;
+  std::set<MatrixStorageInfoPtr> _donecopyout;
+  jalib::JMutex _needcopyoutLock;
+  jalib::JMutex _donecopyoutLock;
 #endif
 };
 
@@ -189,6 +191,87 @@ public:
   size_t count() const {
     return _count;
   }
+
+
+#ifdef HAVE_OPENCL
+  bool overlap(MatrixStorageInfoPtr that) {
+    ElementT* this_i = this->base();
+    ElementT* this_f = this->base() + this->bytesOnGpu();
+    ElementT* that_i = that->base();
+    ElementT* that_f = that->base() + that->bytesOnGpu();
+    
+    if(this_i >= that_i && this_i < that_f)
+      return true;
+    if(this_f > that_i && this_f <= that_f)
+      return true;
+    if(that_i >= this_i && that_i < this_f)
+      return true;
+    if(that_f > this_i && that_f <= this_f)
+      return true;
+    return false;
+  }
+
+  bool overlap(MatrixStorageInfoPtr that, int offset) {
+    ElementT* this_i = this->base();
+    ElementT* this_f = this->base() + this->bytesOnGpu();
+    ElementT* that_i = that->base() + that->bytes(offset);
+    ElementT* that_f = that->base() + that->bytes(offset+1);
+#ifdef GPU_TRACE
+  std::cout << "@ overlap that: " << this_i << " - " << this_f << std::endl;
+  std::cout << "@ overlap this: " << that_i << " - " << that_f << std::endl;
+#endif
+    
+    if(this_i >= that_i && this_i < that_f)
+      return true;
+    if(this_f > that_i && this_f <= that_f)
+      return true;
+    if(that_i >= this_i && that_i < this_f)
+      return true;
+    if(that_f > this_i && that_f <= this_f)
+      return true;
+    return false;
+  }
+
+  /// Number of bytes of this storage info from the beginning
+  /// until the row #lastRow
+  size_t bytesOnGpu() const {
+    if(_dimensions == 0)
+      return sizeof(ElementT);
+    #ifdef DEBUG
+    JASSERT(_lastRowOnGpu <= _sizes[_dimensions - 1])(_lastRowOnGpu)(_sizes[_dimensions - 1])(_dimensions);
+    #endif
+    #ifdef GPU_TRACE
+    std::cout << "bytesOnGpu: _normalize = " <<  _normalizedMultipliers[_dimensions - 1] << ", _mult = " << _multipliers[_dimensions - 1] << ", _last = " << _lastRowOnGpu << std::endl;
+    #endif
+    return _normalizedMultipliers[_dimensions - 1]*_lastRowOnGpu*sizeof(ElementT);
+  }
+
+  /// Number of bytes of this storage info from the beginning
+  /// until the row #lastRow
+  size_t bytes(int offset) const {
+    if(_dimensions == 0)
+      return sizeof(ElementT);
+    return _normalizedMultipliers[_dimensions - 1]*offset*sizeof(ElementT);
+  }
+
+
+  /// Number of bytes of this storage info from the beginning
+  /// until the row #lastRow
+  size_t countOnGpu() const {
+    #ifdef DEBUG
+    JASSERT(_lastRowOnGpu <= _sizes[_dimensions - 1])(_lastRowOnGpu)(_sizes[_dimensions - 1])(_dimensions);
+    #endif
+    return _normalizedMultipliers[_dimensions - 1]*_lastRowOnGpu;
+  }
+
+  void setCreateClMem(bool createClMem) {
+    _createClMem = createClMem;
+  }
+
+  bool createClMem() {
+    return _createClMem;
+  }
+#endif
 
   size_t coordToIndex(const IndexT* coord) const{
     IndexT rv = 0;
@@ -277,15 +360,28 @@ public:
   ssize_t getBaseOffset() { return _baseOffset; }
 
 #ifdef HAVE_OPENCL
-  void modifyOnCpu() { _cpuModify = true; }  //TODO: do I need to use lock?
+  void modifyOnCpu(IndexT firstRow);
+  void storeGpuData();
   void setName(std::string name) { _name = name; }
   std::string getName() { return _name; }
+  bool isContiguous() { return _contiguous; }
+  void setLastRowGuide(IndexT last,IndexT iter_dim) { 
+    _lastRowOnGpuGuide = last; 
+    if(_lastRowOnGpuGuide > _sizes[_dimensions - 1])
+      _lastRowOnGpuGuide = _sizes[_dimensions - 1];
+    _iterDim = iter_dim;
+  }
+
+  int lastRowOnGpu() { return _lastRowOnGpu; }
+
   bool equal(MatrixStorageInfoPtr that);
   cl_command_queue& queue() { return _queue; }
 
   ///
   /// call after run gpu PREPARE task
-  bool initGpuMem(cl_command_queue& queue, cl_context& context, bool input);
+  /// return true when copyin task needs to be run
+  /// return false when data is already in the gpu memmory
+  bool initGpuMem(cl_command_queue& queue, cl_context& context, double gpuRatio, bool input);
 
   ///
   /// call after run gpu RUN task
@@ -357,7 +453,6 @@ public:
     std::cout << "copyFrom boundary" << std::endl;
     for(int i = 0; i < dimensions(); i++)
       std::cout << "[" << i << "] : " << c1[i] << "-" << c2[i] << std::endl;
-    //src->print();
 #endif
     if(src->data() == dest->data())
       return;
@@ -383,8 +478,12 @@ public:
     #ifdef DEBUG
     JASSERT(begins.size() == ends.size())(begins.size())(ends.size());
     #endif
-    if(src->data() == dest->data())
+    if(src->data() == dest->data()) {
+#ifdef GPU_TRACE
+      std::cout << "copy no need to copy ^^" << std::endl;
+#endif
       return;
+    }
 
     if(begins.size() == 0){
       copy(dest,src);
@@ -395,11 +494,7 @@ public:
     }
   }
 
-  void addGpuInputBuffer(MatrixStoragePtr& buffer) {
-    _gpuInputBuffers.push_back(buffer);
-  }
 
-  std::vector<MatrixStoragePtr>& getGpuInputBuffers() { return _gpuInputBuffers; }
 #endif
 
 private:
@@ -411,19 +506,22 @@ private:
   IndexT  _sizes[MAX_DIMENSIONS];
   ElementT _extraVal;
   HashT   _hash;
-  ssize_t _count;
+  size_t _count;
 
 #ifdef HAVE_OPENCL
-  std::vector<MatrixStoragePtr> _gpuInputBuffers;
   IndexT  _normalizedMultipliers[MAX_DIMENSIONS];
 
   std::string _name;
-  int _coverage;
+  size_t _coverage;
+  int _lastRowOnGpu;
+  int _lastRowOnGpuGuide;
+  int _lastRowOnGpuOffset;
+  int _iterDim;
+  int _firstRowOnCpu;
   bool _hasGpuMem;
-  bool _cpuModify;
+  bool _contiguous;
+  bool _createClMem;
 
-  ///
-  /// regions that are modified on gpu
   std::vector<IndexT*> _begins;
   std::vector<IndexT*> _ends;
   NodeGroups _completeGroups;
@@ -462,8 +560,10 @@ private:
   cl_event _event;
   size_t _coverage;
   bool _done;
+  bool _empty;
 };
 
+#if 0
 class CopyPendingMap : public jalib::JRefCounted {
 public:
 
@@ -560,8 +660,7 @@ private:
   std::vector<MatrixStoragePtr> _buffers;
   jalib::JMutex  _bufferlock;
 };
-
-
+#endif 
 
 
 }

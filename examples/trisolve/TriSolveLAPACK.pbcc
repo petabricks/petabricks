@@ -4,29 +4,30 @@
 #define INDEX2D(i0, i1, s0) ((i1) * (s0) + (i0))
 
 %{
-extern "C" void dtrsm_(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, double *alpha, double *A, const int *lda, double *B, const int *ldb);
-extern "C" void strsm_(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, float *alpha, float *A, const int *lda, float *B, const int *ldb);
+extern "C" void dtrsm_(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, double *alpha, const double *A, const int *lda, double *B, const int *ldb);
+extern "C" void strsm_(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, float *alpha, const float *A, const int *lda, float *B, const int *ldb);
 
-void trsm_wrap(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, double *alpha, double *A, const int *lda, double *B, const int *ldb) {
+void trsm_wrap(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, double *alpha, const double *A, const int *lda, double *B, const int *ldb) {
     dtrsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
 }
-void trsm_wrap(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, float *alpha, float *A, const int *lda, float *B, const int *ldb) {
+void trsm_wrap(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, float *alpha, const float *A, const int *lda, float *B, const int *ldb) {
     strsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
 }
 %}
 
 transform TriSolveLAPACK
 from RIGHTFLAG, UPFLAG, UNITFLAG, ALPHA, A[aw,ah]
-to X[n,m]
+to B[n,m]
 {
-    to (X x)
+    // copy version
+    to (B b)
     from (RIGHTFLAG rightFlag, UPFLAG upFlag, UNITFLAG unitFlag,
           ALPHA _alpha, A a)
     {
         char side, uplo, transa = 'N', diag;
         const int lda = ah;
         const int ldb = m;
-        double alpha = _alpha;
+        ElementT alpha = _alpha;
         ElementT *A = NULL;
         ElementT *B = NULL;
 
@@ -50,7 +51,7 @@ to X[n,m]
         }
         for (i = 0; i < m; ++i) {
             for (j = 0; j < n; ++j) {
-                B[INDEX2D(i, j, m)] = x.cell(j, i);
+                B[INDEX2D(i, j, m)] = b.cell(j, i);
             }
         }
 
@@ -59,12 +60,97 @@ to X[n,m]
         // unpack output
         for (i = 0; i < n; ++i) {
             for (j = 0; j < m; ++j) {
-                x.cell(i, j) = B[INDEX2D(j, i, m)];
+                b.cell(i, j) = B[INDEX2D(j, i, m)];
             }
         }
 
         delete [] A;
         delete [] B;
+    }
+
+    // no copy version
+    to (B b)
+    from (RIGHTFLAG rightFlag, UPFLAG upFlag, UNITFLAG unitFlag,
+          ALPHA _alpha, A a)
+    {
+        int i, j;
+        char side, uplo, transa, diag;
+        int lda, ldb;
+        double alpha = _alpha;
+        bool freeA = false, freeB = false;
+        const ElementT *A = NULL;
+        ElementT *A2 = NULL;
+        ElementT *B = NULL;
+
+        side = rightFlag ? 'R' : 'L';
+        uplo = upFlag    ? 'U' : 'L';
+        diag = unitFlag  ? 'U' : 'N';
+
+        int as0 = a.sizes()[0], as1 = a.sizes()[1],
+            bs0 = b.sizes()[0], bs1 = b.sizes()[1],
+            am0 = a.multipliers()[0], am1 = a.multipliers()[1],
+            bm0 = b.multipliers()[0], bm1 = b.multipliers()[1];
+
+        if (am1 == 1 && am0 >= as1) {
+            // column-major storage
+            A = a.base();
+            transa = 'N';
+            lda = am0;
+        } else if (am0 == 1 && am1 >= as0) {
+            // row-major storage
+            A = a.base();
+            transa = 'Y';
+            lda = am1;
+        } else {
+            A = A2 = new ElementT[ah * aw];
+            if (!A) {
+                printf("Error allocating memory!\n");
+                exit(-1);
+            }
+            freeA = true;
+            // pack input into column-major array
+            for (j = 0; j < aw; ++j) {
+                for (i = 0; i < ah; ++i) {
+                    A2[INDEX2D(i, j, ah)] = a.cell(j, i);
+                }
+            }
+            transa = 'N';
+            lda = ah;
+        }
+
+        if (bm1 == 1 && bm0 >= bs1) {
+            // column-major storage
+            B = b.base();
+            ldb = bm0;
+        } else {
+            B = new ElementT[m * n];
+            if (!B) {
+                printf("Error allocating memory!\n");
+                exit(-1);
+            }
+            freeB = true;
+            for (j = 0; j < n; ++j) {
+                for (i = 0; i < m; ++i) {
+                    B[INDEX2D(i, j, m)] = b.cell(j, i);
+                }
+            }
+            ldb = m;
+        }
+
+        trsm_wrap(&side, &uplo, &transa, &diag, &m, &n, &alpha, A, &lda, B, &ldb);
+
+        if (freeA) {
+            delete [] A;
+        }
+        if (freeB) {
+            // unpack output
+            for (j = 0; j < n; ++j) {
+                for (i = 0; i < m; ++i) {
+                    b.cell(j, i) = B[INDEX2D(i, j, m)];
+                }
+            }
+            delete [] B;
+        }
     }
 }
 

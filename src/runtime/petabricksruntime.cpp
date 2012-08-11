@@ -405,12 +405,14 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   }
 
   switch(MODE){
-    case MODE_RUN_RANDOM:
     case MODE_GRAPH_INPUTSIZE:
     case MODE_GRAPH_PARAM:
     case MODE_GRAPH_THREADS:
     case MODE_GRAPH_TEMPLATE:
     case MODE_AUTOTUNE_PARAM:
+      ISOLATION = false;
+      //fall through
+    case MODE_RUN_RANDOM:
     case MODE_IOGEN_RUN:
       if(ISOLATION)
         break;

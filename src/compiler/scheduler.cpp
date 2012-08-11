@@ -132,14 +132,15 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
       int overlappingDimensions = j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it);
       if(overlappingDimensions >= 0){
         // If there is overlapping, might need to copy out
-        if(overlappingDimensions == (*it)->numDimensions()) {
-          // If same, can be pended the copy out later
-          j->node().setPendingGpuCopyOut();
-        }
-        else {
-          // If dimension is not the same, have to copy out immediately
-          j->node().setGpuCopyOut();
-        }
+	j->node().setPendingGpuCopyOut();
+        // if(overlappingDimensions == (*it)->numDimensions()) {
+        //   // If same, can be pended the copy out later
+        //   j->node().setPendingGpuCopyOut();
+        // }
+        // else {
+        //   // If dimension is not the same, have to copy out immediately
+        //   j->node().setGpuCopyOut();
+        // }
         last = j;
         ids.push_back(j->node().id());
       }
@@ -151,7 +152,9 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
   // Check inner rules. If there is overlapping, we eagerly copy out because we know we need the data on cpu for sure.
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
     std::set<std::string> matrices;
-    RegionList from = i->node().getFromRegionOnCpu(_choiceAssignment);
+    RegionList from = i->node().getFromRegion(_choiceAssignment);
+    // getFromRegionOnCpu only returns the ones that will used on CPU for sure
+    RegionSet fromOnCpu = i->node().getFromRegionOnCpu(_choiceAssignment);
 
     for(RegionList::iterator it = from.begin(); it != from.end(); ++it){
       if(matrices.find((*it)->matrix()->name()) == matrices.end()) {
@@ -161,7 +164,14 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
 
         for(ScheduleT::iterator j=_schedule.begin(); j!=i; ++j){
           if(j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it) >= 0){
-            j->node().setGpuCopyOut();
+	    if(fromOnCpu.find(*it) != fromOnCpu.end()) {
+	      j->node().setGpuCopyOut();
+	      //std::cout << "copyout: node = " << j->node().id() << ", matrix = " << (*it)->matrix()->name() << std::endl;
+	    }
+	    else {
+	      j->node().setPendingGpuCopyOut();
+	      //std::cout << "pending: node = " << j->node().id() << ", matrix = " << (*it)->matrix()->name() << std::endl;
+	    }
             last = j;
             ids.push_back(j->node().id());
           }

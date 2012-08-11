@@ -373,20 +373,6 @@ void petabricks::AnalysisPass::before(RIRExprCopyRef& e){
   }
 }
 
-petabricks::RegionPtr petabricks::OpenClCleanupPass::findMatrix(std::string var)
-{
-  RegionList from = _rule.getFromRegions();
-  RegionList to = _rule.getToRegions();
-
-  for( RegionList::const_iterator i = to.begin(); i != to.end(); ++i )
-    if( var == (*i)->name() )
-      return (*i);
-  for( RegionList::const_iterator i = from.begin(); i != from.end(); ++i )
-    if( var == (*i)->name() )
-      return (*i);
-  return NULL;
-}
-
 void petabricks::OpenClCleanupPass::generateAccessor( const RegionPtr& , const FormulaPtr& , const FormulaPtr&  )
 {
 }
@@ -434,7 +420,7 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
         JTRACE("expanding SYM_ARG_REGION")(regionName)(methodname)(args);
 
 	      // Look up matrix region.
-	      RegionPtr region = findMatrix(regionName->str());
+	      RegionPtr region = _rule.findMatrix(regionName->str());
 	      JASSERT( !region.null() ).Text( "No such region exists." );
 
 	      if( "cell" == methodname->str() )
@@ -473,7 +459,7 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
 
           // Use local memory when possible.
           std::string exprstr;
-          if(_minCoordOffsets.find(region->matrix()->name()) != _minCoordOffsets.end()) {
+          if(_locals.find(region->matrix()->name()) != _locals.end()) {
             // Use local memory
             std::vector<std::string>::reverse_iterator i = indices.rbegin();
             if(region->dimensions() == 1) {
@@ -513,30 +499,30 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
       }
     }
     if(sym && sym->type() == RIRSymbol::SYM_ARG_ELEMENT) {
-      RegionPtr region = findMatrix(e->str());
+      RegionPtr region = _rule.findMatrix(e->str());
       std::string matrix = region->matrix()->name();
       std::string exprstr;
-          if(_minCoordOffsets.find(matrix) != _minCoordOffsets.end()) {
-            if(region->dimensions() == 1) {
-              FormulaPtr index_x = new FormulaSubtract(region->minCoord().at(0), new FormulaVariable("_r" + jalib::XToString(_id) + "_x"));
-              index_x = MAXIMA.normalize(index_x);
-              exprstr = "buff_" + matrix + "[" + index_x->toCppString() + " + x_local + " + matrix + "0_minoffset]";
-            }
-            else if(region->dimensions() == 2) {
-              FormulaPtr index_x = new FormulaSubtract(region->minCoord().at(0), new FormulaVariable("_r" + jalib::XToString(_id) + "_x"));
-              index_x = MAXIMA.normalize(index_x);
-              FormulaPtr index_y = new FormulaSubtract(region->minCoord().at(1), new FormulaVariable("_r" + jalib::XToString(_id) + "_y"));
-              index_y = MAXIMA.normalize(index_y);
-              exprstr = "buff_" + matrix + "[" + index_y->toCppString() + " + y_local + " + matrix + "1_minoffset]"
-                                         + "[" + index_x->toCppString() + " + x_local + " + matrix + "0_minoffset]";
-            }
-            else {
-              JASSERT(false).Text("Dimension is not 1 or 2. No Local Memory");
-            }
-          }
-          else {
-            exprstr = "_region_" + e->str() + "[idx_"+e->str()+"]";
-          }
+      if(_locals.find(matrix) != _locals.end()) {
+	if(region->dimensions() == 1) {
+	  FormulaPtr index_x = new FormulaSubtract(region->minCoord().at(0), new FormulaVariable("_r" + jalib::XToString(_id) + "_x"));
+	  index_x = MAXIMA.normalize(index_x);
+	  exprstr = "buff_" + matrix + "[" + index_x->toCppString() + " + x_local + " + matrix + "0_minoffset]";
+	}
+	else if(region->dimensions() == 2) {
+	  FormulaPtr index_x = new FormulaSubtract(region->minCoord().at(0), new FormulaVariable("_r" + jalib::XToString(_id) + "_x"));
+	  index_x = MAXIMA.normalize(index_x);
+	  FormulaPtr index_y = new FormulaSubtract(region->minCoord().at(1), new FormulaVariable("_r" + jalib::XToString(_id) + "_y"));
+	  index_y = MAXIMA.normalize(index_y);
+	  exprstr = "buff_" + matrix + "[" + index_y->toCppString() + " + y_local + " + matrix + "1_minoffset]"
+	    + "[" + index_x->toCppString() + " + x_local + " + matrix + "0_minoffset]";
+	}
+	else {
+	  JASSERT(false).Text("Dimension is not 1 or 2. No Local Memory");
+	}
+      }
+      else {
+	exprstr = "_region_" + e->str() + "[idx_"+e->str()+"]";
+      }
       e = RIRExpr::parse( exprstr, SRCPOS() );
     }
   }
@@ -599,4 +585,115 @@ void petabricks::OpenClFunctionRejectPass::before(RIRExprCopyRef& e)
 	  JTRACE( "Identifier is blacklisted for OpeNCL:")(e->str());
 	}
     }
+}
+
+
+void petabricks::CollectLoadStorePass::before(RIRExprCopyRef& e) {
+  std::cout << "Expr current = " << e->toString() << " type = " << e->type() << " EXPR = " << RIRNode::EXPR << std::endl;
+  _numExprs++;
+  RIRSymbolPtr sym = _scope->lookup(e->toString());
+  if(_numExprs == 2) {
+    _firstInStmt = e;
+  }
+  if(_firstInStmt != e && !_istrans && sym && (sym->type() == RIRSymbol::SYM_ARG_ELEMENT || sym->type() == RIRSymbol::SYM_ARG_REGION)) {
+    RegionPtr region = _rule.findMatrix(e->str());
+    if(region) {
+      _loads.insert(region);
+      std::cout << ">>> ADD LOAD " << region->name() << " " << region->matrix()->name() << std::endl;
+    }
+    else {
+      std::cout << ">>> TRY ADD LOADSTORE " << e->str() << std::endl;
+
+    }
+  }
+  else if(e->toString() == "RETURN") {
+    RegionList to = _rule.getToRegions();
+    for( RegionList::const_iterator i = to.begin(); i != to.end(); ++i ) {
+      _stores.insert(*i);
+      std::cout << ">>> ADD STORE " << (*i)->name() << " " << (*i)->matrix()->name() << std::endl;
+    }
+  }
+  else if(e->type() == RIRNode::EXPR_OP && hasExprBackward() 
+     && (e->isLeaf("=") || e->isLeaf("+=") || e->isLeaf("-=") || e->isLeaf("*=") || e->isLeaf("/=") || e->isLeaf("%=") || e->isLeaf(">>=") || e->isLeaf("<<=")) ) {
+    RegionPtr region = _rule.findMatrix(_firstInStmt->str());
+    if(region) {
+      _stores.insert(region);
+      std::cout << ">>> ADD STORE " << region->name() << " " << region->matrix()->name() << std::endl;
+      if(e->isLeaf("="))
+	_addFirst = true;
+    }
+  }
+  else if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM) {
+    _istrans = true;
+  }
+
+}
+
+void petabricks::CollectLoadStorePass::before(RIRStmtCopyRef& e) {
+  std::cout << "(before) Stmt current = " << e << std::endl;
+  _numExprs = 0;
+  _addFirst = false;
+  _istrans = false;
+}
+
+void petabricks::CollectLoadStorePass::after(RIRStmtCopyRef& e) {
+  std::cout << "(after) Stmt current = " << e << std::endl;
+  if(!_addFirst) {
+    RegionPtr region = _rule.findMatrix(_firstInStmt->str());
+    if(region) {
+      _loads.insert(region);
+      std::cout << ">>> ADD LOAD " << region->name() << " " << region->matrix()->name() << std::endl;
+    }
+  }
+}
+
+void petabricks::ManageCpuGpuMemPass::before(RIRExprCopyRef& e) {
+  RIRSymbolPtr sym = _scope->lookup(e->toString());
+  if(_state == 1 && sym && (sym->type() == RIRSymbol::SYM_ARG_ELEMENT || sym->type() == RIRSymbol::SYM_ARG_REGION)) {
+    _state = 2;
+    if(_beforetrans) {
+      _addfront = true;
+    }
+    else {
+      int lastdim = _rule.dimensions() - 1;
+      std::string lastdim_string = jalib::XToString(lastdim);
+      //push UseOnCpu
+      for(RegionSet::iterator i = _loads.begin(); i != _loads.end(); ++i) {
+	switch(_rule.stencilType(*i, true)) {
+	case 0:
+	  pushStmtBackward(RIRStmt::parse((*i)->name()+".useOnCpu(0);", SRCPOS()));
+	  break;
+	default:
+	// case 1:
+	//   pushStmtBackward(RIRStmt::parse((*i)->name()+".useOnCpu(_iter_begin["+lastdim_string+"]);", SRCPOS()));
+	//   break;
+	// case 2:
+	//   pushStmtBackward(RIRStmt::parse((*i)->matrix()->name()+".useOnCpu(_iter_begin["+lastdim_string+"] + "+jalib::XToString(_rule.minCoordOffsets()[(*i)->matrix()->name()][lastdim])+");", SRCPOS()));
+	  break;
+	}
+      }
+    }
+  }
+  else if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM) {
+    _beforetrans = false;
+    if(_state == 2) {
+      _state = 0;
+      int lastdim = _rule.dimensions() - 1;
+      std::string lastdim_string = jalib::XToString(lastdim);
+      //push ModifyOnCpu
+      for(RegionSet::iterator i = _stores.begin(); i != _stores.end(); ++i) {
+	if((*i)->getRegionType() == Region::REGION_ALL)
+	  pushStmtBackward(RIRStmt::parse((*i)->name()+".storageInfo()->modifyOnCpu(0);", SRCPOS()));
+	// else
+	//   pushStmtBackward(RIRStmt::parse((*i)->name()+".storageInfo()->modifyOnCpu(_iter_begin["+lastdim_string+"]);", SRCPOS()));
+      }
+    }
+  }
+}
+
+void petabricks::ManageCpuGpuMemPass::before(RIRStmtCopyRef& e) {
+  //std::cout << "Stmt current = " << e << " state = " << _state << " hasStmtForward = " << hasStmtForward() << std::endl;
+  if(_state == 0) {
+    _state = 1;
+  }
 }

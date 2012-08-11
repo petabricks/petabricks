@@ -108,7 +108,6 @@ AC_CHECK_HEADERS([mkl.h],  [], [])
 AC_CHECK_HEADERS([Accelerate/Accelerate.h], [], [])
 AC_CHECK_HEADERS([sqlite3.h],      [], [AC_MSG_ERROR([failed to find sqlite3.h header file])])
 
-
 AC_CHECK_LIB([fftw3],      [fftw_malloc],    [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
 AC_CHECK_LIB([m],          [cos],            [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
 AC_CHECK_LIB([gfortran],   [_gfortran_compare_string], [], [])
@@ -120,8 +119,9 @@ AC_CHECK_LIB([sqlite3],	   [sqlite3_open],   [], [AC_MSG_ERROR([failed to find -
 
 AC_SEARCH_LIBS([MD5_Init], [crypto ssl], [], [AC_MSG_ERROR([missing package libssl-dev])])
 AC_CHECK_LIB([mkl_intel_lp64], [cblas_dgemm], [LIBS="$LIBS -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -liomp5 -lpthread"], [], [-lmkl_sequential -lmkl_core -liomp5 -lpthread])
-AC_SEARCH_LIBS([cblas_dgemm], [blas])
-AC_SEARCH_LIBS([dposv_], [lapack])
+AC_SEARCH_LIBS([cblas_dgemm], [blas cblas])
+AC_SEARCH_LIBS([dposv_],      [lapack])
+AC_SEARCH_LIBS([dtrsm_],      [blas cblas  lapack])
 
 AC_MSG_CHECKING([if system supports setrlimit])
 AC_RUN_IFELSE([AC_LANG_PROGRAM([
@@ -462,6 +462,10 @@ do
                  [AC_MSG_RESULT([yes])],
                  [AC_MSG_RESULT([no]);      LDFLAGS="$save_LDFLAGS"])
 done
+
+
+#check these headers down here since the depend on march=native
+AC_CHECK_HEADERS([emmintrin.h pmmintrin.h xmmintrin.h])
 
 ################################################################################
 ################################################################################

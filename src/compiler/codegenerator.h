@@ -314,7 +314,17 @@ public:
   void mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, SpatialCallType spatialCallType);
   void mkPartialSpatialTask(const std::string& taskname, const std::string& metadataname, const std::string& methodname, const SimpleRegion& region, SpatialCallType spatialCallType, bool shouldGenerateMetadata);
   void mkIterationTrampTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const std::string& metadataclass, const std::string& metadata, const CoordinateFormula& coord);
-  void mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, int gpuCopyOut);
+  void mkCreateGpuSpatialMethodCallTask(
+    const std::string& transname,
+    const std::string& taskname, 
+    const std::string& objname, 
+    const std::string& methodname, 
+    const SimpleRegion& region, 
+    std::vector<RegionNodeGroup>& regionNodesGroups, 
+    int nodeID, 
+    int gpuCopyOut, 
+    RegionList to, 
+    bool divisible);
 
 
   StreamTreePtr startSubfile(const std::string& name) {

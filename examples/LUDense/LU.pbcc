@@ -63,13 +63,14 @@ to A[n,m], P[m]
                 }
 
                 // scale current column and update trailing submatrix
+		a.useOnCpu(0);
                 Scale2D(a.region(j, j+1, j+1, m), 1.0 / a.cell(j, j));
 
                 if (j < n - 1) {
                     // rank 1 trailing matrix update
                     DGER(a.region(j+1, j+1, n  , m  ), -1.0,
                          a.region(j  , j+1, j+1, m  ),
-                         a.region(j+1, j  , n  , j+1));
+                         a.region(j+1, j  , n  , j+1), 1.0);
                 }
             }
         }
@@ -121,6 +122,7 @@ to A[n,m], P[m]
                 }
 
                 // scale values below diagonal
+		a.useOnCpu(0);
                 Scale2D(a.region(j, j+1, j+1, m), 1.0 / a.cell(j, j));
             }
         }
@@ -174,6 +176,7 @@ to A[n,m], P[m]
                 }
 
                 // scale values below diagonal
+		a.useOnCpu(0);
                 Scale2D(a.region(j, j+1, j+1, m), 1.0 / a.cell(j, j));
             }
 

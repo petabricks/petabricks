@@ -38,6 +38,7 @@ config.h
 stamp-h1
 pbc
 *.cache
+*.heur
 
 maxima.log
 schedule.pdf
@@ -50,6 +51,7 @@ configure
 test
 rttest1
 rttest2
+rttestmm
 regiondatatest
 regionmatrixtest
 regionremotetest

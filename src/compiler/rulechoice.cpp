@@ -122,6 +122,7 @@ void petabricks::RuleChoiceCollection::pruneChoiceSpace() {
 
 void petabricks::RuleChoiceCollection::generateDecisionTree(std::string& pfx, size_t choiceCount, CodeGenerator& o) {
   o.cg().addAlgchoice(pfx.substr(0, pfx.length()-1), (int)choiceCount);
+
   for(int lvl = 1; lvl<=MAX_REC_LEVELS; ++lvl) {
     std::string rule   = pfx + "lvl" + jalib::XToString(lvl) + "_rule";
     o.createTunable(true, "algchoice.alg", rule, 0, 0, (int)choiceCount);
@@ -129,7 +130,10 @@ void petabricks::RuleChoiceCollection::generateDecisionTree(std::string& pfx, si
     if(lvl<MAX_REC_LEVELS) {
       std::string cutoff = pfx + "lvl" + jalib::XToString(lvl+1) + "_cutoff";
       o.createTunable(true, "algchoice.cutoff", cutoff, jalib::maxval<int>(), 1);
-      o.beginIf("_transform_n < "+cutoff);
+      if(lvl==1)
+        o.beginIf("LIKELY(_transform_n < "+cutoff+")");
+      else
+        o.beginIf("_transform_n < "+cutoff);
     }
 
     o.write("return "+rule+";");

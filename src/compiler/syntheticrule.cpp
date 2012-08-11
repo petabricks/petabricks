@@ -107,11 +107,12 @@ void petabricks::WrapperSyntheticRule::generateCallCode(const std::string& name,
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor,
+                                            bool wrap,
                                             std::vector<RegionNodeGroup>& regionNodesGroups,
                                             int nodeID,
                                             int gpuCopyOut,
                                             SpatialCallType spatialCallType){
-  _rule->generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut, spatialCallType);
+  _rule->generateCallCode(name, trans, o, region, flavor, wrap, regionNodesGroups, nodeID, gpuCopyOut, spatialCallType);
 }
 
 void petabricks::WrapperSyntheticRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
@@ -176,6 +177,7 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor,
+						      bool,
                                             std::vector<RegionNodeGroup>&,
                                             int,
                                             int,
@@ -301,13 +303,14 @@ void petabricks::DuplicateExpansionRule::generateCallCode(const std::string& nam
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor,
+							  bool wrap,
                                             std::vector<RegionNodeGroup>& regionNodesGroups,
                                             int nodeID,
                                             int gpuCopyOut,
                                             SpatialCallType spatialCallType){
   SRCPOSSCOPE();
   size_t old = _rule->setDuplicateNumber(_dup);
-  WrapperSyntheticRule::generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut, spatialCallType);
+  WrapperSyntheticRule::generateCallCode(name, trans, o, region, flavor, wrap ,regionNodesGroups, nodeID, gpuCopyOut, spatialCallType);
   _rule->setDuplicateNumber(old);
 }
 
@@ -337,6 +340,7 @@ void petabricks::CallInSequenceRule::generateCallCode(const std::string& name,
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor,
+                                            bool wrap,
                                             std::vector<RegionNodeGroup>& regionNodesGroups,
                                             int nodeID,
                                             int gpuCopyOut,
@@ -346,7 +350,7 @@ void petabricks::CallInSequenceRule::generateCallCode(const std::string& name,
     o.write("{ DynamicTaskPtr __last;");
   RuleList::iterator i;
   for(i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut, spatialCallType);
+    (*i)->generateCallCode(name, trans, o, region, flavor, wrap, regionNodesGroups, nodeID, gpuCopyOut, spatialCallType);
     if(flavor != RuleFlavor::SEQUENTIAL) {
       if(i!=_rules.begin()) {
         o.write(name+"->dependsOn(__last);");

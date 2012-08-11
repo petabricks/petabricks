@@ -36,8 +36,6 @@
 #  include "config.h"
 #endif
 
-//#define GPU_TRACE 1
-
 #ifdef HAVE_OPENCL
 static bool _useOpenCL() { return true; }
 #else
@@ -134,7 +132,9 @@ void GpuManager::mainLoop() {
 }
 
 void GpuManager::addTask(GpuDynamicTaskPtr task) {
+#ifdef DEBUG
   JASSERT(_useOpenCL());
+#endif
   _lock.lock();
   _readytasks.push(task);
   _lock.unlock();
@@ -163,29 +163,46 @@ bool GpuManager::copyout(GpuDynamicTaskPtr ) {
 #else
 
 void GpuManager::prepare(GpuDynamicTaskPtr task) {
+#ifdef DEBUG
   JASSERT(_useOpenCL());
+#endif
   #ifdef GPU_TRACE
   std::cout << "[PREPARE]" << std::endl;
   #endif
   task->runWrapper();
+
+  int dimensions = _currenttaskinfo->dimensions();
+  //JASSERT(task->end()[dimensions-1] > task->begin()[dimensions-1])(task->end()[dimensions-1])(task->begin()[dimensions-1]);
+  if(task->end()[dimensions-1] <= task->begin()[dimensions-1])
+    return;
+
   #ifdef GPU_TRACE
   std::cout << "Number of From Matrices = " << _currenttaskinfo->_from.size() << std::endl;
   std::cout << "Number of To Matrices   = " << _currenttaskinfo->_to.size() << std::endl;
   #endif
 
+  double gpuRatio = _currenttaskinfo->gpuRatio();
+
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
-    (*i)->initGpuMem(_queue,_context,false); // clCreateBuffer
+    if((*i)->createClMem())
+      (*i)->initGpuMem(_queue,_context,gpuRatio,false); // clCreateBuffer
   }
 }
 
 void GpuManager::copyin(GpuDynamicTaskPtr task) {
+#ifdef DEBUG
   JASSERT(_useOpenCL());
+#endif
   #ifdef GPU_TRACE
   std::cout << "[COPY IN]" << std::endl;
   #endif
-  MatrixStorageInfoPtr storageinfo = task->storageinfo();
 
-  if(storageinfo->initGpuMem(_queue,_context,true)) { // clCreateBuffer
+  int dimensions = _currenttaskinfo->dimensions();
+  MatrixStorageInfoPtr storageinfo = task->storageinfo();
+  double gpuRatio = _currenttaskinfo->gpuRatio();
+
+  if(task->end()[dimensions-1] > task->begin()[dimensions-1] &&
+     storageinfo->initGpuMem(_queue,_context,gpuRatio,true)) { // clCreateBuffer
     #ifdef GPU_TRACE
     std::cout << "copying in... " << &(*storageinfo) << std::endl;
     #endif
@@ -197,15 +214,28 @@ void GpuManager::copyin(GpuDynamicTaskPtr task) {
 }
 
 void GpuManager::run(GpuDynamicTaskPtr task) {
+#ifdef DEBUG
   JASSERT(_useOpenCL());
+#endif
   #ifdef GPU_TRACE
   std::cout << "[RUN]" << std::endl;
   #endif
-  /*for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_from.begin(); i != _currenttaskinfo->_from.end(); ++i) {
-    (*i)->check(_queue);
-  }*/
 
-  task->run();
+  int dimensions = _currenttaskinfo->dimensions();
+  if(task->end()[dimensions-1] > task->begin()[dimensions-1]) {
+    //for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_from.begin(); i != _currenttaskinfo->_from.end(); ++i) {
+    //(*i)->check(_queue);
+    //}
+    // for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
+    //   (*i)->check(_queue);
+    // }
+    task->run();
+  }
+  #ifdef GPU_TRACE
+  else {
+    std::cout << "---skip---" << std::endl;
+  }
+  #endif
 
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
     (*i)->finishGpuMem(_queue,_currenttaskinfo->nodeID(), _currenttaskinfo->regionNodeGroupMap(), _currenttaskinfo->gpuCopyOut()); // clEnqueueReadBuffer
@@ -214,14 +244,23 @@ void GpuManager::run(GpuDynamicTaskPtr task) {
 }
 
 bool GpuManager::copyout(GpuDynamicTaskPtr task) {
+#ifdef DEBUG
   JASSERT(_useOpenCL());
+#endif
   MatrixStorageInfoPtr storage = task->storageinfo();
   #ifdef GPU_TRACE 
   std::cout << "[COPY OUT]" << &(*storage) << std::endl;
   #endif
 
+  int dimensions = _currenttaskinfo->dimensions();
+  if(task->end()[dimensions-1] <= task->begin()[dimensions-1]) {
+    task->completeTaskDeps();
+    storage->done(_currenttaskinfo->nodeID());
+    return true;
+  }
+
   CopyoutInfoPtr copyInfo = storage->getCopyoutInfo(_currenttaskinfo->nodeID());
-  //TODO: still not totally right
+
   if(!copyInfo) {
     // The CopyoutInfo hasn't been created yet. Not done.
     #ifdef GPU_TRACE

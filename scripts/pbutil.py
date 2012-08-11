@@ -16,7 +16,6 @@ from xml.dom.minidom import parse,parseString
 from xml.dom import DOMException
 from pprint import pprint
 from configtool import getConfigVal, setConfigVal
-from learningcompiler import LearningCompiler
 
 try:
   import numpy
@@ -319,7 +318,8 @@ def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noL
   assert os.path.isfile(pbc)
   benchmarkMaxLen=0
   jobs_per_pbc=max(1, 2*cpuCount() / len(benchmarks))
-  compiler = LearningCompiler(pbc, heuristicSetFileName, jobs=jobs_per_pbc)
+  #from learningcompiler import LearningCompiler
+  #compiler = LearningCompiler(pbc, heuristicSetFileName, jobs=jobs_per_pbc)
 
   def innerCompileBenchmark(name):
     print name.ljust(benchmarkMaxLen)
@@ -331,10 +331,10 @@ def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noL
       print "compile SKIPPED"
       return True
     try:
-      if learning and (name not in noLearningList):
-        status=compiler.compileLearningHeuristics(src, finalBinary=binary)
-      else:
-        status=compileBenchmark(pbc, src, binary=binary, jobs=jobs_per_pbc)
+     #if learning and (name not in noLearningList):
+     #  status=compiler.compileLearningHeuristics(src, finalBinary=binary)
+     #else:
+      status=compileBenchmark(pbc, src, binary=binary, jobs=jobs_per_pbc)
       if status == 0:
         print "compile PASSED"
         return True
