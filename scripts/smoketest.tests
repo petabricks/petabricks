@@ -108,7 +108,7 @@ regression/throughclause   Rand2Da
 regression/tunoutputn      Rand1D
 regression/txconstants     Rand2Da Rand0D
 regression/upleftdep       Rand2Da
-regression/whereclause     Rand2Da
+#regression/whereclause     Rand2Da
 #regression/whereclause2    Rand2Da
 versions/1_noDeps.pbcc     Small1D
 versions/2bis_tempDep.pbcc Small1D
