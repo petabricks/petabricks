@@ -79,7 +79,11 @@ YY_DECL;
     o.storage=new petabricks::MatrixStorage(n);
     o.buf = o.storage->data();
     o.remaining = n;
-    BEGIN(DATA);
+    if(n>0) {
+      BEGIN(DATA);
+    } else {
+      BEGIN(INITIAL);
+    }
   }
 }
 
