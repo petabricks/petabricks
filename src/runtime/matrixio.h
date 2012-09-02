@@ -219,6 +219,9 @@ inline void petabricks::MatrixIOGeneral::write(MatrixRegion<D,T> m){
   for(int i=0; i<D; ++i)
     fprintf(_fd," %d",m.size(i));
   fprintf(_fd,"\n");
+  if( m.count() == 0) {
+    return;
+  }
   MatrixStorage::IndexT coord[D];
   memset(coord, 0, sizeof coord);
   if(D>0){
