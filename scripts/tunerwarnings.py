@@ -110,6 +110,10 @@ class NewProgramCrash(ProgramCrash):
   '''a mutated child algorithm crashed'''
   pass
 
+class SmallInputProgramCrash(ProgramCrash):
+  '''a mutated child algorithm crashed'''
+  pass
+
 class NanAccuracy(TunerWarning):
   pass
 

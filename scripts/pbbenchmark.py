@@ -180,6 +180,7 @@ class Benchmark:
 
 def main():
   warnings.simplefilter('ignore', tunerwarnings.NewProgramCrash)
+  warnings.simplefilter('ignore', tunerwarnings.SmallInputProgramCrash)
   warnings.simplefilter('ignore', tunerwarnings.TargetNotMet)
   warnings.simplefilter('ignore', tunerwarnings.NanAccuracy)
 

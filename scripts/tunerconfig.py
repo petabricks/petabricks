@@ -192,7 +192,6 @@ class patch_noninteractive:
 class patch_regression(patch_noninteractive, patch_check):
   pass
 
-
 class patch_pbbenchmark(patch_noninteractive):
   pass
 

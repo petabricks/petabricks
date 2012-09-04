@@ -121,7 +121,7 @@ AC_SEARCH_LIBS([MD5_Init], [crypto ssl], [], [AC_MSG_ERROR([missing package libs
 AC_CHECK_LIB([mkl_intel_lp64], [cblas_dgemm], [LIBS="$LIBS -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -liomp5 -lpthread"], [], [-lmkl_sequential -lmkl_core -liomp5 -lpthread])
 AC_SEARCH_LIBS([cblas_dgemm], [blas cblas])
 AC_SEARCH_LIBS([dposv_],      [lapack])
-AC_SEARCH_LIBS([dtrsm_],      [blas cblas  lapack])
+AC_SEARCH_LIBS([dtrsm_],      [blas cblas lapack])
 
 AC_MSG_CHECKING([if system supports setrlimit])
 AC_RUN_IFELSE([AC_LANG_PROGRAM([

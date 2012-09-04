@@ -18,7 +18,7 @@ from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
 from traininginfo import TrainingInfo
 from tunerconfig import config, option_callback
-from tunerwarnings import ExistingProgramCrash,NewProgramCrash,TargetNotMet
+from tunerwarnings import ExistingProgramCrash,NewProgramCrash,TargetNotMet,SmallInputProgramCrash
 from storagedirs import timers
 from highlevelconfig import HighLevelConfig
 import tunerwarnings
@@ -103,7 +103,10 @@ class Population:
             self.testers[-1].test(candidate=m, limit=self.reasonableLimit())
           except candidatetester.CrashException, e:
             if m.numTotalTests()==0:
-              warnings.warn(NewProgramCrash(e))
+              if self.inputSize() < config.min_input_size_nocrash:
+                warnings.warn(SmallInputProgramCrash(e))
+              else:
+                warnings.warn(NewProgramCrash(e))
             else:
               warnings.warn(ExistingProgramCrash(e))
             self.failed.add(m)

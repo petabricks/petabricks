@@ -81,6 +81,7 @@ def checkBenchmark(b):
   warnings.simplefilter('ignore', DeprecationWarning)
   warnings.simplefilter('ignore', tunerwarnings.IgnoredTunerWarning)
   warnings.simplefilter('ignore', tunerwarnings.InitialProgramCrash)
+  warnings.simplefilter('ignore', tunerwarnings.SmallInputProgramCrash)
   warnings.simplefilter('ignore', tunerwarnings.ProgramTimeout)
 
   try:
