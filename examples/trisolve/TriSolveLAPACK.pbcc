@@ -24,16 +24,17 @@ to B[n,m]
     from (RIGHTFLAG rightFlag, UPFLAG upFlag, UNITFLAG unitFlag,
           ALPHA _alpha, A a)
     {
-        char side, uplo, transa = 'N', diag;
+        char side, uplo, transa, diag;
         const int lda = ah;
         const int ldb = m;
         ElementT alpha = _alpha;
         ElementT *A = NULL;
         ElementT *B = NULL;
 
-        side = rightFlag ? 'R' : 'L';
-        uplo = upFlag    ? 'U' : 'L';
-        diag = unitFlag  ? 'U' : 'N';
+        side   = rightFlag ? 'R' : 'L';
+        uplo   = upFlag    ? 'U' : 'L';
+        transa = 'N';
+        diag   = unitFlag  ? 'U' : 'N';
 
         A = new ElementT[ah * aw];
         B = new ElementT[m * n];
