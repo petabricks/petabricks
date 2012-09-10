@@ -210,15 +210,18 @@ class Ignore(Item):
 
 configctor = {'algchoice.alg'                 : None,#handled in selector creation cod
               'algchoice.cutoff'              : None,#handled in selector creation cod
-              'system.runtime.threads'        : Ignore,
               'system.cutoff.distributed'     : Cutoff,
               'system.cutoff.sequential'      : Cutoff,
               'system.cutoff.splitsize'       : Cutoff,
+              'system.data.distribution.size' : Cutoff,
+              'system.data.distribution.type' : Switch,
+              'system.data.migration.type'    : Switch,
+              'system.flag.unrollschedule'    : Switch,
+              'system.runtime.threads'        : Ignore,
               'system.tunable.accuracy.array' : SynthesizedFunction,
               'user.tunable.accuracy.array'   : SynthesizedFunction,
               'user.tunable.array'            : SynthesizedFunction,
               'user.tunable'                  : Cutoff,
-              'system.flag.unrollschedule'    : Switch,
   }
 
 
