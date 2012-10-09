@@ -353,18 +353,19 @@ class Population:
     pop = list()
 
     pop.extend(self.members[0:zz(config.pop_elitism_pct)])
+    
+    if self.roundNumber > 1:
+      for z in xrange(zz(config.pop_mutated_pct)):
+        pop.append(self.genConfigMutate())
 
-    for z in xrange(zz(config.pop_mutated_pct)):
-      pop.append(self.genConfigMutate())
+      for z in xrange(zz(config.pop_crossover_pct)):
+        pop.append(self.genConfigCrossover())
 
-    for z in xrange(zz(config.pop_crossover_pct)):
-      pop.append(self.genConfigCrossover())
-
-    z = zz(config.pop_hillclimb_pct)
-    for m in self.members:
-      if z>0 and m.mutationlog[-1] in (MutationLog.mutate, MutationLog.crossover, MutationLog.hillclimb):
-        pop.append(self.genConfigHillclimb(m))
-        z -= 1
+      z = zz(config.pop_hillclimb_pct)
+      for m in self.members:
+        if z>0 and m.mutationlog[-1] in (MutationLog.mutate, MutationLog.crossover, MutationLog.hillclimb):
+          pop.append(self.genConfigHillclimb(m))
+          z -= 1
     
     while len(pop)<n:
       pop.append(self.genConfigRandom())
