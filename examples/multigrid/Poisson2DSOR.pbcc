@@ -243,7 +243,7 @@ generator Poisson2DSORGenerator
   }
 }
 
-main transform Poisson2DSORMain
+transform Poisson2DSORMain
 from IN[n,n], B[n,n], weight
 to OUT[n,n]
 {
