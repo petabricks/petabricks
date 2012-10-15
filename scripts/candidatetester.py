@@ -324,6 +324,9 @@ class Candidate:
 
   def numTimeouts(self, n):
     return self.metrics[config.timing_metric_idx][n].numTimeouts()
+
+  def isAllTimeout(self, n):
+    return self.numTests(n) <= self.numTimeouts(n)
   
   def numTotalTests(self):
     return self.metrics[config.timing_metric_idx].totalTests()
@@ -553,7 +556,7 @@ class CandidateTester:
       self.crashCount += 1
       raise CrashException(0, self.n, candidatea, cmd)
   
-  def comparer(self, metricIdx, confidence, maxTests):
+  def comparer(self, metricIdx, confidence, maxTests, limit=None):
     '''return a cmp like function that dynamically runs more tests to improve confidence'''
     def compare(a, b):
       assert a.numTests(self.n)>0
@@ -575,16 +578,27 @@ class CandidateTester:
         if ra.sameChance(rb) >= confidence:
           return 0
         if ra.estimatedBenifitNextTest() >= rb.estimatedBenifitNextTest() and a.numTests(self.n)<maxTests:
-          self.test(a)
+          self.test(a, limit=limit)
         elif b.numTests(self.n)<maxTests:
-          self.test(b)
+          self.test(b, limit=limit)
         elif a.numTests(self.n)<maxTests:
-          self.test(a)
+          self.test(a, limit=limit)
         else:
           break
       warnings.warn(ComparisonFailed(self.n, a, b))
       return 0
     return compare
+
+
+  def testUntilConfident(self, a, b, limit=None):
+    '''
+    just a special case of the dynamic testing comparer
+    '''
+    cmpobj = self.comparer(config.timing_metric_idx,
+                           config.confidence_pct,
+                           config.max_trials,
+                           limit)
+    return cmpobj(a,b)
 
   def cleanup(self):
     if config.cleanup_inputs:

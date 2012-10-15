@@ -63,7 +63,10 @@ class MutationLog:
 class Population:
   def __init__(self, initial, tester, hlconfig):
     self.initial  = initial
-    self.members  = [initial.clone()]
+    if random.seed:
+      self.members  = [initial.clone()]
+    else:
+      self.members  = []
     self.best     = None
     self.notadded = []
     self.removed  = []
@@ -88,13 +91,12 @@ class Population:
     self.onMembersChanged(True)
     self.members[0].log_mutation(MutationLog.seed)
 
-  def test(self, count):
+  def testBasic(self, count):
     '''test each member of the pop count times'''
     self.failed=set()
     tests = []
     for z in xrange(count):
       tests.extend(self.members)
-    #random.shuffle(tests)
     with progress.Scope(cnt=len(tests)) as pr:
       for m in tests:
         check_timeout()
@@ -113,7 +115,38 @@ class Population:
             self.members.remove(m)
           pr()
 
+
+  def testDynamic(self):
+    '''
+    Test the best member of the population count times.  Test each other
+    member of the population enough times that a single tailed t-test can
+    differentiate it from the best member of the population or we reach
+    count tests.
+    '''
+    if len(self.members) == 0:
+      return
+    with progress.Scope(cnt=len(self.members)+1) as pr:
+      best = self.members[0]
+      self.testers[-1].testN(candidate=best,
+                             trials=config.max_trials,
+                             limit=self.reasonableLimit())
+      pr()
+      for m in list(self.members[1:]):
+        check_timeout()
+        self.testers[-1].testUntilConfident(best, m)
+        if m not in self.failed and m.numTests(self.inputSize())<config.max_trials:
+          try:
+            self.testers[-1].testUntilConfident(best, m, self.reasonableLimit())
+          except candidatetester.CrashException, e:
+            warnings.warn(ExistingProgramCrash(e))
+            self.failed.add(m)
+            self.members.remove(m)
+          pr()
+
   def reasonableLimit(self):
+    '''
+    return a time limit for the next test likely not to kill things too early
+    '''
     if config.accuracy_target is not None:
       members = filter(lambda x: x.hasAccuracy(self.inputSize(), config.accuracy_target), self.members)
     else:
@@ -125,11 +158,11 @@ class Population:
     else:
       return None
    
-  def countMutators(self, mutatorFilter=lambda m: True):
-    return sum(map(lambda x: len(filter(mutatorFilter, x.mutators)), self.members))
+ #def countMutators(self, mutatorFilter=lambda m: True):
+ #  return sum(map(lambda x: len(filter(mutatorFilter, x.mutators)), self.members))
 
   def genConfigRandom(self):
-    c=self.members[0].clone()
+    c=self.initial.clone()
     c.reset_mutation_log()
     self.hlconfig.randomize(c.config, self.inputSize())
     c.log_mutation(MutationLog.random)
@@ -157,74 +190,83 @@ class Population:
     c.log_mutation(MutationLog.hillclimb)
     return c
   
-  def randomMutation(self, maxpopsize=None, mutatorFilter=lambda m: True):
-    '''grow the population using cloning and random mutation'''
-    originalPop = list(self.members)
-    totalMutators = self.countMutators(mutatorFilter)
-    tries = float(totalMutators)*config.mutations_per_mutator
-    while tries>0:
-      check_timeout()
-      tries-=1
-      if maxpopsize and len(self.members) >= maxpopsize:
-        break
-      if config.multimutation:
-        p=random.choice(self.members)
-      else:
-        p=random.choice(originalPop)
-      try:
-        c=p.cloneAndMutate(self.inputSize(), mutatorFilter=mutatorFilter)
-      except candidatetester.NoMutators:
-        if self.countMutators(mutatorFilter)>0:
-          continue
-        else:
-          return tries
-      try:
-        self.testers[-1].testN(c, config.min_trials, limit=p.reasonableLimit(self.inputSize()))
-        if self.birthFilter(p,c):
-          self.members.append(c)
-          self.onMembersChanged(False)
-        else:
-          c.rmfiles()
-          self.notadded.append(c)
-      except candidatetester.CrashException, e:
-        c.rmfiles()
-        if c.lastMutator:
-          c.lastMutator.result('fail')
-        warnings.warn(NewProgramCrash(e))
-    if len(originalPop)<len(self.members):
-      logging.info("added "+', '.join(map(str,set(self.members)-set(originalPop))))
-    return tries
+ #def randomMutation(self, maxpopsize=None, mutatorFilter=lambda m: True):
+ #  '''grow the population using cloning and random mutation'''
+ #  originalPop = list(self.members)
+ #  totalMutators = self.countMutators(mutatorFilter)
+ #  tries = float(totalMutators)*config.mutations_per_mutator
+ #  while tries>0:
+ #    check_timeout()
+ #    tries-=1
+ #    if maxpopsize and len(self.members) >= maxpopsize:
+ #      break
+ #    if config.multimutation:
+ #      p=random.choice(self.members)
+ #    else:
+ #      p=random.choice(originalPop)
+ #    try:
+ #      c=p.cloneAndMutate(self.inputSize(), mutatorFilter=mutatorFilter)
+ #    except candidatetester.NoMutators:
+ #      if self.countMutators(mutatorFilter)>0:
+ #        continue
+ #      else:
+ #        return tries
+ #    try:
+ #      self.testers[-1].testN(c, config.min_trials, limit=p.reasonableLimit(self.inputSize()))
+ #      if self.birthFilter(p,c):
+ #        self.members.append(c)
+ #        self.onMembersChanged(False)
+ #      else:
+ #        c.rmfiles()
+ #        self.notadded.append(c)
+ #    except candidatetester.CrashException, e:
+ #      c.rmfiles()
+ #      if c.lastMutator:
+ #        c.lastMutator.result('fail')
+ #      warnings.warn(NewProgramCrash(e))
+ #  if len(originalPop)<len(self.members):
+ #    logging.info("added "+', '.join(map(str,set(self.members)-set(originalPop))))
+ #  return tries
 
-  def guidedMutation(self):
-    if config.print_log:
-      print "GUIDED MUTATION"
-    self.randomMutation(None, lambda m: m.accuracyHint)
+# def guidedMutation(self):
+#   if config.print_log:
+#     print "GUIDED MUTATION"
+#   self.randomMutation(None, lambda m: m.accuracyHint)
     
   
-  def birthFilter(self, parent, child):
-    '''called when considering adding child to population'''
-    same=True
-    for m in xrange(len(config.metrics)):
-      if config.accuracy_metric_idx == m and not self.isVariableAccuracy():
-        continue
-      childCmp = self.testers[-1].comparer(m, config.confidence_pct, config.max_trials)
-      if childCmp(parent, child) > 0:
-        logging.debug("adding %s through metric %d"%(str(child), m))
-        child.lastMutator.result('better')
-        return True
-      if childCmp(parent, child) < 0:
-        same=False
-    if child.lastMutator:
-      if same:
-        child.lastMutator.result('same')
-      else:
-        child.lastMutator.result('worse')
-    return False
+# def birthFilter(self, parent, child):
+#   '''called when considering adding child to population'''
+#   same=True
+#   for m in xrange(len(config.metrics)):
+#     if config.accuracy_metric_idx == m and not self.isVariableAccuracy():
+#       continue
+#     childCmp = self.testers[-1].comparer(m, config.confidence_pct, config.max_trials)
+#     if childCmp(parent, child) > 0:
+#       logging.debug("adding %s through metric %d"%(str(child), m))
+#       child.lastMutator.result('better')
+#       return True
+#     if childCmp(parent, child) < 0:
+#       same=False
+#   if child.lastMutator:
+#     if same:
+#       child.lastMutator.result('same')
+#     else:
+#       child.lastMutator.result('worse')
+#   return False
   
   def inputSize(self, roundOffset=0):
+    '''the current input size used for testing'''
     return self.testers[-1 - roundOffset].n
       
   def fitness(self, x):
+    '''
+    fitness is a tuple of
+      1) is accuracy target met    
+      2) performance
+      3) accuracy
+    
+    2 and 3 are reversed if the accuracy target is not met (so we tune for accuracy only)
+    '''
     n = self.inputSize()
     if x.hasAccuracy(n, config.accuracy_target):
       return False, x.performance(n), -x.accuracy(n),
@@ -232,6 +274,7 @@ class Population:
       return True, -x.accuracy(n), x.performance(n)
 
   def sortMembers(self):
+    '''sort self.members and set self.best'''
     self.members.sort(key=self.fitness)
     if self.members:
       self.best = self.members[0]
@@ -239,7 +282,7 @@ class Population:
       self.best = None
       
   def onMembersChanged(self, endOfRound):
-    if config.candidatelog and len(self.members) and 0:    # Connelly: Disable this logging method
+    if config.candidatelog and len(self.members):
       fastCmp = self.testers[-1].comparer(config.timing_metric_idx, 0.00, 0)
       if len(self.members) > 1:
         m = list(self.members)
@@ -262,24 +305,24 @@ class Population:
                                     endOfRound,
                                     self.roundNumber))
 
-  def markBestN(self, population, n, metric = config.timing_metric_idx):
-    '''shrink the population to popsize by removing low scoring candidates'''
-    fastCmp = self.testers[-1].comparer(metric, 0.00, 0)
-    fullCmp = self.testers[-1].comparer(metric, config.confidence_pct, config.max_trials)
-    # a rough partitioning based on fastCmp
-    population.sort(cmp=fastCmp)
-    membersfast=list(population[0:n])
-    membersslow=list(population[n:])
-    # fully order membersfast
-    membersfast.sort(cmp=fullCmp)
-    # check if any of membersslow should make the cut
-    cutoffAlg=membersfast[-1]
-    membersfast.extend(filter(lambda x: fullCmp(cutoffAlg,x)>0, membersslow))
-    # fully order membersfast again and store final population
-    membersfast.sort(cmp=fullCmp)
-    for m in membersfast[0:n]:
-      m.keep=True
-    return membersfast[0:n]
+# def markBestN(self, population, n, metric = config.timing_metric_idx):
+#   '''shrink the population to popsize by removing low scoring candidates'''
+#   fastCmp = self.testers[-1].comparer(metric, 0.00, 0)
+#   fullCmp = self.testers[-1].comparer(metric, config.confidence_pct, config.max_trials)
+#   # a rough partitioning based on fastCmp
+#   population.sort(cmp=fastCmp)
+#   membersfast=list(population[0:n])
+#   membersslow=list(population[n:])
+#   # fully order membersfast
+#   membersfast.sort(cmp=fullCmp)
+#   # check if any of membersslow should make the cut
+#   cutoffAlg=membersfast[-1]
+#   membersfast.extend(filter(lambda x: fullCmp(cutoffAlg,x)>0, membersslow))
+#   # fully order membersfast again and store final population
+#   membersfast.sort(cmp=fullCmp)
+#   for m in membersfast[0:n]:
+#     m.keep=True
+#   return membersfast[0:n]
 
   def accuracyTargets(self):
     if self.isVariableAccuracy():
@@ -287,43 +330,46 @@ class Population:
     else:
       return []
 
-  def prune(self, popsize, isLast):
-    for m in self.members:
-      m.keep = False
-
-    if config.accuracy_target is not None:
-      t = filter(lambda x: x.hasAccuracy(self.inputSize(), config.accuracy_target), self.members)
-      if len(t):
-        best=self.markBestN(t, popsize)
-        if isLast:
-          storagedirs.cur.markBest(best[0].cid, self.inputSize(), None)
-          self.best = best[0]
-          best[0].writestats(self.inputSize(), storagedirs.cur.results())
-    elif isLast and len(self.members):
-      best=self.markBestN(self.members, popsize, config.timing_metric_idx)
-      storagedirs.cur.markBest(best[0].cid, self.inputSize(), None)
-      self.best = best[0]
-      best[0].writestats(self.inputSize(), storagedirs.cur.results())
-
-    for accLevel,accTarg in enumerate(self.accuracyTargets()):
-      t = filter(lambda x: x.hasAccuracy(self.inputSize(), accTarg), self.members)
-      if len(t):
-        best=self.markBestN(t, popsize)
-        if isLast:
-          storagedirs.cur.markBest(best[0].cid, self.inputSize(), accLevel)
-          best[0].writestats(self.inputSize(), storagedirs.cur.results(accLevel))
-      else:
-        warnings.warn(TargetNotMet(self.inputSize(), accTarg))
-
-    if len(filter(lambda m: m.keep, self.members)) == 0:
-      self.markBestN(self.members, popsize, config.timing_metric_idx)
-      self.markBestN(self.members, popsize, config.accuracy_metric_idx)
-
-    self.removed  += filter(lambda m: not m.keep, self.members)
-    self.members  = filter(lambda m: m.keep, self.members)
-    self.onMembersChanged(True)
+# def prune(self, popsize, isLast):
+#   for m in self.members:
+#     m.keep = False
+#
+#   if config.accuracy_target is not None:
+#     t = filter(lambda x: x.hasAccuracy(self.inputSize(), config.accuracy_target), self.members)
+#     if len(t):
+#       best=self.markBestN(t, popsize)
+#       if isLast:
+#         storagedirs.cur.markBest(best[0].cid, self.inputSize(), None)
+#         self.best = best[0]
+#         best[0].writestats(self.inputSize(), storagedirs.cur.results())
+#   elif isLast and len(self.members):
+#     best=self.markBestN(self.members, popsize, config.timing_metric_idx)
+#     storagedirs.cur.markBest(best[0].cid, self.inputSize(), None)
+#     self.best = best[0]
+#     best[0].writestats(self.inputSize(), storagedirs.cur.results())
+#
+#   for accLevel,accTarg in enumerate(self.accuracyTargets()):
+#     t = filter(lambda x: x.hasAccuracy(self.inputSize(), accTarg), self.members)
+#     if len(t):
+#       best=self.markBestN(t, popsize)
+#       if isLast:
+#         storagedirs.cur.markBest(best[0].cid, self.inputSize(), accLevel)
+#         best[0].writestats(self.inputSize(), storagedirs.cur.results(accLevel))
+#     else:
+#       warnings.warn(TargetNotMet(self.inputSize(), accTarg))
+#
+#   if len(filter(lambda m: m.keep, self.members)) == 0:
+#     self.markBestN(self.members, popsize, config.timing_metric_idx)
+#     self.markBestN(self.members, popsize, config.accuracy_metric_idx)
+#
+#   self.removed  += filter(lambda m: not m.keep, self.members)
+#   self.members  = filter(lambda m: m.keep, self.members)
+#   self.onMembersChanged(True)
 
   def accuracyTargetsMet(self):
+    '''
+    test if we are meeting our accuracy target
+    '''
     if config.accuracy_target is None:
       return True
     accTarg=max(self.accuracyTargets())
@@ -347,7 +393,10 @@ class Population:
         print ' '.join(map(lambda x: x[0].ljust(x[1]), zip(row,lens)))
 
 
-  def next_population(self):
+  def next_population_exploration(self):
+    '''
+    return a new population generated through random mutation, crossover, hillclimbing, random seeding, and elitism
+    '''
     n = config.population_size
     zz = lambda pct: int(round(pct*n))
     pop = list()
@@ -388,6 +437,9 @@ class Population:
     return self.members[min(random.sample(range(len(self.members)), config.tournament_size))]
 
   def generation(self):
+    '''
+    execute one generation of the autotuning process
+    '''
     with progress.Scope('autotuning %s generation %d, input size %d' % (config.benchmark, self.roundNumber+1, self.inputSize())):
       try:
         #os.system("find /tmp -name 'OCL*.so' -user mangpo -maxdepth 1 -delete")
@@ -396,12 +448,11 @@ class Population:
         self.notadded = []
         self.failed   = set()
     
-        self.members = self.next_population()
+        self.members = self.next_population_exploration()
 
-        self.test(config.min_trials)
-        self.failed = self.failed.union(set(filter(lambda x: x.numTests(self.inputSize())<=x.numTimeouts(self.inputSize()),
-                                  self.members)))
-        self.members = filter(lambda x: x.numTests(self.inputSize())> x.numTimeouts(self.inputSize()), self.members)
+        self.testBasic(config.min_trials)
+        self.failed = self.failed.union(set(filter(lambda x: x.isAllTimeout(self.inputSize()), self.members)))
+        self.members = filter(lambda x: not x.isAllTimeout(self.inputSize()), self.members)
 
         if len(self.members):
           self.firstRound=False
@@ -414,12 +465,19 @@ class Population:
         
         self.sortMembers()
 
+        self.testDynamic()
+        
+        self.sortMembers()
+
         if config.print_log:
           self.printPopulation()
+        
+        self.onMembersChanged(True)
         
         if not config.delete_output_dir:
           for m in self.members+self.removed:
             m.writestats(self.inputSize())
+
 
       except candidatetester.InputGenerationException, e:
         if e.testNumber==0 and self.inputSize()<=config.min_input_size_nocrash:
