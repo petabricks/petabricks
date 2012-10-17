@@ -30,7 +30,7 @@ def rnd_lognormal(mean, minv, maxv):
   r = None
   while r is None:
     try:
-      r = math.log(random.normalvariate(2, 1), 2)
+      r = math.log(random.normalvariate(2, 4), 2)
       if r<0:
         r=None
     except ValueError:
