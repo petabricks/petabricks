@@ -12,7 +12,7 @@ class config_defaults:
   min_input_size           = 1
   max_time                 = 60*150
   rounds_per_input_size    = 2
-  final_rounds             = 50
+  final_rounds             = 40
 
   #number of trials to run
   confidence_pct   = 0.75
@@ -38,7 +38,7 @@ class config_defaults:
   pop_crossover_pct = 0.25
   pop_mutated_pct   = 0.25
   pop_hillclimb_pct = 0.20
-  tournament_size = 3
+  tournament_size = 5
   mutation_rate = 0.15
 
   #how mutation to do
