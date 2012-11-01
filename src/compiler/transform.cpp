@@ -475,6 +475,14 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   generateMainInterface(o, nextMain);
   o.write("#undef TRANSFORM_LOCAL");
   o.comment("End of output for "+_name);
+
+  for(std::vector<std::string>::const_iterator i = _inputFeatures.begin();
+      i != _inputFeatures.end();
+      ++i)
+  {
+    o.cg().addInputFeature(*i);
+  }
+
   o.cg().endTransform(_originalName, _name);
   o.newline();
   o.newline();

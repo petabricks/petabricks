@@ -119,6 +119,7 @@ extern int pblex(YYSTYPE * yylval_param,YYLTYPE * yylloc_param);
 %token KW_ROTATABLE KW_MAIN KW_RECURSIVE KW_DUPLICATE KW_MEMOIZED
 %token /*KW_TESTCASE*/ KW_GENERATOR KW_TEMPLATE KW_TUNABLE KW_CONFIG KW_PARAM
 %token KW_ACCURACYMETRIC KW_ACCURACYBINS KW_ACCURACYVARIABLE KW_RULE
+%token KW_INPUTFEATURE
 %token <str> TOK_INTEGER TOK_FLOAT TOK_RULEBODY IDENT 
 %type <str> RuleBody
 %type <i> Integer PriorityFlag ConfigItemType
@@ -174,6 +175,7 @@ TransformHeader: TransformHeader KW_TEMPLATE OptLT TemplateArgs OptGT { P($$=$1)
 TransformHeader: TransformHeader KW_ACCURACYMETRIC IDENT              { P($$=$1)->setAccuracyMetric($3);};
 TransformHeader: TransformHeader KW_ACCURACYBINS FloatList            { P($$=$1)->setAccuracyBins(*$3);};
 TransformHeader: TransformHeader KW_GENERATOR IDENT                   { P($$=$1)->setGenerator($3);};
+TransformHeader: TransformHeader KW_INPUTFEATURE IDENT                { P($$=$1)->addInputFeature($3);};
 TransformHeader: TransformHeader ConfigItemLine                       { P($$=$1)->addConfigItem(*$2); };
 
 ConfigItemLine: ConfigItemType ConfigItem {

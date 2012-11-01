@@ -282,6 +282,9 @@ public:
 
   void addInitCall(const std::string& s) { _initCalls.push_back(s); }
 
+
+  void addInputFeature(const std::string& s) { _inputFeatures.push_back(s); }
+
 protected:
   static std::map<std::string, TransformPtr> theTransformMap();
 
@@ -309,6 +312,7 @@ private:
   int                 _templateChoice;
   double              _curAccTarget;
   std::vector<std::string> _initCalls;
+  std::vector<std::string> _inputFeatures;
 };
 
 }

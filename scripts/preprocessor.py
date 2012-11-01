@@ -74,6 +74,7 @@ reserved = {
   'accuracy_metric' : 'ACCURACYMETRIC',
   'accuracy_bins' : 'ACCURACYBINS',
   'accuracy_variable' : 'ACCURACYVARIABLE',
+  'input_feature' : 'INPUTFEATURE',
   'scaled_by' : 'SCALE',
 
   'to' : 'TO',
@@ -611,6 +612,7 @@ def p_transform_header_element(p):
 		      | ACCURACYMETRIC ID
 		      | PARAM ID
 		      | PARAMETER ID
+		      | INPUTFEATURE ID
 		      | TEMPLATE template_arg
 		      | ACCURACYVARIABLE config_arg
 		      | CONFIG config_arg

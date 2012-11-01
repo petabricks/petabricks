@@ -129,6 +129,12 @@ public:
     _os << " />\n";
   }
   
+  void addInputFeature(const std::string name) {
+    _os << "  <input_feature";
+    _os << " name=\"" << name << "\"";
+    _os << " />\n";
+  }
+
   void dumpTo(std::ostream& o){
     o << "<traininginfo>\n";
     o << _os.str();

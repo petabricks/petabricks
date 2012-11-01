@@ -30,6 +30,7 @@ eigenproblem/trial1
 eigenproblem/trial2
 gpu/arithmetic
 gpu/blackscholes
+gpu/inplace
 gpu/loop
 gpu/threepasses
 gpu/twoRulesShareInOut2
@@ -103,9 +104,10 @@ multigrid/Poisson2DSOR
 multigrid/Poisson2DSORVA
 multigrid/Restrict2Dnew
 multigrid/Restrict3D
+multiply/lapackwrapper
 multiply/multiplyAdd
-multiply/multiply
 multiply/multiplyblas
+multiply/multiply
 multiply/multiplysimple
 multiply/strassen
 multiply/triMultiply
@@ -149,6 +151,7 @@ regression/forenough
 regression/forwarddecl
 regression/function
 regression/generators
+regression/inputfeature
 regression/matrixversions2
 regression/matrixversions
 regression/memoize
@@ -192,6 +195,7 @@ simple/copy
 simple/dotprod
 simple/init
 simple/matrixrotate
+simple/matVecMul
 simple/minimalmatmul
 simple/norm
 simple/permute
@@ -206,7 +210,6 @@ sort2/Mergesort2
 sort2/Quicksort2
 sort2/Selectionsort
 sort2/Sort2
-sort/Bitonicsort
 sort/Insertionsort
 sort/Mergesort2
 sort/Mergesort
@@ -216,6 +219,8 @@ sort/Radixsort4
 sort/Radixsort
 sort/Selectionsort
 sort/Sort
+tridiagonal/tridiagonal2
+tridiagonal/tridiagonal
 trisolve/TriSolveGenerators
 trisolve/TriSolveLAPACK
 trisolve/TriSolveLL
