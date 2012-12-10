@@ -1,0 +1,72 @@
+#ifndef LULAPACK_PBCC
+#define LULAPACK_PBCC
+
+#include "../simple/macros.h"
+#define INDEX2D(i0, i1, s0) ((i1) * (s0) + (i0))
+
+%{
+extern "C" void dgetrf_(const int *m, const int *n, double *A, const int *lda, int *ipiv, int *info);
+extern "C" void sgetrf_(const int *m, const int *n, float *A, const int *lda, int *ipiv, int *info);
+
+void getrf_wrap(const int *m, const int *n, double *A, const int *lda, int *ipiv, int *info) {
+  dgetrf_(m, n, A, lda, ipiv, info);
+}
+void getrf_wrap(const int *m, const int *n, float *A, const int *lda, int *ipiv, int *info) {
+  sgetrf_(m, n, A, lda, ipiv, info);
+}
+%}
+
+transform LULAPACK
+from IN[n,m]
+to OUT[n,m], P[m]
+{
+    to (OUT out, P p)
+    from (IN in)
+    {
+        // call LAPACK
+
+        const int lda = m;
+        int info = 0, *ipiv = NULL;
+        ElementT *A = NULL;
+
+        A = new ElementT[m * n];
+        ipiv = new int[m];
+        if (!A || !ipiv) {
+            printf("Error allocating memory!\n");
+            exit(-1);
+        }
+
+        // pack input
+        int i, j;
+        for (j = 0; j < n; ++j) {
+            for (i = 0; i < m; ++i) {
+                // PetaBricks - first index is column, second is row
+                A[INDEX2D(i, j, m)] = in.cell(j, i);
+            }
+        }
+
+        getrf_wrap(&m, &n, A, &lda, ipiv, &info);
+        if (info) {
+            printf("LAPACK error in call to dppsv: info = %d\n", info);
+            exit(-1);
+        }
+
+        // unpack output
+        for (j = 0; j < n; ++j) {
+            for (i = 0; i < m; ++i) {
+                out.cell(j, i) = A[INDEX2D(i, j, m)];
+            }
+        }
+        for (i = 0; i < MIN(m,n); ++i) {
+            p.cell(i) = ipiv[i] - 1; // convert to 0-indexed
+        }
+        for (i = MIN(m,n); i < m; ++i) {
+            p.cell(i) = i; // no swaps for rest of array
+        }
+
+        delete [] ipiv;
+        delete [] A;
+    }
+}
+
+#endif // LULAPACK_PBCC

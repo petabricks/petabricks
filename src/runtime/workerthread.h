@@ -29,6 +29,7 @@
 
 #include "dynamictask.h"
 #include "common/thedeque.h"
+#include "workerthreadcache.h"
 
 #include <pthread.h>
 #include <set>
@@ -49,6 +50,8 @@ public:
   WorkerThread(DynamicScheduler& ds);
   ~WorkerThread();
 
+  static void markUtilityThread();
+
   ///
   /// called from a remote thread, taking work
   DynamicTask* steal(){
@@ -56,12 +59,15 @@ public:
 #ifdef WORKERTHREAD_INJECT
     if(!_injectQueue.empty())
       t=_injectQueue.pop_bottom();
+    if(t==NULL) {
 #endif
-    if(t==NULL)
-      t = _deque.pop_bottom();
+    t = _deque.pop_bottom();
+#ifdef WORKERTHREAD_INJECT
+    }
+#endif
     return t;
   }
-  
+
   ///
   /// called from a remote thread, giving work
   void inject(DynamicTask* t){
@@ -71,7 +77,7 @@ public:
     JASSERT(false)(t).Text("support for WorkerThread::inject() not compiled in");
 #endif
   }
-  
+
   ///
   /// called on WorkerThread::self(), taking work
   DynamicTask* popLocal(){
@@ -90,7 +96,7 @@ public:
 #endif
     return t;
   }
-  
+
   ///
   /// called on WorkerThread::self(), giving work
   void pushLocal(DynamicTask* t){
@@ -102,18 +108,18 @@ public:
 #endif
     _deque.push_top(t);
   }
-  
+
   ///
   /// Racy count of the number of items of work left
   int workCount() const {
     //ondeck is excluded purposefully (it cant be stolen)
     return (int)_deque.size()
 #ifdef WORKERTHREAD_INJECT
-         + (int)injectQueue.size()
+         + (int)_injectQueue.size()
 #endif
     ;
   }
-  
+
   ///
   /// thread local random number generator
   int threadRandInt() const;
@@ -132,6 +138,9 @@ public:
 #ifdef DEBUG
   bool isWorking() const { return _isWorking; }
 #endif
+#ifdef DISTRIBUTED_CACHE
+  WorkerThreadCachePtr cache() const { return _cache; }
+#endif
 private:
   int _id;
 #ifdef WORKERTHREAD_ONDECK
@@ -146,6 +155,9 @@ private:
 #ifdef DEBUG
   bool _isWorking;
 #endif
+#ifdef DISTRIBUTED_CACHE
+  WorkerThreadCachePtr _cache;
+#endif
 } __attribute__ ((aligned (CACHE_LINE_SIZE)));
 
 /**
@@ -155,13 +167,13 @@ private:
 class WorkerThreadPool {
 public:
   //
-  // constructor 
+  // constructor
   WorkerThreadPool();
 
   //
   // insert a new thread into the pool in a lock-free way
   void insert(WorkerThread* thread);
-  
+
   //
   // remove a thread from the pool in a lock-free way
   void remove(WorkerThread* thread);
@@ -169,7 +181,7 @@ public:
   //
   // pick a random thread from the pool
   WorkerThread* getRandom(const WorkerThread* caller = WorkerThread::self());
-  
+
   //
   // pick a thread from the pool, using i as a hint of the location
   WorkerThread* getFixed(int i=0);

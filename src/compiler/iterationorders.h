@@ -29,6 +29,7 @@
 
 #include "formula.h"
 #include "matrixdependency.h"
+#include "pbc.h"
 
 #include <string>
 #include <vector>
@@ -38,7 +39,12 @@ class CodeGenerator;
 class RuleInterface;
 class Transform;
 class SplitRegion;
-typedef std::vector<SplitRegion> SplitRegionList;
+
+class SplitRegionList : public std::vector<SplitRegion> , public jalib::JRefCounted, public jalib::SrcPosTaggable, public jalib::JPrintable {
+public:
+  void print(std::ostream& o) const;
+};
+
 
 class IterationDefinition {
 public:
@@ -47,11 +53,16 @@ public:
   void genLoopBegin(CodeGenerator& o);
   void genLoopEnd(CodeGenerator& o);
 
+  void genScratchRegionLoopBegin(CodeGenerator& o);
+  void genScratchRegionLoopEnd(CodeGenerator& o);
+
   DependencyDirection& order() { return _order;}
+  CoordinateFormula&  var() { return _var;}
   CoordinateFormula&  begin() { return _begin;}
   CoordinateFormula&  end  () { return _end;}
   CoordinateFormula&  step () { return _step;}
   const DependencyDirection& order() const { return _order;}
+  const CoordinateFormula&  var() const { return _var;}
   const CoordinateFormula&  begin() const { return _begin;}
   const CoordinateFormula&  end  () const { return _end;}
   const CoordinateFormula&  step () const { return _step;}
@@ -66,12 +77,12 @@ public:
   std::vector<std::string> packedargs() const;
   std::vector<std::string> packedargnames() const;
   void unpackargs(CodeGenerator& o) const;
-  
 
-  void genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, bool isStatic) const;
+
+  void genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, RuleFlavor rf, unsigned int blockNumber, SpatialCallType spatialCallType) const;
 
 protected:
-  void fillSplitRegionList(SplitRegionList& regions, SplitRegion& seed) const;
+  void fillSplitRegionList(SplitRegionList& regions, SplitRegion& seed, unsigned int blockNumber) const;
   bool canDependOn(const SplitRegion& a, const SplitRegion& b) const;
 private:
   DependencyDirection _order;
@@ -79,6 +90,7 @@ private:
   CoordinateFormula   _begin;
   CoordinateFormula   _end;
   CoordinateFormula   _step;
+  CoordinateFormula   _size;
 };
 
 }

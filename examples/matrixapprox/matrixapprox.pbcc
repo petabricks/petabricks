@@ -52,26 +52,26 @@ generator matrixapproinputgen
 
 	//combine sigma(k) * U(k)
 	U.cell(i,j) from (X.cell(i,j+n) x, Lambda.cell(i) lam){
-		return lam*sqrt(2)*x;
+		return lam*sqrt(2.0)*x;
 	}
 
 	//V tranposed
 	VT.cell(j,i) from (X.cell(i,j) x){
-		return sqrt(2)*x;	
+		return sqrt(2.0)*x;
 	}
-		
+
 
 
 	to (OUT out, TEMP temp) from (U u, VT vt){
 		int i;
-		if (k>n)  PetabricksRuntime::abort(); 
+		if (k>n)  PetabricksRuntime::abort();
 		MatrixMultiply(out, u.region(0,0,1,n), vt.region(0,0,n,1) );
-		for (i=1; i<k; i++) { 
+		for (i=1; i<k; i++) {
 			//MatrixAdd(out, out, MatrixMultiply(u.region(i,0,i+1,n), vt.region(0,i,n,i+1)) );
 			MatrixMultiply(temp, u.region(i,0,i+1,n), vt.region(0,i,n,i+1));
 			MatrixAdd(out, out, temp);
 		}
-	} 
+	}
 }
 
 
@@ -82,7 +82,7 @@ to Error
   Error from (A a, B b)
   {
     int i, j;
-    double temp, sum = 0;
+    ElementT temp, sum = 0;
     for (j = 0; j < h; j++) {
       for (i = 0; i < w; i++) {
         temp = a.cell(i, j) - b.cell(i, j);
@@ -101,12 +101,12 @@ to Accuracy
 	ZERO.cell(i,j) from() { return 0;}
 
 	//accuracy measure
-	Accuracy  from(IN in, OUT out, ZERO Z) 
+	Accuracy  from(IN in, OUT out, ZERO Z)
 	{
 		int i;
 		int j;
-		double e1;
-		double e2;
+		ElementT e1;
+		ElementT e2;
 		ComputeError(e1, Z, in);
 		ComputeError(e2, out, in);
 		if (e2 == 0) {
@@ -116,7 +116,7 @@ to Accuracy
             		return log10(e1/e2);
         	}
 	}
-			
+
 }
 
 transform matrixapproinputgen

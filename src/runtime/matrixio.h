@@ -28,6 +28,7 @@
 #define PETABRICKSMATRIXIO_H
 
 #include "matrixregion.h"
+#include "regionmatrix.h"
 
 #include "common/jassert.h"
 
@@ -65,20 +66,26 @@ struct MatrixReaderScratch {
 /**
  * A thin wrapper around matrixreader
  */
-class MatrixIO{
+class MatrixIOGeneral{
 public:
   ///
   /// Constructor
-  MatrixIO(FILE* file = stdin);
+  MatrixIOGeneral(FILE* file = stdin);
 
   ///
   /// Constructor (opens the given filename)
-  MatrixIO(const char* filename, const char* mode);
+  MatrixIOGeneral(const char* filename, const char* mode);
+
+
+  template<int D>
+  MatrixRegion<D, MATRIX_ELEMENT_T> read_sequential(){
+    return read_workstealing<D>();
+  }
 
   ///
   /// Read a D-dimensional matrix from _fd
   template<int D>
-  MatrixRegion<D, MATRIX_ELEMENT_T> read(){
+  MatrixRegion<D, MATRIX_ELEMENT_T> read_workstealing(){
     JASSERT(_fd != 0);
     MatrixReaderScratch o;
     _read(o);
@@ -86,7 +93,53 @@ public:
       .Text("Unexpected number of dimensions in input matrix");
     MatrixStorage::IndexT sizes[D];
     for(int i=0; i<D; ++i) sizes[i]=o.sizes[i];
-    return MatrixRegion<D, MATRIX_ELEMENT_T>(o.storage, o.storage->data(), sizes);
+    MatrixRegion<D, MATRIX_ELEMENT_T> m1 = MatrixRegion<D, MATRIX_ELEMENT_T>(o.storage, o.storage->data(), sizes);
+    #ifdef COLUMN_MAJOR
+    return copyData(m1, sizes);
+    #else
+    return m1;
+    #endif
+  }
+
+  ///
+  /// Read a D-dimensional matrix from _fd
+  template<int D>
+  RegionMatrixWrapper<D, MATRIX_ELEMENT_T> read_distributed(){
+    JASSERT(_fd != 0);
+    MatrixReaderScratch o;
+    _read(o);
+    JASSERT(o.dimensions==D)(o.dimensions)(D)
+      .Text("Unexpected number of dimensions in input matrix");
+    MatrixStorage::IndexT sizes[D];
+    for(int i=0; i<D; ++i) sizes[i]=o.sizes[i];
+    RegionMatrixWrapper<D, MATRIX_ELEMENT_T> m1 = RegionMatrixWrapper<D, MATRIX_ELEMENT_T>(o.storage->data(), sizes);
+    #ifdef COLUMN_MAJOR
+    return copyData(m1, sizes);
+    #else
+    return m1;
+    #endif
+  }
+
+  template<typename T>
+  T copyData(T m1, IndexT* sizes) {
+    T m2 = T::allocate(sizes);
+    IndexT coord[T::D];
+    memset(coord, 0, sizeof coord);
+    for(;;){
+      m2.cell(coord) = m1.cell(coord);
+      int z=m1.incCoord(coord);
+      if(z<0) break;
+    }
+    return m2;
+  }
+
+  ///
+  /// Read a D-dimensional matrix from _fd to MatrixReaderScratch
+  MatrixReaderScratch readToMatrixReaderScratch(){
+    JASSERT(_fd != 0);
+    MatrixReaderScratch o;
+    _read(o);
+    return o;
   }
 
   ///
@@ -94,16 +147,9 @@ public:
   template<int D, typename T>
   void write(MatrixRegion<D,T> m);
 
-  MatrixRegion0D read0D(){ return read<0>(); }
-  MatrixRegion1D read1D(){ return read<1>(); }
-  MatrixRegion2D read2D(){ return read<2>(); }
-  MatrixRegion3D read3D(){ return read<3>(); }
-  MatrixRegion4D read4D(){ return read<4>(); }
-  MatrixRegion5D read5D(){ return read<5>(); }
-  MatrixRegion6D read6D(){ return read<6>(); }
-  MatrixRegion7D read7D(){ return read<7>(); }
-  MatrixRegion8D read8D(){ return read<8>(); }
-  MatrixRegion9D read9D(){ return read<9>(); }
+  template<int D, typename T>
+  void write(RegionMatrixWrapper<D,T> m);
+
 protected:
   void _read(MatrixReaderScratch&);
 
@@ -111,12 +157,95 @@ private:
   FILE* _fd;
 };
 
+
+class MatrixIOWorkstealing : public MatrixIOGeneral {
+ public:
+  MatrixIOWorkstealing(FILE* file = stdin): MatrixIOGeneral(file) {}
+  MatrixIOWorkstealing(const char* filename, const char* mode): MatrixIOGeneral(filename, mode) {}
+
+
+  workstealing::MatrixRegion0D read0D(){ return read_workstealing<0>(); }
+  workstealing::MatrixRegion1D read1D(){ return read_workstealing<1>(); }
+  workstealing::MatrixRegion2D read2D(){ return read_workstealing<2>(); }
+  workstealing::MatrixRegion3D read3D(){ return read_workstealing<3>(); }
+  workstealing::MatrixRegion4D read4D(){ return read_workstealing<4>(); }
+  workstealing::MatrixRegion5D read5D(){ return read_workstealing<5>(); }
+  workstealing::MatrixRegion6D read6D(){ return read_workstealing<6>(); }
+  workstealing::MatrixRegion7D read7D(){ return read_workstealing<7>(); }
+  workstealing::MatrixRegion8D read8D(){ return read_workstealing<8>(); }
+  workstealing::MatrixRegion9D read9D(){ return read_workstealing<9>(); }
+};
+
+class MatrixIODistributed : public MatrixIOGeneral {
+ public:
+  MatrixIODistributed(FILE* file = stdin): MatrixIOGeneral(file) {}
+  MatrixIODistributed(const char* filename, const char* mode): MatrixIOGeneral(filename, mode) {}
+
+
+  distributed::MatrixRegion0D read0D(){ return read_distributed<0>(); }
+  distributed::MatrixRegion1D read1D(){ return read_distributed<1>(); }
+  distributed::MatrixRegion2D read2D(){ return read_distributed<2>(); }
+  distributed::MatrixRegion3D read3D(){ return read_distributed<3>(); }
+  distributed::MatrixRegion4D read4D(){ return read_distributed<4>(); }
+  distributed::MatrixRegion5D read5D(){ return read_distributed<5>(); }
+  distributed::MatrixRegion6D read6D(){ return read_distributed<6>(); }
+  distributed::MatrixRegion7D read7D(){ return read_distributed<7>(); }
+  distributed::MatrixRegion8D read8D(){ return read_distributed<8>(); }
+  distributed::MatrixRegion9D read9D(){ return read_distributed<9>(); }
+};
+
+
+namespace sequential {
+  typedef MatrixIOWorkstealing MatrixIO;
+}
+
+namespace workstealing {
+  typedef MatrixIOWorkstealing MatrixIO;
+}
+
+namespace distributed {
+  typedef MatrixIODistributed MatrixIO;
+}
+
 }
 
 ///
 /// Write a given matrix to _fd
 template<int D, typename T>
-inline void petabricks::MatrixIO::write(MatrixRegion<D,T> m){
+inline void petabricks::MatrixIOGeneral::write(MatrixRegion<D,T> m){
+  if(_fd==0)     return;
+  if(_fd==stdin) _fd=stdout;
+  fprintf(_fd,"SIZE");
+  for(int i=0; i<D; ++i)
+    fprintf(_fd," %d",m.size(i));
+  fprintf(_fd,"\n");
+  if( m.count() == 0) {
+    return;
+  }
+  MatrixStorage::IndexT coord[D];
+  memset(coord, 0, sizeof coord);
+  if(D>0){
+    for(;;){
+      fprintf(_fd,"%4.8g ", (double) m.cell(coord));
+      int z=m.incCoord(coord);
+      if(z<0) break;
+      while(z-->0)
+        fprintf(_fd,"\n");
+    }
+    fprintf(_fd,"\n");
+  }else{ //0D case
+    fprintf(_fd,"%4.8g", (double) m.cell(coord));
+  }
+  fprintf(_fd,"\n");
+  fflush(_fd);
+}
+
+///
+/// Write a given regionmatrix to _fd
+template<int D, typename T>
+inline void petabricks::MatrixIOGeneral::write(RegionMatrixWrapper<D,T> m){
+  m = m.localCopy();
+
   if(_fd==0)     return;
   if(_fd==stdin) _fd=stdout;
   fprintf(_fd,"SIZE");

@@ -29,10 +29,12 @@
 
 #include <set>
 #include <vector>
+#include <cstdlib>
 
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
 #include "common/srcpos.h"
+#include "common/jassert.h"
 
 namespace petabricks {
 
@@ -57,7 +59,7 @@ public:
     FLAG_SIZESPECIFICCFG = 1<<1,
     FLAG_FROMTUNABLE     = 1<<2
   };
-  
+
   friend bool operator< (const FreeVar& a, const FreeVar& b){
     return reinterpret_cast<const std::string&>(a)
          < reinterpret_cast<const std::string&>(b);
@@ -73,7 +75,7 @@ private:
 
 class FreeVars : public std::set<FreeVar>, public jalib::JRefCounted, public jalib::SrcPosTaggable {
 public:
-  bool contains(const std::string& s) const{ return find(s)!=end(); } 
+  bool contains(const std::string& s) const{ return find(s)!=end(); }
 
   template <typename T>
   void eraseAll(const T& that) {
@@ -89,15 +91,16 @@ public:
 /**
  * Collection of Formulas
  */
-class FormulaList : public std::vector<FormulaPtr> 
+class FormulaList : public std::vector<FormulaPtr>
                   , public jalib::JRefCounted
                   , public jalib::JPrintable
-                  , public jalib::SrcPosTaggable 
+                  , public jalib::SrcPosTaggable
 {
 public:
   FormulaList();
   FormulaList(const FormulaList& that);
   void normalize();
+  void declareIntegers() const;
   void print(std::ostream& o) const;
   FreeVarsPtr getFreeVariables() const;
   void makeRelativeTo(const FormulaList& defs);
@@ -105,6 +108,8 @@ public:
   void addToEach(const FormulaPtr& x);
 
   void subToEach(const FormulaPtr& x);
+
+  void sub(const FormulaList& fl);
 
   void extend(const FormulaList& fl){
     insert(end(), fl.begin(), fl.end());
@@ -126,17 +131,17 @@ class Formula : public jalib::JRefCounted, public jalib::JPrintable, public jali
 protected:
   Formula(const FreeVarsPtr& fv) : _freeVars(fv), _size(1) {}
 public:
-  
+
   static FormulaPtr inf();
 
-  FreeVarsPtr getFreeVariables() const { return _freeVars; } 
-  
+  FreeVarsPtr getFreeVariables() const { return _freeVars; }
+
   void getFreeVariables(FreeVars& s) const {
     s.insert(_freeVars->begin(), _freeVars->end());
   }
 
   virtual void explodeEquality(FormulaPtr& l, FormulaPtr& r) const;
-  
+
   FormulaPtr rhs() const {
     FormulaPtr l,r;
     explodeEquality(l,r);
@@ -159,7 +164,7 @@ public:
   virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const;
 
   virtual std::string explodePrint() const;
-  
+
   virtual FormulaPtr ceiling() const { return this; }
   virtual FormulaPtr floor() const { return this; }
 
@@ -168,6 +173,11 @@ public:
   FormulaPtr negative() const;
 
   virtual char opType() const;
+
+  virtual FormulaPtr clone() const = 0;
+  virtual double value() const {  JTRACE("Formula.value()")(toCppString());
+                                  UNIMPLEMENTED(); abort(); }
+
 protected:
   /// Set of all free variables in the tree
   FreeVarsPtr _freeVars;
@@ -185,8 +195,27 @@ public:
   FormulaVariable(const char* name);
   FormulaVariable(const std::string& name);
   void print(std::ostream& o) const;
+  FormulaPtr clone() const { return FormulaPtr(new FormulaVariable(*this)); }
 private:
   std::string _name;
+};
+
+/**
+ * Node in a formula tree representing a conditional
+ */
+class FormulaIf : public Formula {
+public:
+  FormulaIf(const FormulaPtr& cond, const FormulaPtr& thenClause, const FormulaPtr& elseClause=FormulaPtr());
+  void print(std::ostream& o) const;
+  virtual FormulaPtr clone() const { FormulaPtr newCond = _cond->clone();
+                                     FormulaPtr newThen = _then->clone();
+                                     FormulaPtr newElse = _else->clone();
+                                     return FormulaPtr(new FormulaIf(newCond, newThen, newElse));
+                                   }
+private:
+  FormulaPtr _cond;
+  FormulaPtr _then;
+  FormulaPtr _else;
 };
 
 /**
@@ -201,6 +230,8 @@ public:
   static FormulaPtr zero()   { return new FormulaLiteral( 0); }
   FormulaLiteral(T v);
   void print(std::ostream& o) const;
+  virtual FormulaPtr clone() const { return FormulaPtr(new FormulaLiteral(*this)); }
+  virtual double value() const { return _value; }
 private:
   T _value;
 };
@@ -219,9 +250,9 @@ public:
   FormulaBinop(const FormulaPtr& left, const FormulaPtr& right);
   void print(std::ostream& o) const;
   static const char* opStr();
-  
+
   virtual void explodeEquality(FormulaPtr& l, FormulaPtr& r) const;
-  
+
   virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const;
 
   virtual FormulaPtr ceiling() const;
@@ -234,6 +265,21 @@ public:
 
   virtual char opType() const;
 
+  virtual FormulaPtr clone() const {
+    FormulaPtr newLeft = _left->clone();
+    FormulaPtr newRight= _right->clone();
+    FormulaBinop<OP>* newFormula= new FormulaBinop<OP>(newLeft, newRight);
+    return FormulaPtr(newFormula);
+  }
+
+  virtual double value() const { if(OP == '-' && (_left->value() == 0)) {
+                                   return -_right->value();
+                                 }
+
+                                 //All other cases
+                                 UNIMPLEMENTED();
+                                 abort();
+                               }
 private:
   FormulaPtr _left;
   FormulaPtr _right;

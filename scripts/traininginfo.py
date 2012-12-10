@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import re
 from xml.dom.minidom import parse
 nameof = lambda t: str(t.getAttribute("name"))

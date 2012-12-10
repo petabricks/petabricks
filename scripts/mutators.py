@@ -1,9 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import itertools, random, math, logging, csv
 import storagedirs
 import numpy
-from scipy import stats
+import optimize
+#from scipy import stats
 from tunerconfig import config
+import candidatetester
 
 class MutateFailed(Exception):
   '''Exception thrown when a mutation can't be applied'''
@@ -90,18 +92,18 @@ class Mutator:
 
 
 class LognormRandom:
-  def random(self, start, minVal, maxVal):
+  def random(self, start, minVal, maxVal, candidate = None):
     for z in xrange(config.rand_retries):
-      v=int(start*stats.lognorm.rvs(1)+.5)
+      v=int(start*random.lognormvariate(0,1)+.5)
       #logging.debug("lognorm: start=%d, v=%d", start, v)
       if v>=minVal and v<=maxVal and start!=v:
         return v
     raise MutateFailed("lognorm random gen failed")
 
 class UniformRandom:
-  def random(self, start, minVal, maxVal):
+  def random(self, start, minVal, maxVal, candidate = None):
     for z in xrange(config.rand_retries):
-      v=int(stats.randint.rvs(minVal, maxVal+1))
+      v=int(random.randint(minVal, maxVal))
       #logging.debug("uniform: start=%d, v=%d", start, v)
       if v>=minVal and v<=maxVal and start!=v:
         return v
@@ -231,26 +233,29 @@ class LognormRandAlgCutoffMutator(LognormRandCutoffMutator, LognormRandom):
     assert v>=down and v<=up
     return v
 
-class TunableArrayMutator(Mutator):
+class TunableSizeSpecificMutator(Mutator):
   def __init__(self, tunable, minVal, maxVal, weight=1.0):
     self.tunable = tunable
     self.minVal = minVal
     self.maxVal = maxVal
     Mutator.__init__(self, weight)
   def getVal(self, candidate, oldVal, inputSize):
-    return self.random(oldVal, self.minVal, self.maxVal)
+    return self.random(oldVal, self.minVal, self.maxVal, candidate = candidate)
   def mutate(self, candidate, n):
     i = int(math.log(n, 2))
-    candidate.clearResultsAbove(min(n, 2**i-1))
     old = candidate.config[config.fmt_bin % (self.tunable, i)]
     new = self.getVal(candidate, old, n)
     assert new >= self.minVal
     assert new <= self.maxVal
     #print str(candidate),self.tunable, old, new
+    self.setVal(candidate, new, n)
+  def setVal(self, candidate, newVal, n):
+    i = int(math.log(n, 2))
+    candidate.clearResultsAbove(min(n, 2**i-1))
     ks = set(candidate.config.keys())
     assert config.fmt_bin%(self.tunable, i) in ks
     while config.fmt_bin%(self.tunable, i) in ks:
-      candidate.config[config.fmt_bin % (self.tunable, i)] = new
+      candidate.config[config.fmt_bin % (self.tunable, i)] = newVal
       i+=1
   def reset(self, candidate):
     candidate.clearResults()
@@ -262,25 +267,168 @@ class TunableArrayMutator(Mutator):
         candidate.config[config.fmt_bin % (self.tunable, i)] = self.minVal+0
       i+=1
 
-class LognormTunableArrayMutator(TunableArrayMutator, LognormRandom):
+def intorfloat(v):
+  try:
+    return int(v)
+  except:
+    return float(v)
+
+class GenericTunableMutator(Mutator):
+  def __init__(self, tunable, weight=1.0):
+
+    # get info from tunable object
+    self.arrayFlag        = tunable['arrayFlag']
+    self.sizeSpecificFlag = tunable['sizeSpecificFlag']
+    self.name             = tunable['name']
+    self.tname            = tunable['tname']
+    self.vname            = tunable['vname']
+    self.size             = intorfloat(tunable['size'])
+    self.minVal           = tunable['min']
+    self.maxVal           = tunable['max']
+
+    # make sure minVal and maxVal are lists
+    if type(tunable['min']) != type([]):
+        self.minVal = [self.minVal]
+        self.maxVal = [self.maxVal]
+
+    self.minVal = map(intorfloat, self.minVal)
+    self.maxVal = map(intorfloat, self.maxVal)
+
+#    print "Created GenericTunableMutator"
+#    print "  arrayFlag = %s" % self.arrayFlag
+#    print "  sizeSpecificFlag = %s" % self.sizeSpecificFlag
+#    print "  name = %s" % self.name
+#    print "  tname = %s" % self.tname
+#    print "  vname = %s" % self.vname
+#    print "  size = %s" % self.size
+#    print "  minVal =", self.minVal
+#    print "  maxVal =", self.maxVal
+
+    Mutator.__init__(self, weight)
+
+  # returns tunable name for given variable index and transform input size
+  def tunableName(self, index, n):
+    if self.arrayFlag and self.sizeSpecificFlag:
+      return config.fmt_bin2D % (self.tname, index, self.vname, n)
+    elif self.sizeSpecificFlag:
+      return config.fmt_bin % (self.name, n)
+    elif self.arrayFlag:
+      return config.fmt_array % (self.tname, index, self.vname)
+    else:
+      return self.name
+
+  def getVal(self, candidate, oldVal, inputSize):
+    return self.random(oldVal, self.minVal, self.maxVal, candidate = candidate)
+
+  def setVal(self, candidate, newVal, n):
+    if type(newVal) == type(0) or type(newVal) == type(0.):
+      newVal = [newVal]
+    if self.sizeSpecificFlag:
+      i = int(math.log(n, 2))
+      candidate.clearResultsAbove(min(n, 2**i-1))
+      ks = set(candidate.config.keys())
+      assert self.tunableName(0, i) in ks
+      while self.tunableName(0, i) in ks:
+        for j in range(0, self.size):
+          candidate.config[self.tunableName(j, i)] = newVal[j]
+        i+=1
+    else:
+      for j in range(0, self.size):
+        candidate.config[self.tunableName(j, 0)] = newVal[j]
+
+  def mutate(self, candidate, n):
+    i = int(math.log(n, 2))
+    if self.arrayFlag:
+      old = []
+      for j in range(0, self.size):
+        old.append(candidate.config[self.tunableName(j, i)])
+    else:
+      old = candidate.config[self.tunableName(0, i)]
+    new = self.getVal(candidate, old, n)
+#    print str(candidate),self.name, old, new
+    self.setVal(candidate, new, n)
+
+  def reset(self, candidate):
+    candidate.clearResults()
+    if self.sizeSpecificFlag:
+      i = 0
+      ks = set(candidate.config.keys())
+      assert self.tunableName(0, i) in ks
+      while self.tunableName(0, i) in ks:
+        for j in range(0, self.size):
+          if candidate.config[self.tunableName(j, i)] < self.minVal[j]:
+            candidate.config[self.tunableName(j, i)] = self.minVal[j] + 0
+        i+=1
+    else:
+      for j in range(0, self.size):
+        if candidate.config[self.tunableName(j, 0)] < self.minVal[j]:
+          candidate.config[self.tunableName(j, 0)] = self.minVal[j] + 0
+
+class LognormTunableSizeSpecificMutator(TunableSizeSpecificMutator, LognormRandom):
   pass
 
-class UniformTunableArrayMutator(TunableArrayMutator, UniformRandom):
+class UniformTunableSizeSpecificMutator(TunableSizeSpecificMutator, UniformRandom):
   pass
 
-class IncrementTunableArrayMutator(TunableArrayMutator):
+class IncrementTunableSizeSpecificMutator(TunableSizeSpecificMutator):
   def __init__(self, tunable, minVal, maxVal, inc, weight=1.0):
     self.inc = inc
-    TunableArrayMutator.__init__(self, tunable, minVal, maxVal, weight)
-  def random(self, oldVal, minVal, maxVal):
+    TunableSizeSpecificMutator.__init__(self, tunable, minVal, maxVal, weight)
+  def random(self, oldVal, minVal, maxVal, candidate = None):
     return min(maxVal, max(minVal, oldVal+self.inc))
 
-class ScaleTunableArrayMutator(TunableArrayMutator):
+class ScaleTunableSizeSpecificMutator(TunableSizeSpecificMutator):
   def __init__(self, tunable, minVal, maxVal, inc, weight=1.0):
     self.inc = inc
-    TunableArrayMutator.__init__(self, tunable, minVal, maxVal, weight)
-  def random(self, oldVal, minVal, maxVal):
+    TunableSizeSpecificMutator.__init__(self, tunable, minVal, maxVal, weight)
+  def random(self, oldVal, minVal, maxVal, candidate = None):
     return min(maxVal, max(minVal, oldVal*self.inc))
+
+class OptimizeTunableMutator(GenericTunableMutator):
+
+  def __init__(self, tunable, weight=1.0, nwkdeFlag = False, maxiter = None):
+    GenericTunableMutator.__init__(self, tunable, weight)
+    self.nwkdeFlag = nwkdeFlag # flag for nwkde benchmark special handling
+    self.maxiter = maxiter
+    self.o = optimize.CachedBFGSOptimizer(self.measureAccuracy, self.minVal, self.maxVal)
+
+  def measureAccuracy(self, value, candidate, n):
+    self.setVal(candidate, value, n)
+    candidate.pop.testers[-1].testN(candidate, 1)
+    result = candidate.metrics[config.accuracy_metric_idx][n].mean()
+    print "eval: f(", value, ") = %.8g" % result
+    return -result
+
+  def random(self, oldVal, minVal, maxVal, candidate):
+    if (self.nwkdeFlag):
+      if oldVal == [4, 4, 4, 4]: # change initial value to something useful
+        oldVal = [0.3182, 134.3503, 5.0312, 633.3333]
+    n = candidate.pop.testers[-1].n
+    return self.o.optimize(oldVal, args = (candidate, n), maxiter = self.maxiter)
+
+class LogNormFloatTunableMutator(GenericTunableMutator):
+
+  def __init__(self, tunable, weight=1.0, nwkdeFlag = False):
+    GenericTunableMutator.__init__(self, tunable, weight)
+    self.nwkdeFlag = nwkdeFlag # flag for nwkde benchmark special handling
+
+  def random(self, oldVal, minVal, maxVal, candidate = None):
+    if (self.nwkdeFlag):
+      if oldVal == [4, 4, 4, 4]: # change initial value to something useful
+        oldVal = [0.3182, 134.3503, 5.0312, 633.3333]
+    newVal = [0] * len(oldVal)
+    for j in xrange(0, len(oldVal)):
+      successFlag = False
+      for z in xrange(config.rand_retries):
+        v = float(oldVal[j] * random.lognormvariate(0,1))
+        if v>=minVal[j] and v<=maxVal[j] and oldVal[j]!=v:
+          newVal[j] = v
+          successFlag = True
+          break
+      if not successFlag:
+        raise MutateFailed("lognorm random gen failed")
+
+    return newVal
 
 class MultiMutator(Mutator):
   def __init__(self, count=3, weight=1.0):

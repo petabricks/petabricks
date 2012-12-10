@@ -1,13 +1,7 @@
 #ifndef QRTD_PBCC
 #define QRTD_PBCC
 
-%{
-
-extern "C" void dsteqr_(char *compz, int *n, double *D, double *E, double *Z, int *ldz, double *work, int *info);
-
-
-%}
-
+#include "extern.h"
 #include "../simple/copy.pbcc"
 #include "../simple/transpose.pbcc"
 
@@ -26,15 +20,25 @@ to Eigenvalue[n], Eigenvector[n,n]
     int size=n, lwork=2*n-2, info=0, nsquared=n*n;
 
     // allocate and initialize matrices
-    double *Z = Vec.base();
-    double *D = Eig.base();
-    double *E = Ein.storage()->data();
-    double *work = new double[1];
+    ElementT *Z = 0;
+    ElementT *D = 0;
+    ElementT *E = 0;
+    CArrayStorage Zstore;
+    CArrayStorage Dstore;
+    CArrayStorage Estore;
 
-    if (lwork > 1) { work = new double[lwork];}
-    dsteqr_(&compz, &size, D, E, Z, &size, work, &info);
 
+    to_c_array(Eig, D,  Dstore);
+    to_c_array(Vec, Z,  Zstore);
+    to_c_array(Ein, E,  Estore);
+
+    ElementT *work = new ElementT[std::max(1,lwork)];
+    steqr_wrap(&compz, &size, D, E, Z, &size, work, &info);
     delete [] work;
+
+    from_c_array(Vec, Z,  Zstore);
+    from_c_array(Eig, D,  Dstore);
+    free_c_array(E,  Estore);
   }
 
 }

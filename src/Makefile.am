@@ -1,11 +1,11 @@
 INCLUDES =
 METASOURCES = AUTO
-AM_YFLAGS = 
-AM_LFLAGS = 
+AM_YFLAGS =
+AM_LFLAGS =
 OBJDIR=obj
 
 noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
-noinst_PROGRAMS = pbc rttest1 rttest2
+noinst_PROGRAMS = pbc rttest1 rttest2 rttestmm regionmatrixtest migrationtest
 
 noinst_HEADERS = \
   compiler/choicedepgraph.h \
@@ -19,7 +19,6 @@ noinst_HEADERS = \
   compiler/matrixdef.h \
   compiler/matrixdependency.h \
   compiler/maximawrapper.h \
-  compiler/openclutil.h \
   compiler/pbc.h \
   compiler/region.h \
   compiler/rircompilerpass.h \
@@ -31,9 +30,12 @@ noinst_HEADERS = \
   compiler/syntheticrule.h \
   compiler/trainingdeps.h \
   compiler/transform.h \
-  compiler/userrule.h
-
-pkglib_HEADERS=  \
+  compiler/userrule.h \
+  compiler/heuristic.h \
+  compiler/heuristicmanager.h \
+  compiler/dbmanager.h \
+  compiler/tinyxml.h \
+  compiler/tinystr.h \
   common/hash.h \
   common/jalloc.h \
   common/jargs.h \
@@ -49,10 +51,17 @@ pkglib_HEADERS=  \
   common/jsocket.h \
   common/jtimer.h \
   common/jtunable.h \
+  common/openclutil.h \
   common/srcpos.h \
   common/thedeque.h \
+  runtime/cellproxy.h \
+  runtime/distributedgc.h \
   runtime/dynamicscheduler.h \
   runtime/dynamictask.h \
+  runtime/gpudynamictask.h \
+  runtime/gpumanager.h \
+  runtime/gputaskinfo.h \
+  runtime/iregionreplyproxy.h \
   runtime/matrixio.h \
   runtime/matrixregion.h \
   runtime/matrixspecializations.h \
@@ -60,14 +69,26 @@ pkglib_HEADERS=  \
   runtime/memoization.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
+  runtime/regiondata0D.h \
+  runtime/regiondatai.h \
+  runtime/regiondataraw.h \
+  runtime/regiondataremotecache.h \
+  runtime/regiondataremote.h \
+  runtime/regiondataremotemessages.h \
+  runtime/regiondatasplit.h \
+  runtime/regionhandler.h \
+  runtime/regionmatrix.h \
+  runtime/regionmatrixi.h \
+  runtime/regionmatrixproxy.h \
   runtime/remotehost.h \
   runtime/remoteobject.h \
+  runtime/remotetask.h \
   runtime/ruleinstance.h \
   runtime/specializeddynamictasks.h \
   runtime/testisolation.h \
   runtime/transforminstance.h \
-  runtime/workerthread.h \
-  runtime/openclutil.h
+  runtime/subregioncachemanager.h \
+  runtime/workerthread.h
 
 libpbcommon_a_CXXFLAGS = -I$(srcdir)/common
 libpbcommon_a_SOURCES =  \
@@ -81,9 +102,10 @@ libpbcommon_a_SOURCES =  \
   common/jsocket.cpp \
   common/jtimer.cpp \
   common/jtunable.cpp \
+  common/openclutil.cpp \
   common/srcpos.cpp
 
-libpbcompiler_a_LFLAGS = 
+libpbcompiler_a_LFLAGS =
 libpbcompiler_a_YFLAGS = -d
 libpbcompiler_a_CXXFLAGS = -I. -I$(srcdir)/compiler
 libpbcompiler_a_SOURCES = \
@@ -100,7 +122,6 @@ libpbcompiler_a_SOURCES = \
   compiler/maximalexer.lpp \
   compiler/maximaparser.ypp \
   compiler/maximawrapper.cpp \
-  compiler/openclutil.cpp \
   compiler/pblexer.lpp \
   compiler/pbparser.ypp \
   compiler/region.cpp \
@@ -115,41 +136,75 @@ libpbcompiler_a_SOURCES = \
   compiler/syntheticrule.cpp \
   compiler/trainingdeps.cpp \
   compiler/transform.cpp \
-  compiler/userrule.cpp
+  compiler/userrule.cpp \
+  compiler/heuristic.cpp \
+  compiler/heuristicmanager.cpp \
+  compiler/dbmanager.cpp \
+  compiler/tinyxml.cpp \
+  compiler/tinyxmlerror.cpp \
+  compiler/tinyxmlparser.cpp \
+  compiler/tinystr.cpp
 
-libpbruntime_a_LFLAGS = 
+libpbruntime_a_LFLAGS =
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
 libpbruntime_a_SOURCES =  \
+  runtime/cellproxy.cpp \
+  runtime/distributedgc.cpp \
   runtime/dynamicscheduler.cpp \
   runtime/dynamictask.cpp \
+  runtime/gpudynamictask.cpp \
+  runtime/gpumanager.cpp \
+  runtime/gputaskinfo.cpp \
   runtime/matrixio.cpp \
   runtime/matrixreader.lpp \
   runtime/matrixstorage.cpp \
   runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
+  runtime/regiondatai.cpp \
+  runtime/regiondataraw.cpp \
+  runtime/regiondataremotecache.cpp \
+  runtime/regiondataremote.cpp \
+  runtime/regiondatasplit.cpp \
+  runtime/regionhandler.cpp \
+  runtime/regionmatrixi.cpp \
+  runtime/regionmatrixproxy.cpp \
   runtime/remotehost.cpp \
   runtime/remoteobject.cpp \
+  runtime/remotetask.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \
+  runtime/subregioncachemanager.cpp \
   runtime/testisolation.cpp \
   runtime/transforminstance.cpp \
-  runtime/workerthread.cpp \
-  runtime/openclutil.cpp
+  runtime/workerthread.cpp
 
 libpbmain_a_CXXFLAGS = -Iruntime
 libpbmain_a_SOURCES = runtime/redirectmain.cpp
 
 pbc_CXXFLAGS = -Icompiler
 pbc_SOURCES = compiler/pbc.cpp
-pbc_LDADD = libpbcompiler.a libpbcommon.a 
+pbc_LDADD = libpbcompiler.a libpbcommon.a
 
 rttest1_CXXFLAGS = -Iruntime
 rttest1_SOURCES  = runtime/rttest1.cpp
-rttest1_LDADD    = libpbruntime.a libpbcommon.a 
+rttest1_LDADD    = libpbruntime.a libpbcommon.a
 
 rttest2_CXXFLAGS = -Iruntime
 rttest2_SOURCES  = runtime/rttest2.cpp
-rttest2_LDADD    = libpbruntime.a libpbcommon.a 
+rttest2_LDADD    = libpbruntime.a libpbcommon.a
+
+rttestmm_CXXFLAGS = -Iruntime
+rttestmm_SOURCES  = runtime/tests/rttestmm.cpp
+rttestmm_LDADD    = libpbruntime.a libpbcommon.a
+
+regionmatrixtest_CXXFLAGS = -Iruntime
+regionmatrixtest_SOURCES  = runtime/tests/regionmatrixtest.cpp
+regionmatrixtest_LDADD    = libpbruntime.a libpbcommon.a
+
+migrationtest_CXXFLAGS = -Iruntime
+migrationtest_SOURCES  = runtime/tests/migrationtest.cpp
+migrationtest_LDADD    = libpbruntime.a libpbcommon.a
+
 
 CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp libpbcompiler_a-maximaparser.h \
              libpbcompiler_a-pblexer.cpp libpbcompiler_a-pbparser.cpp libpbcompiler_a-pbparser.h \
@@ -159,11 +214,11 @@ CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp li
 
 #copy bison headers
 maximaparser.h: libpbcompiler_a-maximaparser.h
-	$(LN_S) $< $@ 
+	test -h $@ || $(LN_S) $< $@
 pbparser.h:		 libpbcompiler_a-pbparser.h
-	$(LN_S) $< $@ 
+	test -h $@ || $(LN_S) $< $@
 ruleirparser.h: libpbcompiler_a-ruleirparser.h
-	$(LN_S) $< $@ 
+	test -h $@ || $(LN_S) $< $@
 
 #make sure the output of flex/bison has the latest version of the header
 $(srcdir)/compiler/maximalexer.lpp: maximaparser.h

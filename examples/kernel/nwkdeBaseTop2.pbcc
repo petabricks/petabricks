@@ -57,7 +57,7 @@ through SQDIFFS[n,n], WEIGHTS[n,n], PARTIALS[n,n]
     from (PARTIALS.row(i)  partials,
            WEIGHTS.row(i)  weights)
     {
-        double partialSum, weightSum;
+        ElementT partialSum, weightSum;
         partialSum = 0;
         weightSum = 0;
         for (int i = 0; i < n; ++i) {

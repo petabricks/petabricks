@@ -25,6 +25,7 @@
  *                                                                           *
  *****************************************************************************/
 #include "dynamicscheduler.h"
+#include "gpumanager.h"
 
 #include <pthread.h>
 #include <signal.h>
@@ -125,4 +126,15 @@ void petabricks::DynamicScheduler::shutdown(){
   }
 }
   
+void petabricks::DynamicScheduler::injectWork(DynamicTask* task){
+  static jalib::AtomicT i=0;
+  pool().getFixed((int)jalib::atomicIncrementReturn(&i))->inject(task);
+
+  if(i > (1<<28)) {
+    i=0;
+  }
+}
+
+
+
 

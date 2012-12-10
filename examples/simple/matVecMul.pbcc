@@ -1,0 +1,257 @@
+#ifndef MATVECMUL_PBCC
+#define MATVECMUL_PBCC
+
+#include "../simple/macros.h"
+#include "../simple/copy.pbcc"
+#include "../simple/transpose.pbcc"
+
+%{
+#ifdef PRINT
+inline void printArray(int height, int width, ElementT *array){
+  int i, j;
+
+  for(i=0; i<height; ++i) {
+    for(j=0; j<width; ++j) {
+      printf("%2.1lf ", array[i*width+ j]);
+    }
+    printf("\n");
+  }
+}
+#endif
+
+template < typename T >
+inline ElementT *toArray(const T&matrix) {
+  ElementT *array;
+
+  IndexT rows = matrix.height();
+  IndexT columns = matrix.width();
+
+#ifdef PRINT
+  printf("Matrix size: %d rows, %d columns\n", rows, columns);
+#endif
+
+  array = new ElementT[rows * columns];
+
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      array[i*columns + j] = matrix.cell(j,i);
+    }
+  }
+
+  return array;
+}
+
+template < typename T >
+inline void toMatrix(ElementT* array, T&matrix) {
+  IndexT rows = matrix.height();
+  IndexT columns = matrix.width();
+
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      matrix.cell(j,i) = array[i*columns + j];
+    }
+  }
+
+  return;
+}
+
+void gemv_wrap(const int M, const int N, const float alpha, const float * A, const int lda, const float * X, const int incx, const float beta, float * Y, const int incy) {
+  cblas_sgemv(CblasRowMajor, CblasNoTrans, M, N, alpha, A, lda, X, incx, beta, Y, incy);
+}
+
+void gemv_wrap(const int M, const int N, const double alpha, const double * A, const int lda, const double * X, const int incx, const double beta, double * Y, const int incy) {
+  cblas_dgemv(CblasRowMajor, CblasNoTrans, M, N, alpha, A, lda, X, incx, beta, Y, incy);
+}
+%}
+
+transform MatVecMulBase
+from ALPHA, A[n,m], X[1,n], BETA
+to Y[1,m]
+{
+  //compute a cell the straightforward way
+  to   (Y.cell(0,i) y)
+  from (ALPHA alpha,
+        A.row(i) a,
+        X x,
+        BETA beta)
+  {
+    ElementT temp = 0;
+    for (IndexT j = 0; j < n; ++j)
+      temp += a.cell(j) * x.cell(0, j);
+    y = alpha * temp + beta * y;
+  }
+
+  // Traverse A row-wise
+  to(Y y) from (ALPHA alpha, A a, X x, BETA beta)
+  {
+    IndexT i, j;
+    ElementT temp;
+    if (beta != 1.0) {
+      if (beta == 0.0) {
+        for (i = 0; i < m; ++i) {
+          y.cell(0, i) = 0.0;
+        }
+      } else {
+        for (i = 0; i < m; ++i) {
+          y.cell(0, i) *= beta;
+        }
+      }
+    }
+    for (i = 0; i < m; ++i) {
+      temp = 0;
+      for (j = 0; j < n; ++j)
+        temp += a.cell(j, i) * x.cell(0, j);
+      y.cell(0, i) += alpha * temp;
+    }
+  }
+
+  // Traverse A column-wise
+  to(Y y) from (ALPHA alpha, A a, X x, BETA beta)
+  {
+    IndexT i, j;
+    ElementT temp;
+    if (beta != 1.0) {
+      if (beta == 0.0) {
+        for (i = 0; i < m; ++i) {
+          y.cell(0, i) = 0.0;
+        }
+      } else {
+        for (i = 0; i < m; ++i) {
+          y.cell(0, i) *= beta;
+        }
+      }
+    }
+    if (alpha != 0.0) {
+      for (j = 0; j < n; ++j) {
+        if (x.cell(0, j) != 0.0) {
+          temp = alpha * x.cell(0, j);
+          for (i = 0; i < m; ++i) {
+            y.cell(0, i) += temp * a.cell(j, i);
+          }
+        }
+      }
+    }
+  }
+
+  // call BLAS
+  to(Y y) from (ALPHA alpha, A a, X x, BETA beta)
+  {
+    // fast return if possible
+    if (m == 0 || n == 0) {
+        return;
+    }
+
+    ElementT* arrayA = toArray(a);
+    ElementT* arrayX = toArray(x);
+    ElementT* arrayY = toArray(y);
+
+    #ifdef PRINT
+    printArray(m, n, arrayA);
+    printArray(n, 1, arrayX);
+    printArray(m, 1, arrayY);
+    #endif
+
+    gemv_wrap(m, n, alpha, arrayA, n, arrayX, 1, beta, arrayY, 1);
+
+    #ifdef PRINT
+    printArray(m, 1, arrayY);
+    #endif
+
+    toMatrix(arrayY, y);
+
+    delete [] arrayA;
+    delete [] arrayX;
+    delete [] arrayY;
+  }
+}
+
+transform AddInPlace
+from X[n,m]
+to Y[n,m]
+{
+    to (Y.cell(j, i) y)
+    from (X.cell(j, i) x)
+    {
+        y += x;
+    }
+}
+
+transform MatVecMulRecursive
+from ALPHA, A[n,m], X[1,n], BETA
+to Y[1,m]
+tunable sizespecific blockSize
+{
+    to (Y y)
+    from (ALPHA alpha, A a, X x, BETA beta)
+    {
+        if (blockSize <= 0 || blockSize >= MAX(m, n)) {
+            MatVecMulBase(y, alpha, a, x, beta);
+            return;
+        }
+
+        if (m >= n) {
+            IndexT k = m / 2;
+            spawn MatVecMulRecursive(y.region(0, 0, 1, k), alpha,
+                                     a.region(0, 0, n, k), x, beta);
+            spawn MatVecMulRecursive(y.region(0, k, 1, m), alpha,
+                                     a.region(0, k, n, m), x, beta);
+            sync;
+        } else {
+            IndexT k = n / 2;
+            MatrixRegion2D temp = MatrixRegion2D::allocate(1, m);
+            spawn MatVecMulRecursive(y, alpha, a.region(0, 0, k, m),
+                                     x.region(0, 0, 1, k), beta);
+            spawn MatVecMulRecursive(temp, alpha, a.region(k, 0, n, m),
+                                     x.region(0, k, 1, n), 0.0);
+            sync;
+            AddInPlace(y, temp);
+        }
+    }
+}
+
+// Computes Y = ALPHA * A * X + BETA * Y (Y is an in/out argument).
+transform MatVecMul
+from ALPHA, A[n,m], X[1,n], BETA
+to Y[1,m]
+{
+  // no transpose
+  to(Y y) from(ALPHA alpha, A a, X x, BETA beta)
+  {
+    MatVecMulRecursive(y, alpha, a, x, beta);
+  }
+
+//// copy A
+//to(Y y) from(ALPHA alpha, A a, X x, BETA beta)
+//{
+//  MatrixRegion2D t = MatrixRegion2D::allocate(n,m);
+//  Copy2D(t, a);
+//  MatVecMulRecursive(y, alpha, t, x, beta);
+//}
+
+//// transpose A
+//to(Y y) from(ALPHA alpha, A a, X x, BETA beta)
+//{
+//  MatrixRegion2D t = MatrixRegion2D::allocate(m,n);
+//  Transpose(t, a);
+//  MatVecMulRecursive(y, alpha, t.transposed(), x, beta);
+//}
+}
+
+//// Computes OUT = ALPHA * A * X + BETA * IN
+//transform MatVecMulTest
+//from ALPHA, A[n,m], X[1,n], BETA, IN[1,m]
+//to OUT[1,m]
+//{
+//  // copy IN to OUT and run MatVecMul
+//  to(OUT out) from(ALPHA alpha,
+//               A a,
+//               X x,
+//               BETA beta,
+//               IN in)
+//  {
+//    Copy2D(out, in);
+//    MatVecMul(out, alpha, a, x, beta);
+//  }
+//}
+
+#endif // MATVECMUL_PBCC

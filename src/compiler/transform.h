@@ -61,14 +61,14 @@ public:
   ///
   /// Constructor
   Transform();
-  
+
   //called durring parsing:
   void setName(const std::string& str) { _originalName=_name=str; }
   void addFrom(const MatrixDefList&);
   void addThrough(const MatrixDefList&);
   void addTo(const MatrixDefList&);
   void setRules(const RuleList&);
-  
+
   ///
   /// Initialize after parsing
   void initialize();
@@ -78,7 +78,7 @@ public:
   void print(std::ostream& o) const;
 
   const std::string& name() const { return _name; }
-  
+
   MatrixDefPtr lookupMatrix(const std::string& name) const{
     MatrixDefMap::const_iterator i = _matrices.find(name);
     JASSERT(i != _matrices.end())(name).Text("Unknown input/output matrix");
@@ -88,13 +88,17 @@ public:
   void generateCode(CodeGenerator& o);
 
   void generateCodeSimple(CodeGenerator& o, const std::string& nextMain = "NULL");
-  
+
+  void generateTransformInstanceClass(CodeGenerator& o, RuleFlavor rf);
+
+  void generateTransformSelector(CodeGenerator& o, RuleFlavor rf, bool spawn);
+
   void registerMainInterface(CodeGenerator& o);
 
   void generateMainInterface(CodeGenerator& o, const std::string& nextMain);
 
   void fillBaseCases(const MatrixDefPtr& matrix);
-  
+
   FreeVars constants() const {
     FreeVars fv;
     for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i)
@@ -103,11 +107,13 @@ public:
   }
 
   void extractSizeDefines(CodeGenerator& o, FreeVars fv, const char* inputsizestr);
-#if HAVE_OPENCL
-  void extractOpenClSizeDefines(CLCodeGenerator& o, unsigned int dims);
-#endif
-  
+  void extractOpenClSizeDefines(CLCodeGenerator& o, unsigned int dims, std::map<std::string, std::string> &map);
+
+  void generateInitCleanup(CodeGenerator& init, CodeGenerator& cleanup);
+
   void declTransformNFunc(CodeGenerator& o);
+  void declTransformN(CodeGenerator& o, const std::string& name);
+  void declTransformNDirect(CodeGenerator& o, const std::string& name);
   void declTryMemoizeFunc(CodeGenerator& o);
 
   void markMain() { _isMain=true; }
@@ -115,7 +121,11 @@ public:
 
   //void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
 
-  std::vector<std::string> maximalArgList() const;
+  std::vector<std::string> maximalArgList(RuleFlavor rf) const;
+
+
+  void generateCrossCall(CodeGenerator& o, RuleFlavor fromflavor, RuleFlavor toflavor, bool spawn);
+  void generateCrossCallInner(CodeGenerator& o, RuleFlavor fromflavor, RuleFlavor toflavor, bool spawn, std::vector<std::string>& argNames, std::string completion="_completion");
 
   int nextTunerId() {
     return _tuneId++;
@@ -131,17 +141,17 @@ public:
     _templateargs.insert(_templateargs.end(), args.begin(), args.end());
   }
 
-  std::vector<std::string> spawnArgs() const;
+  std::vector<std::string> spawnArgs(RuleFlavor rf) const;
   std::vector<std::string> spawnArgNames() const;
-  std::vector<std::string> normalArgs() const;
+  std::vector<std::string> normalArgs(RuleFlavor rf) const;
   std::vector<std::string> normalArgNames() const;
 
   void genTmplJumpTable(CodeGenerator& o,
-                        bool isStatic,
+                        RuleFlavor rf,
                         const std::vector<std::string>& args,
                         const std::vector<std::string>& argNames);
-  
-  void extractConstants(CodeGenerator& o);
+
+  void extractConstants(CodeGenerator& o, RuleFlavor rf);
 
   int tmplChoiceCount() const;
 
@@ -172,7 +182,7 @@ public:
                                 jalib::TunableValue max){
     addConfigItem(ConfigItem(flags,n,initial,min,max));
   }
-  
+
   void addConfigItem(int flags, const std::string& n,
                                 jalib::TunableValue initial,
                                 jalib::TunableValue min){
@@ -185,14 +195,14 @@ public:
   void addConfigItem(int flags, const std::string& n,
                                 jalib::TunableValue initial){
     if( (flags & ConfigItem::FLAG_DOUBLE) == 0 )
-      addConfigItem(flags, n, initial, 0); 
+      addConfigItem(flags, n, initial, 0);
     else
       addConfigItem(flags, n, initial, jalib::minval<double>());
   }
-  
+
   void addConfigItem(int flags, const std::string& n){
     if( (flags & ConfigItem::FLAG_DOUBLE) == 0 )
-      addConfigItem(flags, n, 0); 
+      addConfigItem(flags, n, 0);
     else
       addConfigItem(flags, n, 0.0);
   }
@@ -232,7 +242,7 @@ public:
     JASSERT(_generator=="")(_name).Text("generator declared twice");
     _generator=str;
   }
-    
+
   std::vector<std::string> argnames() const {
     std::vector<std::string> args;
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -262,9 +272,18 @@ public:
   const ConfigItems& config() const { return _config; }
 
   void addRule(const RulePtr& rp) { _rules.push_back(rp); }
-  
-  
+
+
   const std::string& accuracyMetric() const { return _accuracyMetric; }
+
+  MatrixDefList getToMatrices() { return _to; }
+  MatrixDefList getFromMatrices() { return _from; }
+  MatrixDefList getThroughMatrices() { return _through; }
+
+  void addInitCall(const std::string& s) { _initCalls.push_back(s); }
+
+
+  void addInputFeature(const std::string& s) { _inputFeatures.push_back(s); }
 
 protected:
   static std::map<std::string, TransformPtr> theTransformMap();
@@ -292,6 +311,8 @@ private:
   std::string         _generator;
   int                 _templateChoice;
   double              _curAccTarget;
+  std::vector<std::string> _initCalls;
+  std::vector<std::string> _inputFeatures;
 };
 
 }

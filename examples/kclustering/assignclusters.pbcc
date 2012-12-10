@@ -23,9 +23,13 @@ to Anew[n], cflag
 generator AssignClustersGen
 {
 
-	to (D.cell(i,j) d) from (X.column(i) x, C.column(j) c)
+	to (D.cell(i,j) d) from (X.column(i) a, C.column(j) b)
 	{
-		Distance(d,x,c);
+		//Distance(d,x,c);
+    ElementT xdiff, ydiff;
+    xdiff = a.cell(0)-b.cell(0);
+    ydiff = a.cell(1)-b.cell(1);
+    d = sqrt(xdiff*xdiff + ydiff*ydiff);
 	}
 
 	to(Anew.cell(i) anew, ctemp.cell(i) changed) from(D.column(i) d, A.cell(i) aold)

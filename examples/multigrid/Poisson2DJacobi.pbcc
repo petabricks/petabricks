@@ -1,43 +1,94 @@
 #ifndef POISSON2DJACOBI_PBCC
 #define POISSON2DJACOBI_PBCC
 
-#include "Poisson2DJacobiInterior.pbcc"
+#include "../simple/copy.pbcc"
 #include "Generators.pbcc"
 
+// Note: this helper transform assumes IN and OUT point to different memory
+// locations.  Though in-place (in memory) update is not supported by this
+// helper transform, it is supported in the main transform below.
+transform Poisson2DJacobiIterate
+from IN[n,n], B[n,n]
+to OUT[n,n]
+{
+  primary
+  OUT.cell(i,j) from(IN.cell(i-1, j  ) no,
+                     IN.cell(i+1, j  ) so,
+                     IN.cell(i  , j-1) we,
+                     IN.cell(i  , j+1) ea,
+                     B.cell(i,j) b)
+  {
+    return (no+so+we+ea+b) / 4.0;
+  }
+
+  secondary
+  OUT.cell(i,j) from (IN.cell(i, j) x)
+  {
+    return x;
+  }
+}
+
+// Wrapper around Poisson2DJacobiIterate to handle arbitrary number of
+// iterations.
+// Note: Since IN and OUT may point to the same memory location, a temporary
+// array is utilized.
 transform Poisson2DJacobi
 from IN[n,n], B[n,n], numIterations
 to OUT[n,n]
-through BTEMP[n-2,n-2]
 generator Poisson2DJacobiGenerator
 {
-  BTEMP.cell(i,j) from(B.cell(i + 1, j + 1) b,
-                       IN.cell(i, j + 1) no,
-                       IN.cell(i + 2, j + 1) so,
-                       IN.cell(i + 1, j) we,
-                       IN.cell(i + 1, j + 2) ea)
+  to (OUT out) from (IN in, B b, numIterations _numIters)
   {
-    double result = b;
-    if (i == 0) result += no;
-    if (i == n - 3) result += so;
-    if (j == 0) result += we;
-    if (j == n - 3) result += ea;
-    return result;
-  }
+    int numIters = (int) _numIters;
 
-  primary to (OUT.region(1,1,n-1,n-1) o) from (IN.region(1,1,n-1,n-1) in,
-                                               BTEMP b,
-                                               numIterations num)
-  {
-    if (n == 3) {
-      o.cell(0, 0) = b.cell(0, 0) / 4;
-    } else {
-      Poisson2DJacobiInterior(o, in, b, num);
+    JASSERT(numIters >= 0)(numIters).Text("number of iterations must be non-negative");
+
+    // 0 iters, just copy
+    if (numIters == 0) {
+      Copy2D(out, in);
+      return;
     }
-  }
 
-  secondary OUT.cell(i,j) from (IN.cell(i,j) x)
-  {
-    return x;
+    // just solve for small input
+    if (n == 3) {
+      Copy2D(out, in);
+      out.cell(1, 1) = (b.cell(1, 1) +
+                        out.cell(0, 1) + out.cell(1, 0) +
+                        out.cell(0, 2) + out.cell(2, 0)) / 4.0;
+      return;
+    }
+
+    MatrixRegion2D temp = MatrixRegion2D::allocate(n, n);
+
+    // avoid copy unless numIters == 1
+    // we'd rather allocate more memory than do a copy in most cases
+    if (numIters == 1) {
+      // need copy since 'out' may point to 'in'
+      Poisson2DJacobiIterate(temp, in, b);
+      Copy2D(out, temp);
+      numIters--;
+    } else if ((numIters & 1) == 0) {
+      // numIters is even
+      Poisson2DJacobiIterate(temp, in  , b);
+      Poisson2DJacobiIterate(out , temp, b);
+      numIters -= 2;
+    } else {
+      // numIters is odd and >= 3
+      MatrixRegion2D temp2 = MatrixRegion2D::allocate(n, n);
+      Poisson2DJacobiIterate(temp , in   , b);
+      Poisson2DJacobiIterate(temp2, temp , b);
+      Poisson2DJacobiIterate(out  , temp2, b);
+      numIters -= 3;
+    }
+
+    JASSERT(numIters % 2 == 0)(numIters).Text("remaining iterations must be even");
+
+    // finish up the rest of the iterations
+    while (numIters >= 2) {
+      Poisson2DJacobiIterate(temp, out , b);
+      Poisson2DJacobiIterate(out , temp, b);
+      numIters -= 2;
+    }
   }
 }
 

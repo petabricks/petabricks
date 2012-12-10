@@ -1,0 +1,20 @@
+transform IterateBackwards
+from A[n]
+to X[n]
+{
+    primary
+    to   (X.cell(n-1) x)
+    from ()
+    {
+        x = 1;
+    }
+
+    to   (X.cell(i) xout)
+    from (X.region(i+1, n) x)
+    {
+        xout = 0;
+        for (int j = 0; j < x.width(); ++j) {
+            xout += x.cell(j);
+        }
+    }
+}

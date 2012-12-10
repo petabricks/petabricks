@@ -193,7 +193,7 @@ ssize_t jalib::JSocket::tryReadAll ( char* buf, size_t len )
   return rv;
 }
 
-ssize_t jalib::JSocket::write ( const char* buf, size_t len )
+ssize_t jalib::JSocket::write ( const char* buf, size_t len ) const
 {
   return ::write ( _sockfd, buf,len );
 }
@@ -204,7 +204,7 @@ ssize_t jalib::JSocket::readAll( char* buf, size_t len )
   if(rv<0 && (errno == EWOULDBLOCK || errno == EINTR)) {
     rv = 0;
   }
-  if(0<=rv && rv<(ssize_t)len) {
+  if(0==rv && rv<(ssize_t)len) {
     JTRACE("fallback");
     rv += readAllFallback(buf+rv, len-rv);
   }
@@ -217,17 +217,20 @@ ssize_t jalib::JSocket::readAllFallback ( char* buf, size_t len )
   while ( len > 0 )
   {
     fd_set rfds;
+    fd_set efds;
     struct timeval tv;
     int retval;
 
     /* Watch stdin (fd 0) to see when it has input. */
     FD_ZERO ( &rfds );
+    FD_ZERO ( &efds );
     FD_SET ( _sockfd, &rfds );
+    FD_SET ( _sockfd, &efds );
 
     tv.tv_sec = 120;
     tv.tv_usec = 0;
 
-    retval = select ( _sockfd+1, &rfds, NULL, NULL, &tv );
+    retval = select ( _sockfd+1, &rfds, NULL, &efds, &tv );
     /* Don't rely on the value of tv now! */
 
 
@@ -239,7 +242,7 @@ ssize_t jalib::JSocket::readAllFallback ( char* buf, size_t len )
     else if ( retval )
     {
       ssize_t cnt = read ( buf, len );
-      if ( cnt <= 0 && errno != EAGAIN && errno != EINTR )
+      if ( cnt <= 0 && errno != EINTR)
       {
         JWARNING(cnt>0)(sockfd())(cnt)(len)(JASSERT_ERRNO).Text( "JSocket read failure" );
         return -1;
@@ -258,7 +261,7 @@ ssize_t jalib::JSocket::readAllFallback ( char* buf, size_t len )
   return origLen;
 }
 
-ssize_t jalib::JSocket::writeAll( const char* buf, size_t len )
+ssize_t jalib::JSocket::writeAll( const char* buf, size_t len ) const
 {
   ssize_t rv = ::write( _sockfd, buf,len);
   if(rv<0 && (errno == EWOULDBLOCK || errno == EINTR)) {
@@ -271,8 +274,7 @@ ssize_t jalib::JSocket::writeAll( const char* buf, size_t len )
   return rv;
 }
 
-ssize_t jalib::JSocket::writeAllFallback ( const char* buf, size_t len )
-{
+ssize_t jalib::JSocket::writeAllFallback ( const char* buf, size_t len ) const {
   int origLen = len;
   while ( len > 0 )
   {
@@ -456,7 +458,7 @@ jalib::JChunkReader& jalib::JChunkReader::operator= ( const JChunkReader& that )
 void jalib::JSocket::changeFd ( int newFd )
 {
   if ( _sockfd == newFd ) return;
-  JASSERT ( newFd == DECORATE_FN(dup2) ( _sockfd, newFd ) ) 
+  JASSERT ( newFd == DECORATE_FN(dup2) ( _sockfd, newFd ) )
       ( _sockfd ) ( newFd ).Text ( "dup2 failed" );
   close();
   _sockfd = newFd;
@@ -552,8 +554,8 @@ void jalib::JMultiSocketProgram::monitorSockets ( double dblTimeout )
     //collect all writes in wfds, cleanup finished/dead
     for ( i=0; i<_writes.size(); ++i )
     {
-      if (  !_writes[i]->hadError() 
-         && !_writes[i]->isDone() 
+      if (  !_writes[i]->hadError()
+         && !_writes[i]->isDone()
          && closedFds.find(_writes[i]->socket().sockfd())==closedFds.end() )
       {
         FD_SET ( _writes[i]->socket().sockfd(), &wfds );

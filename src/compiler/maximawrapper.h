@@ -95,6 +95,10 @@ public:
     return runCommandSingleOutput("fullratsimp(expand(" + eq->toString() + "))");
   }
 
+  FormulaPtr toFloat(const FormulaPtr& eq) {
+    return runCommandSingleOutput("ev("+ eq->toString() + ",float)");
+  }
+  
   FormulaPtr subst(const std::string& with, const std::string& what, const FormulaPtr& eq){
     return runCommandSingleOutput("subst("+with+", "+what+"," + eq->toString() + ")");
   }
@@ -175,6 +179,12 @@ public:
     return rslt==YES;
   }
 
+  bool comparePessimistically(const FormulaPtr& a, const char* op, const FormulaPtr& b){
+    tryCompareResult rslt = tryCompare(a,op,b);
+    //True on YES, false on NO or UNKNOWN
+    return rslt==YES;
+  }
+  
   tryCompareResult tryCompare(const FormulaPtr& a, const char* op, const FormulaPtr& b){
     std::string aStr = a->toString();
     std::string bStr = b->toString();

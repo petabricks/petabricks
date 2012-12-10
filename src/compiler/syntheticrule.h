@@ -42,25 +42,41 @@ public:
 
   RuleFlags::PriorityT priority() const;
   bool isRecursive() const;
+  bool hasCellAccess() const;
+  bool hasCellAccess(const std::string& matrix) const;
   bool hasWhereClause() const;
   FormulaPtr getWhereClause() const;
 
   std::string getLabel() const;
+
+
+
+  virtual void trimDependency(DependencyDirection& ,
+                              const ChoiceDepGraphNode& ,
+                              const ChoiceDepGraphNode& ){}
+
 
   bool canProvide(const MatrixDefPtr& m) const;
 
   void getApplicableRegionDescriptors(RuleDescriptorList& output,
                                       const MatrixDefPtr& matrix, int dimension, const RulePtr&);
 
-  void generateCallCode(const std::string& nodename,
-                        Transform& trans,
-                        CodeGenerator& o,
-                        const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
-  void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+//void generateCallCode(const std::string& nodename,
+//                      Transform& trans,
+//                      CodeGenerator& o,
+//                      const SimpleRegionPtr& region,
+//                      RuleFlavor flavor,
+//                      std::vector<RegionNodeGroup>& regionNodesGroups,
+//                      int nodeID,
+//                      int gpuCopyOut,
+//                      SpatialCallType spatialCallType);
+//
+  void virtual generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor);
+  void virtual generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor) = 0;
+  void virtual generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
 
   void markRecursive();
+  void markHasCellAccess(const std::string& matrix);
   const FormulaPtr& recursiveHint() const;
 
   void print(std::ostream& os) const;
@@ -80,19 +96,28 @@ public:
  */
 class WrapperSyntheticRule : public SyntheticRule {
 public:
-  WrapperSyntheticRule(const RulePtr& rule) 
+  WrapperSyntheticRule(const RulePtr& rule)
     : _rule(rule)
   {
     _applicableRegion = _rule->applicableRegion();
   }
-  
+
   //these just forward to _rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
+
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
+                        RuleFlavor flavor,
+			bool wrap,
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        int gpuCopyOut,
+                        SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
+
+  void generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
+
   bool isSingleElement() const;
   int dimensions() const;
   FormulaPtr getSizeOfRuleIn(int d);
@@ -114,20 +139,25 @@ protected:
 ///combines multiple rules with where clauses
 class WhereExpansionRule : public SyntheticRule {
 public:
-  WhereExpansionRule(const RuleSet& rules) 
-    : _rules(rules) 
+  WhereExpansionRule(const RuleSet& rules)
+    : _rules(rules)
   {}
 
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
-  
+                        RuleFlavor flavor,
+			bool wrap,
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        int gpuCopyOut,
+                        SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
+
   bool isSingleElement() const;
-  
+
   int dimensions() const;
   FormulaPtr getSizeOfRuleIn(int d);
 
@@ -135,7 +165,7 @@ public:
 
   void collectDependencies(StaticScheduler& scheduler);
 
-  void genWhereSwitch(Transform& trans, CodeGenerator& o);
+  void genWhereSwitch(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 
   DependencyDirection getSelfDependency() const;
 private:
@@ -147,7 +177,7 @@ private:
 /// duplicate a rule that has a duplicate keyword
 class DuplicateExpansionRule : public WrapperSyntheticRule {
 public:
-  DuplicateExpansionRule(const RulePtr& rule, size_t dup) 
+  DuplicateExpansionRule(const RulePtr& rule, size_t dup)
     : WrapperSyntheticRule(rule), _dup(dup)
   {
     JASSERT(_rule && dup<_rule->duplicateCount());
@@ -155,13 +185,20 @@ public:
 
   ///
   /// calls setDuplicateNumber() then forwards the call to _rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
 
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
+                        RuleFlavor flavor,
+			bool wrap,
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        int gpuCopyOut,
+                        SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
+
+  void generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 private:
   size_t _dup;
 };
@@ -171,20 +208,25 @@ private:
 ///combines multiple rules that must be called together
 class CallInSequenceRule : public SyntheticRule {
 public:
-  CallInSequenceRule(const RuleList& rules) 
-    : _rules(rules) 
+  CallInSequenceRule(const RuleList& rules)
+    : _rules(rules)
   {}
 
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
-  
+                        RuleFlavor flavor,
+			bool wrap,
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        int gpuCopyOut,
+                        SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
+
   bool isSingleElement() const;
-  
+
   int dimensions() const;
   FormulaPtr getSizeOfRuleIn(int d);
 

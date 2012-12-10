@@ -1,5 +1,6 @@
 #programming general
 *~
+._*
 .*.swp
 .swp
 .*.swo
@@ -10,6 +11,7 @@
 *.bak
 *.pyc
 tags
+TAGS
 
 #automake
 .deps
@@ -36,10 +38,12 @@ config.h
 stamp-h1
 pbc
 *.cache
+*.heur
 
 maxima.log
 schedule.pdf
 schedule_initial.pdf
+parser.out
 
 Makefile.in
 configure
@@ -47,6 +51,11 @@ configure
 test
 rttest1
 rttest2
+rttestmm
+regiondatatest
+regionmatrixtest
+regionremotetest
+migrationtest
 tmp
 
 A

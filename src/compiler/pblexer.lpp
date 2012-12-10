@@ -37,6 +37,11 @@
 
 %{
 
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 #include "codegenerator.h"
 #include "formula.h"
 #include "matrixdef.h"
@@ -121,6 +126,7 @@ PASS_CHARS [=.<>,*/()[\]^+-]
   "accuracy_metric" RETURN KW_ACCURACYMETRIC;
   "accuracy_bins"   RETURN KW_ACCURACYBINS;
   "accuracy_variable" RETURN KW_ACCURACYVARIABLE;
+  "input_feature"   RETURN KW_INPUTFEATURE;
   "{"               yy_push_state(transform); RETURN '{';
   "%{"              yy_push_state(litcode); theParseLog.str("");
 }

@@ -25,12 +25,13 @@
  *                                                                           *
  *****************************************************************************/
 #include "rircompilerpass.h"
-
 #include "codegenerator.h"
 #include "rule.h"
 #include "transform.h"
 
 #include "common/jconvert.h"
+
+#include <cstring>
 
 namespace {//file local
   std::string _uniquify(const std::string& prefix) {
@@ -44,9 +45,9 @@ void petabricks::GpuRenamePass::before(RIRExprCopyRef& e)
   if( RIRNode::EXPR_IDENT == e->type() )
     {
       if( e->isLeaf( "ElementT" ) )
-	e = new RIRIdentExpr( STRINGIFY( MATRIX_ELEMENT_T ) );
+        e = new RIRIdentExpr( STRINGIFY( MATRIX_ELEMENT_T ) );
       else if( e->isLeaf( "IndexT" ) )
-	e = new RIRIdentExpr( STRINGIFY( MATRIX_INDEX_T ) );
+        e = new RIRIdentExpr( STRINGIFY( MATRIX_INDEX_T ) );
     }
 }
 
@@ -66,20 +67,21 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
       o.comment("SYNC();");
       o.continuationRequired("petabricks::sync_hook(_completion, ");
     }else if(s->containsLeaf("CALL")){
-      o.write(s->toString()); 
+      o.write(s->toString());
       o.comment("sync forced because of CALL");
       o.continuationRequired("petabricks::sync_hook(_completion, ");
     }else if(s->containsLeaf("SPAWN")){
-      o.write(s->toString()); 
+      o.write(s->toString());
       o.continuationPoint();
-    }else{ 
-      o.write(s->toString()); 
+    }else{
+      o.write(s->toString());
     }
     break;
   case RIRNode::STMT_LOOP:
   case RIRNode::STMT_COND:
   case RIRNode::STMT_BLOCK:
-    if(s->containsLeaf("SYNC") || s->containsLeaf("CALL") || s->containsLeaf("SPAWN") 
+  case RIRNode::STMT_SWITCH:
+    if(s->containsLeaf("SYNC") || s->containsLeaf("CALL") || s->containsLeaf("SPAWN")
         || s->containsLeaf("break")  || s->containsLeaf("continue") ){
       if(s->type() == RIRNode::STMT_COND){
         o.comment("expanded if statement");
@@ -102,7 +104,8 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
       }else if(s->type() == RIRNode::STMT_LOOP){
         o.comment("expanded loop statement");
         const RIRLoopStmt& stmt = (const RIRLoopStmt&)*s;
-        std::string jbody = o.nextContName("loopbody_");
+        std::string jbody  = o.nextContName("loopbody_");
+        std::string jinc   = o.nextContName("increment_");
         std::string jafter = o.nextContName("after_");
         o.write(stmt.declPart()->toString()+";");
         o.continueLabel(jbody);
@@ -110,29 +113,28 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
         o.continueJump(jafter);
         o.endIf();
         _breakTargets.push_back(jafter);
-        _continueTargets.push_back(jbody);
+        _continueTargets.push_back(jinc);
         stmt.body()->extractBlock()->accept(*this);
         _continueTargets.pop_back();
         _breakTargets.pop_back();
+        o.continueLabel(jinc);
         o.write(stmt.incPart()->toString()+";");
         o.continueJump(jbody);
         o.continueLabel(jafter);
       }else if(s->type() == RIRNode::STMT_BLOCK){
         o.comment("expanded block statement");
-        o.write(s->extractBlock()->toString()); 
+        s->extractBlock()->accept(*this);
       }else{
         UNIMPLEMENTED();
       }
     }else{
-      o.write(s->toString()); 
+      o.write(s->toString());
     }
     break;
-  case RIRNode::STMT_SWITCH:
   default:
-    UNIMPLEMENTED()(s->typeStr());
+    JASSERT(false)(s->typeStr())(s->toString());
   }
 }
-
 
 void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
   if(e->type() == RIRNode::EXPR_IDENT){
@@ -140,14 +142,21 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
     if(sym && sym->hasReplacement() && sym->replacement()!=e->toString()){
       JTRACE("LIFTVAR - replace")(e->toString())(sym->replacement());
       e = new RIRIdentExpr(sym->replacement());
-      before(e); 
+      before(e);
       return;
     }else if(sym && sym->isType()){
-      if(!hasExprBackward() && hasExprForward() 
+      if(!hasExprBackward() && hasExprForward()
           && (peekExprForward()->type()==RIRNode::EXPR_IDENT || peekExprForward()->isLeaf("*")) ){
+        //it smells like a variable declaration...
         std::string type = e->toString();
-        while(peekExprForward()->isLeaf("*"))
+        for(int nstar=0; peekExprForward()->isLeaf("*"); nstar++){
           type+=popExprForward()->toString();
+          if(!hasExprForward()) {
+            //whoops, we were supposed to find an IDENT not EOF -- backtrack
+            for(; nstar>=0; nstar--) pushExprForward(RIRExpr::parse("*", SRCPOS()));
+            return;
+          }
+        }
         std::string name = peekExprForward()->toString();
         std::string nameExtra = "";
         std::string nameMangled = prefix() + name;
@@ -158,7 +167,7 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
           JASSERT(!peekExprForward()->isLeaf(","))(_transform.name())(_rule.id()-_transform.ruleIdOffset())
             .Text("list style initializers not yet supported");
           if(peekExprForward()->isLeaf("[")){
-            while(!peekExprForward()->isLeaf("]")){ 
+            while(!peekExprForward()->isLeaf("]")){
               nameExtra += popExprForward()->toString();
             }
             nameExtra += popExprForward()->toString();
@@ -175,6 +184,20 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
   }
 }
 
+
+
+void petabricks::RuleFlavorSpecializePass::before(RIRExprCopyRef& e) {
+  if(e->type() == RIRNode::EXPR_IDENT){
+    RIRSymbolPtr sym = _scope->lookup(e->toString());
+    if(sym && sym->type() ==  RIRSymbol::SYM_TYPE_MATRIX_GENERIC){
+      e = new RIRIdentExpr(_rf.string()+"::"+e->toString());
+      JTRACE("specialized type")(e)(e->type() == RIRNode::EXPR_IDENT);
+    }
+  }
+}
+
+
+
 void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
   if(s->type() != RIRNode::STMT_BLOCK && depth()>=2 && parentNode()->isControl()){
     // add {}'s to sloppy ifs() and loops
@@ -182,12 +205,19 @@ void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
     tmp->addStmt(s);
     s=new RIRBlockStmt(tmp);
   }
+  if(s->type() == RIRNode::STMT_LOOP && (depth()==1 || !parentNode()->hasAnnotation("outer_for_scope"))){
+    // add {}'s around for statements to give them a sub-scope
+    RIRBlockCopyRef tmp = new RIRBlock();
+    tmp->addStmt(s);
+    tmp->addAnnotation("outer_for_scope");
+    s=new RIRBlockStmt(tmp);
+  }
   if(s->type() == RIRNode::STMT_LOOP && s->hasAnnotation("for_enough")){
     //expand forenough loops
     s->removeAnnotation("for_enough");
     RIRLoopStmt& loop = (RIRLoopStmt&)*s;
     RIRStmtCopyRef t;
-    JASSERT(s->numExprs()==5)(s->numExprs()); 
+    JASSERT(s->numExprs()==5)(s->numExprs());
     RIRExprCopyRef maxExp = s->popExpr();
     RIRExprCopyRef minExp = s->popExpr();
     int minI = jalib::StringToX<int>(minExp->toString());
@@ -207,7 +237,7 @@ void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
     loop.incPart()  = RIRExpr::parse("++"+vI, SRCPOS());
   }
 }
-  
+
 void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
   if(e->type() == RIRNode::EXPR_IDENT){
     RIRSymbolPtr sym = _scope->lookup(e->toString());
@@ -259,7 +289,7 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
       e = new RIRIdentExpr("TRANSFORM_LOCAL("+e->toString()+")");
     }
     if(sym && sym->isType()){
-      if(!hasExprBackward() && hasExprForward() 
+      if(!hasExprBackward() && hasExprForward()
           && (peekExprForward()->type()==RIRNode::EXPR_IDENT || peekExprForward()->isLeaf("*")) ){
         //transform:
         // int a,b=0,c;
@@ -317,9 +347,9 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
       if(hasExprForward() && !peekExprForward()->parts().empty()){
         peekExprForward()->parts().push_front(new RIROpExpr("("));
         peekExprForward()->parts().push_back(new RIROpExpr(")"));
-        e = new RIRIdentExpr("PB_RETURN");
+        e = new RIRIdentExpr("RETURN");
       }else{
-        e = new RIRIdentExpr("PB_RETURN_VOID");
+        e = new RIRIdentExpr("RETURN_VOID");
       }
     }
   }
@@ -332,25 +362,33 @@ void petabricks::AnalysisPass::before(RIRExprCopyRef& e){
       TrainingDeps::addCallgraphEdge(_name, e->toString());
       _rule.markRecursive();
     }
+    if(sym && sym->type() == RIRSymbol::SYM_ARG_ELEMENT){
+      // JTRACE("CELL ACCESS")(e->toString());
+      _rule.markHasCellAccess(e->toString());
+    }
+    if(e->toString() == "RETURN"){
+      // JTRACE("RETURN");
+      _rule.markHasCellAccess(RETURN_VAL_STR);
+    }
   }
-}
-
-petabricks::RegionPtr petabricks::OpenClCleanupPass::findMatrix(std::string var)
-{
-  RegionList from = _rule.getFromRegions();
-  RegionList to = _rule.getToRegions();
-
-  for( RegionList::const_iterator i = to.begin(); i != to.end(); ++i )
-    if( var == (*i)->name() )
-      return (*i);
-  for( RegionList::const_iterator i = from.begin(); i != from.end(); ++i )
-    if( var == (*i)->name() )
-      return (*i);
-  return NULL;
 }
 
 void petabricks::OpenClCleanupPass::generateAccessor( const RegionPtr& , const FormulaPtr& , const FormulaPtr&  )
 {
+}
+
+std::vector<std::string> petabricks::OpenClCleanupPass::generateCellIndices(RIRExprList& tokens) {
+  std::string s;
+  for(RIRExprList::iterator i = tokens.begin(); i != tokens.end(); ++i) {
+    s += (*i)->toString();
+  }
+  std::vector<std::string> indices;
+  char* tok = strtok((char*) s.c_str(), ",");
+  while(tok != NULL) {
+    indices.push_back(tok);
+    tok = strtok(NULL, ",");
+  }
+  return indices;
 }
 
 void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
@@ -381,66 +419,111 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
         RIRExprCopyRef args = call->part(1);
         JTRACE("expanding SYM_ARG_REGION")(regionName)(methodname)(args);
 
-	// Look up matrix region.
-	RegionPtr region = findMatrix(regionName->str());
-	JASSERT( !region.null() ).Text( "No such region exists." );
+	      // Look up matrix region.
+	      RegionPtr region = _rule.findMatrix(regionName->str());
+	      JASSERT( !region.null() ).Text( "No such region exists." );
 
-	// Generate list of index expressions.
-	/*
-	std::cout << "formula bounds:\n";
-	for( int i = 0; i < region->dimensions(); ++i )
-	  {
-	    std::cout << i << ": ";
-	    region->minCoord().at( i )->print(std::cout);
-	    std::cout << " to ";
-	    region->maxCoord().at( i )->print(std::cout);
-	    std::cout << std::endl;
-	  }
-	*/
-
-	if( "cell" == methodname->str() )
-	  {
-	    std::string xcoord, ycoord;
-	    if( petabricks::Region::REGION_ROW == region->getRegionType() )
+	      if( "cell" == methodname->str() )
 	      {
-		xcoord = args->toString();
-		ycoord = region->minCoord().at(1)->toString();
-	      }
-	    else if( petabricks::Region::REGION_COL == region->getRegionType() )
+          // Convert cell to linear index for OpenCL buffer.
+          std::vector<std::string> indices = generateCellIndices(call->parts().back()->parts().front()->parts());
+          std::vector<std::string>::reverse_iterator i = indices.rbegin();
+          FormulaPtr idx_formula;
+          switch(region->getRegionType()) {
+            case Region::REGION_CELL:
+              JASSERT(false).Text("Cannot call cell in cell");
+              break;
+            case Region::REGION_ROW:
+              idx_formula = new FormulaVariable(*i);
+              break;
+            case Region::REGION_COL:
+              idx_formula = new FormulaMultiply( new FormulaVariable("(" + *i + ")"), new FormulaVariable("dim_" + region->name() + "_d0") );
+              break;
+            case Region::REGION_ALL:
+            case Region::REGION_BOX:
+              {
+                int j = indices.size() - 2;
+                idx_formula = new FormulaVariable("(" + *i + ")");
+                ++i;
+                while(i != indices.rend()) {
+                  std::stringstream sizevar;
+                  sizevar << "dim_" << region->name() << "_d" << j--;
+                  idx_formula = new FormulaAdd( new FormulaVariable(*i), new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
+                  ++i;
+                }
+              }
+              break;
+            default:
+              UNIMPLEMENTED();
+          }
+
+          // Use local memory when possible.
+          std::string exprstr;
+          if(_locals.find(region->matrix()->name()) != _locals.end()) {
+            // Use local memory
+            std::vector<std::string>::reverse_iterator i = indices.rbegin();
+            if(region->dimensions() == 1) {
+              exprstr = "buff_" + region->matrix()->name() + "[" + *i + " + x_local]";
+            }
+            else if(region->dimensions() == 2) {
+              std::string y = *i;
+              i++;
+              std::string x = *i;
+              exprstr = "buff_" + region->matrix()->name() + "[" + y + " + y_local]"
+                                                           + "[" + x + " + x_local]";
+            }
+            else {
+              JASSERT(false).Text("Dimension is not 1 or 2. No Local Memory");
+            }
+          }
+          else {
+            // Use global memory
+            exprstr = "_region_" + region->name() + "[" + idx_formula->toString() + " + idx_" + region->name() + "]";
+          }
+          e = RIRExpr::parse( exprstr, SRCPOS() );
+        }
+        else if("count" == methodname->str()) {
+          FormulaPtr count_formula = new FormulaInteger(1);
+          for(size_t i = 0; i < region->dimensions(); ++i)
+            count_formula = new FormulaMultiply(count_formula, new FormulaVariable("dim_" + region->name() + "_d" + jalib::XToString(i)) );
+          e = RIRExpr::parse(count_formula->toString(), SRCPOS() );
+        }
+	      else if( "width" == methodname->str() )
 	      {
-		xcoord = region->minCoord().at(0)->toString();
-		ycoord = args->toString();
+	          e = RIRExpr::parse( "dim_" + region->matrix()->name() + "_d0", SRCPOS() );
 	      }
-	    else
+	      else
 	      {
-		std::cout << "Failed to generate OpenCL kernel: unsupported region type.";
-		throw NotValidSource();
+	        JASSERT( false ).Text( "Failed to generate OpenCL kernel: unsupported member function of region." );
 	      }
-
-	    std::string exprstr = region->matrix()->name() + "[(dim_" + region->matrix()->name() + "_d0*" + ycoord + ")+" + xcoord + "]";
-	    //std::cout << "expression string: " << exprstr << "\n";
-	    e = RIRExpr::parse( exprstr, SRCPOS() );
-	    //std::cout << "accessor index: " << e->debugStr() << "\n";
-	  }
-	else if( "width" == methodname->str() )
-	  {
-	    e = RIRExpr::parse( "dim_" + region->matrix()->name() + "_d0", SRCPOS() );
-	  }
-	else
-	  {
-	    JASSERT( false ).Text( "Failed to generate OpenCL kernel: unsupported member function of region." );
-	  }
-
-	// Simplify expressions and produce final call.
-
-	/*
-        args->prependSubExpr(methodname);
-        args->prependSubExpr(regionName);
-        e = new RIRCallExpr();
-        e->addSubExpr(new RIRIdentExpr("REGION_METHOD_CALL"));
-        e->addSubExpr(args);
-	*/
       }
+    }
+    if(sym && sym->type() == RIRSymbol::SYM_ARG_ELEMENT) {
+      RegionPtr region = _rule.findMatrix(e->str());
+      std::string matrix = region->matrix()->name();
+      std::string exprstr;
+      if(_locals.find(matrix) != _locals.end()) {
+	if(region->dimensions() == 1) {
+	  FormulaPtr index_x = new FormulaSubtract(region->minCoord().at(0), new FormulaVariable("_r" + jalib::XToString(_id) + "_x"));
+	  index_x = MAXIMA.normalize(index_x);
+	  exprstr = "buff_" + matrix + "[" + index_x->toCppString() + " + x_local + " + matrix + "0_minoffset]";
+	}
+	else if(region->dimensions() == 2) {
+	  FormulaPtr index_x = new FormulaSubtract(region->minCoord().at(0), new FormulaVariable("_r" + jalib::XToString(_id) + "_x"));
+	  index_x = MAXIMA.normalize(index_x);
+	  FormulaPtr index_y = new FormulaSubtract(region->minCoord().at(1), new FormulaVariable("_r" + jalib::XToString(_id) + "_y"));
+	  index_y = MAXIMA.normalize(index_y);
+	  exprstr = "buff_" + matrix + "[" + index_y->toCppString() + " + y_local + " + matrix + "1_minoffset]"
+	    + "[" + index_x->toCppString() + " + x_local + " + matrix + "0_minoffset]";
+	}
+	else {
+	  JASSERT(false).Text("Dimension is not 1 or 2. No Local Memory");
+	}
+      }
+      else {
+	exprstr = "_region_" + e->str() + "[idx_"+e->str()+"]";
+      }
+      e = RIRExpr::parse( exprstr, SRCPOS() );
     }
   }
 }
@@ -450,7 +533,7 @@ bool petabricks::OpenClFunctionRejectPass::isFunctionAllowed( const std::string&
   /* This is a quick list of functions which are common to the C or C++ and OpenCL C.  Thus, trying to compile rules using these functions
      shouldn't cause a problem. */
   const std::string whitelist[] =
-    { "PB_RETURN",
+    { "RETURN",
       "abs", "fabs",
       "max", "min",
       "sign", "round",
@@ -459,6 +542,7 @@ bool petabricks::OpenClFunctionRejectPass::isFunctionAllowed( const std::string&
       "sin", "cos", "tan",
       "acos", "asin", "atan",
       "sqrt",
+      "cell",
       "", };
 
   const std::string* p = whitelist;
@@ -501,4 +585,115 @@ void petabricks::OpenClFunctionRejectPass::before(RIRExprCopyRef& e)
 	  JTRACE( "Identifier is blacklisted for OpeNCL:")(e->str());
 	}
     }
+}
+
+
+void petabricks::CollectLoadStorePass::before(RIRExprCopyRef& e) {
+  std::cout << "Expr current = " << e->toString() << " type = " << e->type() << " EXPR = " << RIRNode::EXPR << std::endl;
+  _numExprs++;
+  RIRSymbolPtr sym = _scope->lookup(e->toString());
+  if(_numExprs == 2) {
+    _firstInStmt = e;
+  }
+  if(_firstInStmt != e && !_istrans && sym && (sym->type() == RIRSymbol::SYM_ARG_ELEMENT || sym->type() == RIRSymbol::SYM_ARG_REGION)) {
+    RegionPtr region = _rule.findMatrix(e->str());
+    if(region) {
+      _loads.insert(region);
+      std::cout << ">>> ADD LOAD " << region->name() << " " << region->matrix()->name() << std::endl;
+    }
+    else {
+      std::cout << ">>> TRY ADD LOADSTORE " << e->str() << std::endl;
+
+    }
+  }
+  else if(e->toString() == "RETURN") {
+    RegionList to = _rule.getToRegions();
+    for( RegionList::const_iterator i = to.begin(); i != to.end(); ++i ) {
+      _stores.insert(*i);
+      std::cout << ">>> ADD STORE " << (*i)->name() << " " << (*i)->matrix()->name() << std::endl;
+    }
+  }
+  else if(e->type() == RIRNode::EXPR_OP && hasExprBackward() 
+     && (e->isLeaf("=") || e->isLeaf("+=") || e->isLeaf("-=") || e->isLeaf("*=") || e->isLeaf("/=") || e->isLeaf("%=") || e->isLeaf(">>=") || e->isLeaf("<<=")) ) {
+    RegionPtr region = _rule.findMatrix(_firstInStmt->str());
+    if(region) {
+      _stores.insert(region);
+      std::cout << ">>> ADD STORE " << region->name() << " " << region->matrix()->name() << std::endl;
+      if(e->isLeaf("="))
+	_addFirst = true;
+    }
+  }
+  else if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM) {
+    _istrans = true;
+  }
+
+}
+
+void petabricks::CollectLoadStorePass::before(RIRStmtCopyRef& e) {
+  std::cout << "(before) Stmt current = " << e << std::endl;
+  _numExprs = 0;
+  _addFirst = false;
+  _istrans = false;
+}
+
+void petabricks::CollectLoadStorePass::after(RIRStmtCopyRef& e) {
+  std::cout << "(after) Stmt current = " << e << std::endl;
+  if(!_addFirst) {
+    RegionPtr region = _rule.findMatrix(_firstInStmt->str());
+    if(region) {
+      _loads.insert(region);
+      std::cout << ">>> ADD LOAD " << region->name() << " " << region->matrix()->name() << std::endl;
+    }
+  }
+}
+
+void petabricks::ManageCpuGpuMemPass::before(RIRExprCopyRef& e) {
+  RIRSymbolPtr sym = _scope->lookup(e->toString());
+  if(_state == 1 && sym && (sym->type() == RIRSymbol::SYM_ARG_ELEMENT || sym->type() == RIRSymbol::SYM_ARG_REGION)) {
+    _state = 2;
+    if(_beforetrans) {
+      _addfront = true;
+    }
+    else {
+      int lastdim = _rule.dimensions() - 1;
+      std::string lastdim_string = jalib::XToString(lastdim);
+      //push UseOnCpu
+      for(RegionSet::iterator i = _loads.begin(); i != _loads.end(); ++i) {
+	switch(_rule.stencilType(*i, true)) {
+	case 0:
+	  pushStmtBackward(RIRStmt::parse((*i)->name()+".useOnCpu(0);", SRCPOS()));
+	  break;
+	default:
+	// case 1:
+	//   pushStmtBackward(RIRStmt::parse((*i)->name()+".useOnCpu(_iter_begin["+lastdim_string+"]);", SRCPOS()));
+	//   break;
+	// case 2:
+	//   pushStmtBackward(RIRStmt::parse((*i)->matrix()->name()+".useOnCpu(_iter_begin["+lastdim_string+"] + "+jalib::XToString(_rule.minCoordOffsets()[(*i)->matrix()->name()][lastdim])+");", SRCPOS()));
+	  break;
+	}
+      }
+    }
+  }
+  else if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM) {
+    _beforetrans = false;
+    if(_state == 2) {
+      _state = 0;
+      int lastdim = _rule.dimensions() - 1;
+      std::string lastdim_string = jalib::XToString(lastdim);
+      //push ModifyOnCpu
+      for(RegionSet::iterator i = _stores.begin(); i != _stores.end(); ++i) {
+	if((*i)->getRegionType() == Region::REGION_ALL)
+	  pushStmtBackward(RIRStmt::parse((*i)->name()+".storageInfo()->modifyOnCpu(0);", SRCPOS()));
+	// else
+	//   pushStmtBackward(RIRStmt::parse((*i)->name()+".storageInfo()->modifyOnCpu(_iter_begin["+lastdim_string+"]);", SRCPOS()));
+      }
+    }
+  }
+}
+
+void petabricks::ManageCpuGpuMemPass::before(RIRStmtCopyRef& e) {
+  //std::cout << "Stmt current = " << e << " state = " << _state << " hasStmtForward = " << hasStmtForward() << std::endl;
+  if(_state == 0) {
+    _state = 1;
+  }
 }

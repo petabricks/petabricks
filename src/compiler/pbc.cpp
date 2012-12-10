@@ -33,14 +33,12 @@
 #include "common/jargs.h"
 #include "common/jfilesystem.h"
 #include "common/jtunable.h"
+#include "common/openclutil.h"
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#ifdef HAVE_OPENCL
-#include "openclutil.h"
-#endif
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -85,6 +83,7 @@ namespace pbcConfig {
   std::string theRuntimeDir;
   std::string thePbPreprocessor;
   std::string theBasename;
+  std::string theHeuristicsFile;
   int theNJobs = 2;
 }
 using namespace pbcConfig;
@@ -152,6 +151,7 @@ public:
   }
 
   void forkCompile() {
+    JTRACE(_gcccmd.c_str());
     _gccfd = opensubproc(_gcccmd);
   }
 
@@ -162,7 +162,7 @@ public:
   const std::string& objpath() const { return _obj; }
 
   void writeMakefile(std::ostream& o) {
-    o << _obj << ":\n\t"
+    o << _obj << ": " << _cpp << "\n\t"
       << _gcccmd
       << "\n\n";
   }
@@ -221,6 +221,7 @@ public:
   }
 
   void link() {
+    JTRACE(mklinkcmd().c_str());
     closesubproc(opensubproc(mklinkcmd()), "Link "+theOutputBin);
   }
   
@@ -252,6 +253,11 @@ public:
   }
 };
 
+void loadDefaultHeuristics() {
+  HeuristicManager& hm = HeuristicManager::instance();
+  
+  hm.registerDefault("UserRule_blockNumber", "2");
+}
 
 void findMainTransform(const TransformListPtr& t) {
   //find the main transform if it has not been specified
@@ -303,7 +309,8 @@ int main( int argc, const char ** argv){
   args.param("main",       theMainName).help("transform name to use as program entry point");
   args.param("hardcode",   theHardcodedConfig).help("a config file containing tunables to set to hardcoded values");
   args.param("jobs",       theNJobs).help("number of gcc processes to call at once");
-
+  args.param("heuristics", theHeuristicsFile).help("config file containing the (partial) set of heuristics to use");
+  
   if(args.param("version").help("print out version number and exit") ){
     std::cerr << PACKAGE " compiler (pbc) v" VERSION " " REVISION_LONG << std::endl;
     return 1;
@@ -326,7 +333,12 @@ int main( int argc, const char ** argv){
   if(theObjDir.empty())     theObjDir     = theOutputBin + ".obj";
   if(theOutputInfo.empty()) theOutputInfo = theOutputBin + ".info";
   if(theObjectFile.empty()) theObjectFile = theOutputBin + ".o";
+  if(! theHeuristicsFile.empty()) {
+    //Load the heuristics from the file
+    HeuristicManager::instance().loadFromFile(theHeuristicsFile);
+  }
   
+  loadDefaultHeuristics();
   
   int rv = mkdir(theObjDir.c_str(), 0755);
   if(rv!=0 && errno==EEXIST)
@@ -371,7 +383,13 @@ int main( int argc, const char ** argv){
   // generate misc files:
   o.cg().beginGlobal();
 #ifdef SINGLE_SEQ_CUTOFF
-  o.createTunable(true, "system.cutoff.sequential", "sequentialcutoff", 64);
+  o.createTunable(true, "system.cutoff.sequential",  "sequentialcutoff", 64);
+  o.createTunable(true, "system.cutoff.distributed", "distributedcutoff", 512);
+#endif
+  o.cg().addTunable(true, "system.runtime.threads", "worker_threads", 8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
+#ifdef HAVE_OPENCL
+  o.createTunable(true, "system.flag.localmem",  "use_localmem", 1, 0, 1);
+  o.createTunable(true, "system.size.blocksize",  "opencl_blocksize", 16, 0, 25); // 0 means not using local memory
 #endif
   o.cg().endGlobal();
   ccfiles.push_back(OutputCode(GENMISC, o));
@@ -389,6 +407,17 @@ int main( int argc, const char ** argv){
   }
   o.write("return NULL;");
   o.endFunc();
+
+  
+  CodeGenerator& init    = o.forkhelper();
+  CodeGenerator& cleanup = o.forkhelper();
+  init.beginFunc("void", "_petabricksInit");
+  cleanup.beginFunc("void", "_petabricksCleanup");
+  for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
+    (*i)->generateInitCleanup(init, cleanup);
+  }
+  init.endFunc();
+  cleanup.endFunc();
   
   // generate common header file:
   *prefix << headertxth;
@@ -400,6 +429,7 @@ int main( int argc, const char ** argv){
 
   // dump .info file:
   std::ofstream infofile(theOutputInfo.c_str());
+  o.cg().addHeuristics(HeuristicManager::instance().usedHeuristics());
   o.cg().dumpTo(infofile);
   infofile.flush();
   infofile.close();

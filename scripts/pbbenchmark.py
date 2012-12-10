@@ -1,8 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import pbutil, progress, tunerconfig, sgatuner, tunerwarnings
 import math 
 import os
-import scipy
 import socket 
 import sys
 import tempfile 
@@ -16,6 +15,7 @@ LONGBAR  = '='*50
 VERSION  = "2.0"
 LOGDIR    = './testdata/perflogs'
 TIMESTAMP = time.time()
+REV = "-"
 DEBUG = False
 
 class logdialect(csv.excel_tab):
@@ -93,7 +93,7 @@ class Benchmark:
     self.tuned_acc  = None
     self.tuned_candidate = None
     self.tuning_time = 0.0
-    assert os.path.isfile(expandCfg(cfg))
+    #assert os.path.isfile(expandCfg(cfg))
 
   def scoreFixed(self):
     return perfScore(self.fixed_perf, self.baseline)
@@ -162,33 +162,59 @@ class Benchmark:
         'n'                   : self.n,
         'acc_target'          : self.acc_target,
         'baseline'            : self.baseline,
-        'fixed_perf'          : self.fixed_perf['average'],
-        'fixed_acc'           : self.fixed_acc['average'],
+        'fixed_perf'          : -1,#self.fixed_perf['average'],
+        'fixed_acc'           : -1,#self.fixed_acc['average'],
         'tuned_perf'          : self.tuned_perf['average'],
         'tuned_acc'           : self.tuned_acc['average'],
         'tuning_time'         : self.tuning_time,
         'tuning_baseline'     : self.tuning_baseline,
-        'score_fixed'         : self.scoreFixed(),
+        'score_fixed'         : -1, #self.scoreFixed(),
         'score_tuned'         : self.scoreTuned(),
         'score_training_time' : self.scoreTrainingTime(),
         'hostname'            : socket.gethostname(),
         'timestamp'           : TIMESTAMP,
+        'revision'            : REV,
       }
 
 
 
 def main():
   warnings.simplefilter('ignore', tunerwarnings.NewProgramCrash)
+  warnings.simplefilter('ignore', tunerwarnings.SmallInputProgramCrash)
   warnings.simplefilter('ignore', tunerwarnings.TargetNotMet)
   warnings.simplefilter('ignore', tunerwarnings.NanAccuracy)
+
+  #Parse input options
+  from optparse import OptionParser
+  parser = OptionParser(usage="usage: pbbenchmark [options]")
+  parser.add_option("--learning", action="store_true", dest="learning", default=False, help="enable heuristics learning")
+  parser.add_option("--heuristics", type="string", help="name of the file containing the set of heuristics to use. Automatically enables --learning", default=None)
+
+  (options, args) = parser.parse_args()
+
+  if options.heuristics:
+    options.learning = True
+
+  if options.learning:
+    print "Learning of heuristics is ACTIVE"
+    if options.heuristics:
+      print "Using heuristics file: "+ str(options.heuristics)
+    else:
+      print "Using only heuristics in the database"
 
   progress.push()
   progress.status("compiling benchmarks")
 
   pbutil.chdirToPetabricksRoot()
-  pbutil.compilePetabricks();
+  pbutil.compilePetabricks()
 
-  r, lines = pbutil.loadAndCompileBenchmarks("./scripts/pbbenchmark.tests")
+  global REV
+  try:
+    REV=pbutil.getRevision()
+  except:
+    pass
+
+  r, lines = pbutil.loadAndCompileBenchmarks("./scripts/pbbenchmark.tests", searchterms=sys.argv[1:], learning=options.learning, heuristicSetFileName=options.heuristics)
 
   if filter(lambda x: x.rv!=0, r):
     print "compile failed"
@@ -212,23 +238,21 @@ def main():
       baseline = (1.0, 1.0)
     benchmarks.append(Benchmark(benchmark, cfg, n, accTarg, baseline[0], baseline[1]))
 
+    progress.remainingTicks(len(benchmarks))
 
-  print LONGBAR
-  print "Fixed (no autotuning) scores:"
-  print SHORTBAR
-  progress.remainingTicks(len(benchmarks)+3)
-  progress.tick()
-  for b in benchmarks:
-    progress.status("running fixed "+fmtCfg(b.cfg))
-    b.runFixed()
-    b.printFixed()
-  progress.tick()
-  score_fixed = geomean(map(Benchmark.scoreFixed, benchmarks))
+   #print LONGBAR
+   #print "Fixed (no autotuning) scores:"
+   #print SHORTBAR
+   #for b in benchmarks:
+   #  progress.status("running fixed "+fmtCfg(b.cfg))
+   #  b.runFixed()
+   #  b.printFixed()
+   #score_fixed = geomean(map(Benchmark.scoreFixed, benchmarks))
 
-  print SHORTBAR
-  print "Fixed Score (pbbenchmark v%s): %.2f" % (VERSION, geomean(map(Benchmark.scoreFixed, benchmarks)))
-  print LONGBAR
-  print
+   #print SHORTBAR
+   #print "Fixed Score (pbbenchmark v%s): %.2f" % (VERSION, geomean(map(Benchmark.scoreFixed, benchmarks)))
+   #print LONGBAR
+   #print
 
 
 
@@ -274,14 +298,14 @@ def main():
     
   writelog(expandLog('scores.log'), {
       'version'             : VERSION,
-      'score_fixed'         : score_fixed,
+      'score_fixed'         : -1,#score_fixed,
       'score_tuned'         : score_tuned,
       'score_training_time' : score_training_time,
       'hostname'            : socket.gethostname(),
       'timestamp'           : TIMESTAMP,
+      'revision'            : REV,
     })
   
-  progress.tick()
   progress.status("done")
   progress.pop()
 

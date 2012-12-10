@@ -78,6 +78,12 @@ public:
   /// Wrapper around run that changes state and handles dependencies
   void runWrapper(bool isAborting = false);
 
+
+  ///
+  /// called by runWrapper, updated deps after a task completes
+  void completeTaskDeps(bool isAborting = false);
+
+
   ///
   /// Pretend this task was run successfully, recursively cancel tasks that depend on this
   void cancel(){ runWrapper(true); }
@@ -93,6 +99,27 @@ public:
   ///
   /// test if this can run on a given processor type
   bool hasType(TaskType t) const { return (_type&t)!=0; }
+
+  ///
+  /// run directly in a context that doesn't support continuations
+  /// this method is a bit of a hack, intended for places where we have
+  /// stack state and cant support workstealing
+  void runNoContinuation() {
+    { JLOCKSCOPE(_lock); 
+      JASSERT(_dependents.empty())(_dependents.size());
+      JASSERT(_numPredecessors==0)(_numPredecessors);
+      JASSERT(_state == S_NEW)(_state);
+    }
+    DynamicTaskPtr cont = run();
+    if(cont) {
+      cont->runNoContinuation();
+    }
+    jalib::staticMemFence();
+    _state = S_COMPLETE;//outside lock -- single word write is atomic
+    jalib::staticMemFence();
+  }
+
+  virtual void remoteScheduleTask() { UNIMPLEMENTED(); }
  protected:
   ///
   /// either enqueue or inline the task
@@ -121,7 +148,10 @@ public:
     S_PENDING,   //after enqueue()
     S_READY,     //after all dependencies met
     S_COMPLETE,  //after run()==NULL
-    S_CONTINUED  //after run()!=NULL
+    S_CONTINUED, //after run()!=NULL
+    S_REMOTE_NEW,     //after creation - for a RemoteTask
+    S_REMOTE_PENDING, //after enqueue() - for a RemoteTask
+    S_REMOTE_READY    //after all dependencies met - for a RemoteTask
   };
 
   ///

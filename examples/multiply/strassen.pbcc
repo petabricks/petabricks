@@ -43,7 +43,7 @@ to   C11[n,n], C12[n,n], C21[n,n], C22[n,n]
     sync;
     MatrixMultiplySqr(m7, t1, t2);
   }
-  
+
   to(C11 c11) from(M1 m1, M4 m4, M5 m5, M7 m7){
     MatrixAddAddSub(c11, m1, m4, m7, m5);
   }
@@ -59,7 +59,7 @@ to   C11[n,n], C12[n,n], C21[n,n], C22[n,n]
 }
 
 transform Strassen
-from A[n,n], B[n,n] 
+from A[n,n], B[n,n]
 to C[n,n]
 {
   to(C.region(0,   0,   n/2, n/2) c11,
@@ -78,9 +78,9 @@ to C[n,n]
     StrassenInner(c11,c12,c21,c22, a11,a12,a21,a22, b11,b12,b21,b22);
   }
 }
-  
+
 transform MatrixMultiplySqr
-from A[n,n], B[n,n] 
+from A[n,n], B[n,n]
 to C[n,n]
 {
   to(C c) from(A a, B b){
@@ -96,7 +96,7 @@ to C[n,n]
 }
 
 transform MatrixMultiplySqrTransposed
-from A[n,n], B[n,n] 
+from A[n,n], B[n,n]
 through T[n,n]
 to C[n,n]
 {

@@ -27,34 +27,36 @@
 #include "remoteobject.h"
 #include "remotehost.h"
 
+#include "common/jasm.h"
 
-void* petabricks::RemoteObject::allocRecv(size_t len) {
-  return malloc(len);
+
+void* petabricks::RemoteObject::allocRecv(size_t len, int) {
+  return new char[len];
 }
 
-void petabricks::RemoteObject::freeRecv(void* buf, size_t ) {
-  free(buf);
+void petabricks::RemoteObject::freeRecv(void* buf, size_t, int ) {
+  delete [] ((char*)buf);
 }
 
-void petabricks::RemoteObject::onRecv(const void* , size_t s) {
+void petabricks::RemoteObject::onRecv(const void* , size_t s, int) {
   JTRACE("recv")(s);
 }
 
 void* petabricks::RemoteObject::allocRecvInitial(size_t len) {
-  return allocRecv(len);
+  return allocRecv(len,0);
 }
 
 void petabricks::RemoteObject::onRecvInitial(const void* buf, size_t len) {
   JTRACE("recvInitial")(len);
-  onRecv(buf,len);
+  onRecv(buf,len,0);
 }
 
 void petabricks::RemoteObject::freeRecvInitial(void* buf, size_t len) {
-  return freeRecv(buf, len);
+  return freeRecv(buf, len,0);
 }
 
 void petabricks::RemoteObject::onCreated() {
-  JTRACE("remote object created")(_flags);
+  //JTRACE("remote object created")(_flags);
 }
 void petabricks::RemoteObject::onComplete() {
   JTRACE("complete")(_flags);
@@ -62,8 +64,25 @@ void petabricks::RemoteObject::onComplete() {
 void petabricks::RemoteObject::onNotify(int arg) {
   JTRACE("notify")(_flags)(arg);
 }
-void petabricks::RemoteObject::send(const void* p, size_t s) {
-  host()->sendData(this, p, s);
+void petabricks::RemoteObject::send(const void* p, size_t s, int arg) const {
+  //JTRACE("send")(s)(arg);
+  host()->sendData(this, p, s, arg);
+}
+void petabricks::RemoteObject::send(const void* p, size_t s, const void* p2, size_t s2, int arg) const {
+  //JTRACE("send")(s2)(arg);
+  host()->sendData(this, p, s, p2, s2, arg);
+}
+void petabricks::RemoteObject::sendMu(const void* p, size_t s, int arg) const {
+  //JTRACE("sendmu")(s)(arg);
+  unlock();
+  host()->sendData(this, p, s, arg);
+  lock();
+}
+void petabricks::RemoteObject::sendMu(const void* p, size_t s, const void* p2, size_t s2, int arg) const {
+  //JTRACE("sendmu")(s2)(arg);
+  unlock();
+  host()->sendData(this, p, s, p2, s2, arg);
+  lock();
 }
 void petabricks::RemoteObject::remoteSignal() {
   host()->remoteSignal(this);
@@ -78,5 +97,17 @@ void petabricks::RemoteObject::remoteMarkComplete() {
   host()->remoteMarkComplete(this);
 }
 
-
+void petabricks::RemoteObject::waitMsgMu() const{
+  for(;;) {
+    if(pendingMessages() > 0) {
+      unlock();
+      while(pendingMessages() > 0) jalib::memFence();
+      lock();
+      return;
+    }
+    if(host()->recv(this)) {
+      return;
+    }
+  }
+}
 

@@ -43,6 +43,7 @@
 
 #include "common/jconvert.h"
 
+#include <set>
 #include <vector>
 
 namespace petabricks {
@@ -54,16 +55,16 @@ class UserRule : public RuleInterface{
 public:
   ///
   /// Constructor -- return style rule
-  UserRule(const RegionPtr& to, const RegionList& from, const MatrixDefList& through, const FormulaList& where);
+    UserRule(const RegionPtr& to, const RegionList& from, const MatrixDefList& through, const FormulaList& where);
 
   ///
   /// Constructor -- to style rule
   UserRule(const RegionList& to, const RegionList& from, const MatrixDefList& through, const FormulaList& where);
-  
+
   ///
   /// Initialize this rule after parsing
   void initialize(Transform&);
-  
+
 
   ///
   /// Expand any duplicates by generating synthetic rules
@@ -76,7 +77,7 @@ public:
   ///
   /// Set priority flag
   void setPriority(RuleFlags::PriorityT v)  { _flags.priority = v; }
-  
+
   ///
   /// Set rotation flag
   void addRotations(RuleFlags::RotationT v) { _flags.rotations |= v; }
@@ -97,33 +98,49 @@ public:
   /// Print this rule to a given stl stream
   /// implements JPrintable::print
   void print(std::ostream& o) const;
-  
+
   ///
   /// Add RuleDescriptors to output corresponding to the extrema of the applicable region in dimension
   void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension, const RulePtr& rule);
 
-  ///
-  /// Generate seqential code to declare this rule
-  void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
 
-  ///
-  /// Generate seqential code to declare this rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
-    generateTrampCodeSimple(trans, o, E_RF_STATIC);
-    generateTrampCodeSimple(trans, o, E_RF_DYNAMIC);
-#ifdef HAVE_OPENCL
-    if( isOpenClRule() )
-      generateTrampCodeSimple(trans, o, E_RF_OPENCL);
-#endif
-  }
+  void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
+  void generateDeclCodeSequential(Transform& trans, CodeGenerator& o);
+  void generateDeclCodeOpenCl(Transform& trans, CodeGenerator& o);
+
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+  void generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+  void generateToLocalRegionCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, IterationDefinition& iterdef, bool generateWorkStealingRegion, bool generateIterTrampMetadata, bool generatePartialTrampMetadata);
 
-#ifdef HAVE_OPENCL
+  void generateUseOnCpu(CodeGenerator& o);
+  void generateModifyOnCpu(CodeGenerator& o);
+  void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+  void generateOpenCLCallCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+  void generateOpenCLPrepareCode(Transform& trans, std::string& codename, CodeGenerator& o);
+  void generateOpenCLCopyInCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o, RegionPtr region);
+  void generateOpenCLRunCode(Transform& trans, CodeGenerator& o);
+  void generateOpenCLCopyOutCode(std::string& codename, CodeGenerator& o, RegionPtr region);
   ///
   /// Generate an OpenCL program implementing this rule
-  void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef );
-#endif
+  void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef, bool local=false);
+  std::string getLastRowOnGpuGuide(RegionPtr region, int dim_int);
+  std::string getLastRowOnGpuOffset(RegionPtr region, int dim_int);
+  void collectGpuLocalMemoryData();
+  RegionPtr findMatrix(std::string var) {
+    for( RegionList::const_iterator i = _to.begin(); i != _to.end(); ++i )
+      if( var == (*i)->name() )
+	return (*i);
+    for( RegionList::const_iterator i = _from.begin(); i != _from.end(); ++i )
+      if( var == (*i)->name() )
+	return (*i);
+    return NULL;
+  }
+  bool canUseLocalMemory() {
+    return _local.size() > 0;
+  }
+  void generateLocalBuffers(CLCodeGenerator& clo);
 
   ///
   /// Generate seqential code to invoke this rule
@@ -131,12 +148,23 @@ public:
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
+                        RuleFlavor flavor,
+			bool wrap,
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        int gpuCopyOut,
+                        SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
+
+  void generateMetadataCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 
   ///
   /// Return function the name of this rule in the code
   std::string implcodename(Transform& trans) const;
   std::string trampcodename(Transform& trans) const;
+  std::string itertrampcodename(Transform& trans) const;
+  std::string itertrampmetadataname(Transform& trans) const;
+  std::string partialtrampcodename(Transform& trans) const;
+  std::string partialtrampmetadataname(Transform& trans) const;
 
   bool isReturnStyle() const { return _flags.isReturnStyle; }
 
@@ -146,17 +174,42 @@ public:
 
   void collectDependencies(StaticScheduler& scheduler);
 
-  void markRecursive() { 
+  void markRecursive() {
     markRecursive(NULL);
   }
-  void markRecursive(const FormulaPtr& rh) { 
+  void markRecursive(const FormulaPtr& rh) {
     if(!_flags.isRecursive){
-      _flags.isRecursive = true; 
+      _flags.isRecursive = true;
       _recursiveHint = rh;
     }
   }
 
+  void markHasCellAccess(const std::string& name) {
+    std::string matrix = "";
+    for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
+      if ((*i)->name() == name) {
+        matrix = (*i)->matrix()->name();
+        break;
+      }
+    }
+    if (matrix.length() == 0) {
+      for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
+        if ((*i)->name() == name) {
+          matrix = (*i)->matrix()->name();
+          break;
+        }
+      }
+    }
+    _matricesWithCellAccess.insert(matrix);
+  }
+
   bool isRecursive() const { return _flags.isRecursive; }
+  bool hasCellAccess() const {
+    return _matricesWithCellAccess.size() > 0;
+  }
+  bool hasCellAccess(const std::string& matrix) const {
+    return (_matricesWithCellAccess.count(matrix) == 1);
+  }
 
   bool isOpenClRule() const {
 #ifdef HAVE_OPENCL
@@ -164,6 +217,75 @@ public:
 #else
     return false;
 #endif
+  }
+
+  /* bool hasStencil(MatrixDefPtr matrix, size_t dim) { */
+  /*   if(matrix->numDimensions() != dim) */
+  /*     return false; */
+  /*   return _maxCoordOffsets.find(matrix->name()) != _maxCoordOffsets.end() && MAXIMA.compare(_maxCoordOffsets[matrix->name()][dim - 1], ">", FormulaInteger::one()); */
+  /* } */
+
+  /// 0 - need to entire matrix
+  /// 1 - one to one
+  /// 2 - multiple to one
+  int stencilType(RegionPtr region, bool min) {
+    /* std::cout << "#### stencil = " << region->name() << " " << region->matrix()->name() << std::endl; */
+    MatrixDefPtr matrix = region->matrix();
+    IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
+    size_t dim = iterdef.dimensions();
+    if(dim == 0 || region->getRegionType() == Region::REGION_ALL || matrix->numDimensions() != dim) {
+      return 0;
+    }
+    if(_maxCoordOffsets.find(matrix->name()) != _maxCoordOffsets.end()) {
+      /* std::cout << "mincoordoffset = " << _minCoordOffsets[matrix->name()][dim - 1] << std::endl; */
+      /* std::cout << "name = " << matrix->name() << std::endl; */
+      /* std::cout << "offset = " << _minCoordOffsets[matrix->name()][dim - 1] << std::endl; */
+      if(min) {
+	if(MAXIMA.comparePessimistically(_minCoordOffsets[matrix->name()][dim - 1], "<", FormulaInteger::zero())) {
+	  return 2;
+	}
+	else if(MAXIMA.comparePessimistically(_minCoordOffsets[matrix->name()][dim - 1], "=", FormulaInteger::zero())) {
+	  return 1;
+	}
+      }
+      else {
+	/* std::cout << "#### max = " <<  _maxCoordOffsets[matrix->name()][dim - 1] << std::endl; */
+	if(MAXIMA.comparePessimistically(_maxCoordOffsets[matrix->name()][dim - 1], ">", FormulaInteger::one())) {
+	/* std::cout << "### stencil = 2" << std::endl; */
+	  return 2;
+	}
+	else if(MAXIMA.comparePessimistically(_maxCoordOffsets[matrix->name()][dim - 1], "=", FormulaInteger::one())) {
+	/* std::cout << "### stencil = 1" << std::endl; */
+	  return 1;
+	}
+
+      }
+    }
+    //std::cout << "matrix not found" << std::endl;
+    /* std::cout << "### stencil = 0" << std::endl; */
+    return 0;
+  }
+
+  /* bool isDivisible(SimpleRegionPtr region) {   */
+  /*   //TODO: what about COL and ROW? */
+  /*   if(region->removedDimensions() > 0) return false; */
+  /*   IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall()); */
+  /*   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){ */
+  /*     if((*i)->getRegionType() == Region::REGION_ALL || (*i)->getRegionType() == Region::REGION_COL) { */
+  /* 	return false; */
+  /*     } */
+  /*   } */
+  /*   return true; */
+  /* } */
+
+  bool isDivisible() {  
+    IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
+    for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
+      if((*i)->getRegionType() == Region::REGION_ALL || (*i)->getRegionType() == Region::REGION_COL || (*i)->removedDimensions() > 0) {
+	return false;
+      }
+    }
+    return true;
   }
 
   RuleFlags::PriorityT priority() const { return _flags.priority; }
@@ -177,8 +299,13 @@ public:
 
   FormulaPtr getSizeOfRuleIn(int d){
     for(size_t i=0; i<_to.size(); ++i){
-      if(d < (int)_to[i]->dimensions()){
+      if(_to[i]->isExistingDimension(d)){
         return _to[i]->getSizeOfRuleIn(d);
+      }
+    }
+    for(size_t i=0; i<_to.size(); ++i){
+      if(_to[i]->isRemovedDimension(d)){
+        return _to[i]->getSizeOfRuleInRemovedDimension(d);
       }
     }
     JASSERT(false)(d)(_id);
@@ -209,6 +336,15 @@ public:
     return true;
   }
 
+  RegionPtr regionRep() {
+    RegionPtr rep = _to.front();
+    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
+      if((*i)->getRegionType() < rep->getRegionType())
+	rep = *i;
+    }
+    return rep;
+  }
+
   ///
   /// add a variable to duplicate the rulebody max-min times with
   void addDuplicateVar(const std::string& name, int min, int max){
@@ -228,7 +364,7 @@ public:
     if((int)_conditions.size()-1==start) return _conditions[start];
     return new FormulaAnd(_conditions[start], getWhereClause(start+1));
   }
-  
+
   DependencyDirection getSelfDependency() const;
 
   RegionList getFromRegions( ) const
@@ -236,6 +372,10 @@ public:
     return _from;
   }
 
+  RegionSet getFromRegionsOnCpu( ) const
+  {
+    return _loads;
+  }
   RegionList getToRegions( ) const
   {
     return _to;
@@ -243,25 +383,85 @@ public:
 
   RIRBlockCopyRef getBody( ) const
   {
-    return _bodyirStatic;
+    return _bodyir[RuleFlavor::SEQUENTIAL];
   }
 
-  void buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional);
+  void buildApplicableRegion(Transform& trans,
+                             SimpleRegionPtr& ar,
+                             bool allowOptional);
+
+  virtual void removeDimensionFromMatrix(const MatrixDefPtr matrix,
+                                          const size_t dimension);
+
+  virtual void fixVersionedRegionsType();
+
+  virtual RegionList getSelfDependentRegions();
+
+  virtual RegionList getNonSelfDependentRegions();
+
+  void buildFromBoundingBox();
+  void buildToBoundingBox();
+  void buildScratchBoundingBox();
+
+  void trimDependency(DependencyDirection& dep,
+                      const ChoiceDepGraphNode& from,
+                      const ChoiceDepGraphNode& to);
+
+  std::map<std::string, FormulaList>& minCoordOffsets() {
+    return _minCoordOffsets;
+  }
+  
 private:
+  void computeDataDependencyVector();
+  CoordinateFormula computeDDVAsDifference(const RegionPtr inputRegion,
+                                           const RegionPtr outputRegion
+                                          ) const;
+  void computeDDVForGivenOutput(const RegionPtr outputRegion);
+
+  void removeDimensionFromRegionList(RegionList& list,
+                                     const MatrixDefPtr matrix,
+                                     const size_t dimension);
+
+  void removeDimensionFromMatrixDependencyMap(MatrixDependencyMap& map,
+                                              const MatrixDefPtr matrix,
+                                              const size_t dimension);
+
+  void removeDimensionFromDefinitions(const size_t dimension);
+
+  ///
+  /// Set gpu buffer flag to matrices
+  void prepareBuffers();
+
+  bool passBuildGpuProgram(Transform& trans);
+
+  bool shouldGenerateTrampIterCode(RuleFlavor::RuleFlavorEnum flavor);
+  bool shouldGeneratePartialTrampCode(RuleFlavor::RuleFlavorEnum flavor);
+
+  MatrixDefPtr lookupScratch(const std::string& name) const{
+    MatrixDefMap::const_iterator i = _scratch.find(name);
+    JASSERT(i != _scratch.end())(name).Text("Unknown scratch");
+    return i->second;
+  }
+
+  std::map<std::string, std::string> _nameMap;
+  std::set<std::string> _local;
+  std::map<std::string, FormulaList> _minCoordOffsets;
+  std::map<std::string, FormulaList> _maxCoordOffsets;
+  RegionSet _loads;
+  RegionSet _stores;
+
   RuleFlags _flags;
   RegionList _from;
   RegionList _to;
   MatrixDefList _through;
+  MatrixDefMap _scratch;
+  MatrixDefMap _partial;
   FormulaList _conditions;
   FormulaList _definitions;
   std::string _bodysrc;
   jalib::SrcPosTaggable _bodysrcPos;
-  RIRBlockCopyRef _bodyirStatic;
-  RIRBlockCopyRef _bodyirDynamic;
-#ifdef HAVE_OPENCL
-  RIRBlockCopyRef _bodyirOpenCL;
-  bool passBuildGpuProgram(Transform& trans);
-#endif
+  RIRBlockCopyRef _bodyir[RuleFlavor::_COUNT];
+  RIRBlockCopyRef _bodyirLocalMem;
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr _recursiveHint;
@@ -269,6 +469,16 @@ private:
   ConfigItems _duplicateVars;
   RulePtr _gpuRule;
 
+  typedef std::map<MatrixDefPtr, SimpleRegionPtr> MatrixToRegionMap;
+  MatrixToRegionMap _fromBoundingBox;
+  MatrixToRegionMap _fromBoundingBoxNoOptional;
+  MatrixToRegionMap _toBoundingBox;
+  MatrixToRegionMap _scratchBoundingBox;
+
+  std::map<std::string, CoordinateFormulaPtr> _scratchRegionLowerBounds;
+  std::map<std::string, CoordinateFormulaPtr> _partialCoordOffsets;
+
+  std::set<std::string> _matricesWithCellAccess;
 };
 
 }

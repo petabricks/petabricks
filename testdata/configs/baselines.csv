@@ -6,3 +6,4 @@ multigrid/Helmholtz3DFMG, 0.317450, 1151.125310
 multigrid/Poisson2DFMG, 0.120740, 1111.374498
 multiply/strassen, 0.065585, 632.122255
 sort/Sort, 0.122942, 1576.504229
+sort2/Sort2, 0.122942, 1576.504229

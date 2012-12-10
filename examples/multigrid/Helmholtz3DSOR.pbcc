@@ -33,9 +33,9 @@ to OUT[n,n,n]
                         DX dx, WEIGHT w, PARITY p)
   {
     if ((((int) (i + j + k)) & 1) == p) {
-      double dxSq = dx * dx;
-      double K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
-      double newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no +
+      ElementT dxSq = dx * dx;
+      ElementT K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
+      ElementT newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no +
                                       bso * so + bfr * fr + bba * ba) + rhs) / K;
       return (1 - w) * me + w * newVal;
     } else {
@@ -63,7 +63,7 @@ to OUT[n,n,n]
                         ALPHA alpha, BETA beta,
                         DX dx, WEIGHT w, PARITY p)
   {
-    double we, ea, no, so, fr, ba;
+    ElementT we, ea, no, so, fr, ba;
 
     we = (IS_MISSING(r_we) ? -me : r_we);
     ea = (IS_MISSING(r_ea) ? -me : r_ea);
@@ -73,9 +73,9 @@ to OUT[n,n,n]
     ba = (IS_MISSING(r_ba) ? -me : r_ba);
 
     if ((((int) (i + j + k)) & 1) == p) {
-      double dxSq = dx * dx;
-      double K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
-      double newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no +
+      ElementT dxSq = dx * dx;
+      ElementT K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
+      ElementT newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no +
                                       bso * so + bfr * fr + bba * ba) + rhs) / K;
       return (1 - w) * me + w * newVal;
     } else {
@@ -112,7 +112,7 @@ generator Helmholtz3DSORGenerator
     //  -2 : choose value for use inside multigrid V-cycles
     //
     // for now, both values default to 0.9 since I don't know what else to use
-    double w = (r_w == -1 || r_w == -2 ? 0.9 : r_w);
+    ElementT w = (r_w == -1 || r_w == -2 ? 0.9 : r_w);
 
     Helmholtz3DSORIterate(out,  in, a, b0, b1, b2, rhs, alpha, beta, dx, w, 0); // red
     Helmholtz3DSORIterate(out, out, a, b0, b1, b2, rhs, alpha, beta, dx, w, 1); // black

@@ -11,13 +11,13 @@ class config_defaults:
   max_input_size           = 2**30
   min_input_size           = 1
   max_time                 = 60*150
-  rounds_per_input_size    = 3
-  final_rounds             = 3
+  rounds_per_input_size    = 2
+  final_rounds             = 40
 
   #number of trials to run
   confidence_pct   = 0.75
-  min_trials       = 3
-  max_trials       = 7
+  min_trials       = 1
+  max_trials       = 5
   '''guessed stddev when only 1 test is taken'''
   prior_stddev_pct      = 0.15
   '''percentage change to be viewed as insignificant when testing if two algs are equal'''
@@ -25,7 +25,7 @@ class config_defaults:
   '''confidence for generating execution time limits'''
   limit_conf_pct        = 0.95
   '''multiply generated time limits by a factor'''
-  limit_multiplier      = 6.0
+  limit_multiplier      = 1.5
   '''offset added to input sizes'''
   offset                = 0
 
@@ -34,11 +34,16 @@ class config_defaults:
   bandit_verbose        = False
   os_method             = OperatorSelectionMethod.WEIGHTED_SUM
 
+  pop_elitism_pct   = 0.20
+  pop_crossover_pct = 0.25
+  pop_mutated_pct   = 0.25
+  pop_hillclimb_pct = 0.20
+  tournament_size = 5
+  mutation_rate = 0.15
 
   #how mutation to do
   mutations_per_mutator    = 3
-  population_high_size     = 10
-  population_low_size      = 1
+  population_size          = 64
   multimutation            = True
   mutate_retries           = 10
   rand_retries             = 10
@@ -83,7 +88,7 @@ class config_defaults:
   threads = None
   abort_on = ""
   race_split_ratio = 0.5
-  
+
   threshold_multiplier_min = 100.0
   threshold_multiplier_max = 1000.0
   threshold_multiplier_default=400.0
@@ -91,12 +96,13 @@ class config_defaults:
   recompile = True
 
   #types of mutatators to generate
-  lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']
-  uniform_tunable_types       = ['system.flag.unrollschedule']
+  lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential', 'system.cutoff.distributed', 'system.size.blocksize']
+  uniform_tunable_types       = ['system.flag.localmem', 'system.gpuratio']
   autodetect_tunable_types    = ['user.tunable']
-  lognorm_array_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
-  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg', 'user.tunable.double', 'user.tunable.double.array']
-  
+  lognorm_sizespecific_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.array']
+  optimize_tunable_types      = ['user.tunable.double', 'user.tunable.double.array']
+  sizespecific_tunable_types  = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.double.array', 'user.tunable.array']
+  ignore_tunable_types        = ['system.runtime.threads', 'system.flag.unrollschedule', 'algchoice.cutoff', 'algchoice.alg']  
   #metric information, dont change
   metrics               = ['timing', 'accuracy']
   metric_orders         = [1, -1] #1 = minimize, -1 = maximize
@@ -107,6 +113,8 @@ class config_defaults:
   fmt_cutoff     = "%s_%d_lvl%d_cutoff"
   fmt_rule       = "%s_%d_lvl%d_rule"
   fmt_bin        = "%s__%d"
+  fmt_array      = "%s_i%d_%s"
+  fmt_bin2D      = "%s_i%d_%s__%d"
   first_lvl      = 1
   cutoff_max_val = 2**30
 
@@ -151,18 +159,15 @@ class patch_check:
   #required flags
   use_iogen                = True
   check                    = True
-  
-  #run for 30 sec or 2**13 input size
-  max_input_size           = 1024
-  max_time                 = 20
-  rounds_per_input_size    = 1
 
-  #bigger pop size
-  population_low_size      = 3
+  #run for 30 sec or 2**13 input size
+  max_input_size           = 256
+  max_time                 = 60
+  rounds_per_input_size    = 1
 
   # wait longer for results, higher time limits
   limit_multiplier         = 15
-  
+
   #run two trials per alg
   confidence_pct   = 0.0
   max_trials       = 2
@@ -186,7 +191,6 @@ class patch_noninteractive:
 
 class patch_regression(patch_noninteractive, patch_check):
   pass
-
 
 class patch_pbbenchmark(patch_noninteractive):
   pass

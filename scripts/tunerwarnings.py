@@ -1,4 +1,5 @@
 import warnings
+import sys
 from tunerconfig import config
 
 class TunerWarning(UserWarning):
@@ -56,6 +57,7 @@ class InconsistentOutput(TunerWarning):
       print 'set config.pause_on_crash=False to disable this message'
       print '-'*60
       print
+      sys.stdout.flush()
       import progress
       progress.pause('press any key to continue')
 
@@ -105,6 +107,10 @@ class ExistingProgramCrash(ProgramCrash):
   pass
 
 class NewProgramCrash(ProgramCrash):
+  '''a mutated child algorithm crashed'''
+  pass
+
+class SmallInputProgramCrash(ProgramCrash):
   '''a mutated child algorithm crashed'''
   pass
 

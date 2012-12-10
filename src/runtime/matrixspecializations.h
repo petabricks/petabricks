@@ -50,7 +50,11 @@ public:
               , const IndexT sizes[D]
               , const IndexT multipliers[D])
     : Base(s, b, NULL, NULL)
-  {}
+  {
+    (void)sizes;
+    (void)multipliers;
+    _count = 1;
+  }
 
   ///
   /// Constructor with a stock layout
@@ -83,6 +87,9 @@ public:
   bool isSize() const {
     return this->base()!=0;
   }
+
+protected:
+  ssize_t _count;
   
 };
 
@@ -100,12 +107,16 @@ public:
   
   MatrixRegionMembers(const StorageT&, ElementT* b, const IndexT* , const IndexT*)
     : _val(b!=NULL ? *b : -666)
-  {}
+  {
+    _storageInfo = new MatrixStorageInfo();
+    exportTo(_storageInfo);
+  }
   
   const ElementT* base() const { return &_val; }
   const IndexT* sizes() const { return NULL; }
   const IndexT* multipliers() const { return NULL; };
   const StorageT& storage() const { static StorageT dummy; return dummy; }
+  const MatrixStorageInfoPtr storageInfo() const { return _storageInfo; }
 
   void randomize(){ _val = MatrixStorage::rand(); }
   
@@ -133,6 +144,7 @@ protected:
   IndexT* multipliers() { return NULL; };
 private:
   MATRIX_ELEMENT_T _val;
+  MatrixStorageInfoPtr _storageInfo;
 };
 
 

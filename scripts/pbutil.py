@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import errno
 import getopt
@@ -58,7 +58,8 @@ def setmemlimit(n = getmemorysize()):
 
 
 
-def parallelRunJobs(jobs):
+def parallelRunJobs(jobs, nParallelJobs=None):
+  #outFile=open("/tmp/parallelRunJobs.txt", "w")
   class JobInfo:
     def __init__(self, id, fn):
       self.id=id
@@ -83,7 +84,10 @@ def parallelRunJobs(jobs):
             self.fd=fd
           def write(self, s):
             self.fd.sendall(s)
+            #outFile.write(s)
+            #outFile.flush()
         sys.stdout = Redir(w)
+        #sys.stderr = sys.stdout
         try:
           rv = self.fn()
         except Exception, e:
@@ -100,7 +104,7 @@ def parallelRunJobs(jobs):
         #parent
         w.close()
         self.fd.setblocking(0)
-        return self 
+        return self
     def handleevent(self):
       if self.pid is None:
         return None
@@ -125,9 +129,11 @@ def parallelRunJobs(jobs):
       return self.msg.replace(exitval,"") \
                      .replace('\n',' ')   \
                      .strip()
-    
+
   startline = progress.currentline()
-  NCPU=cpuCount()
+  if nParallelJobs is None:
+#    nParallelJobs=cpuCount()
+    nParallelJobs=max(1, cpuCount()/4)
   exitval="!EXIT!"
   maxprinted=[0]
 
@@ -163,10 +169,10 @@ def parallelRunJobs(jobs):
   try:
     while len(jobs_pending)>0 or len(jobs_running)>0:
       #spawn new jobs
-      while len(jobs_pending)>0 and len(jobs_running)<NCPU:
+      while len(jobs_pending)>0 and len(jobs_running)<nParallelJobs:
         jobs_running.append(jobs_pending.pop(0).forkrun())
       updatestatus()
-        
+
       #wait for an event
       rj, wj, xj = select.select(jobs_running, [], jobs_running)
 
@@ -203,7 +209,7 @@ def getscriptpath():
     return os.path.dirname(m.group(1))
   except:
     return os.path.abspath(os.path.dirname(sys.argv[0]))
-    
+
 def chdirToPetabricksRoot():
   old = os.getcwd()
   new = getscriptpath()
@@ -218,7 +224,7 @@ def chdirToPetabricksRoot():
 
 def compilePetabricks():
   cmd=["make","-sqC","src","all"]
-  if subprocess.call(cmd) != 0: 
+  if subprocess.call(cmd) != 0:
     cmd=["make", "-j%d"%cpuCount()]
     p=subprocess.Popen(cmd)
     rv=p.wait()
@@ -232,7 +238,10 @@ def expandBenchmarkName(name, ext):
   base=re.sub("[.]pbcc$","", name)
   if ext:
     name=base+ext
+  if os.path.isfile(name):
+    return name
   if name[0] != '/':
+    #Try to locate the file in the standard position
     return "./examples/%s" % (name)
   else:
     return name
@@ -274,38 +283,69 @@ def normalizeBenchmarkName(orig, search=True):
       raise
 
 
-def compileBenchmarks(benchmarks):
+def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=None):
+    if not os.path.isfile(src):
+      raise IOError()
+
+    #Build the command
+    cmd=[pbc]
+
+    if binary is not None:
+      cmd.append("--output="+binary)
+    if info is not None:
+      cmd.append("--outputinfo="+info)
+    if jobs is not None:
+      cmd.append("--jobs="+str(jobs))
+    if heuristics is not None:
+      cmd.append("--heuristics="+heuristics)
+
+    cmd.append(src)
+
+    #Remove the output file (if it exists)
+    if os.path.isfile(binary):
+      os.unlink(binary)
+
+    #Execute the compiler
+    p = subprocess.Popen(cmd, stdout=NULL, stderr=NULL)
+    status = p.wait()
+    return status
+
+
+def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noLearningList=[]):
   NULL=open("/dev/null","w")
   pbc="./src/pbc"
   libdepends=[pbc, "./src/libpbmain.a", "./src/libpbruntime.a", "./src/libpbcommon.a"]
   assert os.path.isfile(pbc)
   benchmarkMaxLen=0
   jobs_per_pbc=max(1, 2*cpuCount() / len(benchmarks))
+  #from learningcompiler import LearningCompiler
+  #compiler = LearningCompiler(pbc, heuristicSetFileName, jobs=jobs_per_pbc)
 
-  def compileBenchmark(name):
+  def innerCompileBenchmark(name):
     print name.ljust(benchmarkMaxLen)
     src=benchmarkToSrc(name)
-    bin=benchmarkToBin(name)
-    if not os.path.isfile(src):
-      print "invalid benchmark"
-      return False
+    binary=benchmarkToBin(name)
+
     srcModTime=max(os.path.getmtime(src), reduce(max, map(os.path.getmtime, libdepends)))
-    if os.path.isfile(bin) and os.path.getmtime(bin) > srcModTime:
+    if os.path.isfile(binary) and os.path.getmtime(binary) > srcModTime:
       print "compile SKIPPED"
       return True
-    else:
-      if os.path.isfile(bin):
-        os.unlink(bin)
-      p = subprocess.Popen([pbc, '--jobs='+str(jobs_per_pbc), src], stdout=NULL, stderr=NULL)
-      status = p.wait()
+    try:
+     #if learning and (name not in noLearningList):
+     #  status=compiler.compileLearningHeuristics(src, finalBinary=binary)
+     #else:
+      status=compileBenchmark(pbc, src, binary=binary, jobs=jobs_per_pbc)
       if status == 0:
         print "compile PASSED"
         return True
       else:
         print "compile FAILED (rc=%d)"%status
         return False
-  
-  newjob = lambda name, fn: lambda: compileBenchmark(name) and fn()
+    except IOError:
+      print "invalid benchmark"
+      return False
+
+  newjob = lambda name, fn: lambda: innerCompileBenchmark(name) and fn()
   mergejob = lambda oldfn, fn: lambda: oldfn() and fn()
 
   jobs=[]
@@ -324,9 +364,14 @@ def compileBenchmarks(benchmarks):
       jobsdata[name][0] = mergejob(jobsdata[name][0], fn)
   jobs = map(lambda n: mergejob(*jobsdata[n]), jobs)
 
-  return parallelRunJobs(jobs)
+  if learning:
+    #Cannot run multiple jobs in parallel: the autotuning results
+    #would be affected
+    return parallelRunJobs(jobs, nParallelJobs=1)
+  else:
+    return parallelRunJobs(jobs)
 
-def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postfn=lambda b: True):
+def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postfn=lambda b: True, learning=False, heuristicSetFileName=None, noLearningList=[]):
   chdirToPetabricksRoot()
   compilePetabricks()
   benchmarks=open(file)
@@ -338,11 +383,11 @@ def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postf
 
   if len(searchterms)>0:
     benchmarks=filter(lambda b: any(s in b[0] for s in searchterms), benchmarks)
-    
+
   for b in benchmarks:
     b[0]=normalizeBenchmarkName(b[0])
 
-  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks)), benchmarks
+  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks), learning, heuristicSetFileName, noLearningList), benchmarks
 
 def killSubprocess(p):
   if p.poll() is None:
@@ -550,7 +595,7 @@ def getTunables(tx, type):
   return filter( lambda t: t.getAttribute("type")==type, tx.getElementsByTagName("tunable") )
 
 getTunablesSequential=lambda tx: getTunables(tx, "system.cutoff.sequential")
-getTunablesSplitSize=lambda tx: getTunables(tx, "system.cutoff.splitsize") 
+getTunablesSplitSize=lambda tx: getTunables(tx, "system.cutoff.splitsize")
 
 def mainname(bin):
   run_command = mkcmd("--name")
@@ -559,10 +604,19 @@ def mainname(bin):
   lines = p.stdout.readlines()
   return lines[-1].strip()
 
+def gitRevision(n=40):
+  try:
+    cmd=["git","log","-n","1","--pretty=format:%H"]
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=NULL)
+    return p.communicate()[0][0:n]
+  except:
+    return "0"*n
+
 if __name__ == "__main__":
   chdirToPetabricksRoot()
+  print gitRevision()
   compilePetabricks()
   compileBenchmarks(map(normalizeBenchmarkName, ["add", "multiply", "transpose"]))
   print "Estimating input sizes"
-  inferGoodInputSizes("./examples/simple/add", [0.1,0.5,1.0], 2)
+  print inferGoodInputSizes("./examples/simple/add", [0.1,0.5,1.0], 2)
 

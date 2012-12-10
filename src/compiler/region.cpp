@@ -50,7 +50,7 @@ petabricks::Region::RegionType petabricks::Region::strToRegionType(const std::st
   return _strToRegionType(str);
 }
 
-petabricks::Region::Region(const char* fromMatrix, const FormulaList& version, const char* type, const FormulaList& bounds) 
+petabricks::Region::Region(const char* fromMatrix, const FormulaList& version, const char* type, const FormulaList& bounds)
   : _name(RETURN_VAL_STR)
   , _fromMatrixName(fromMatrix)
   , _originalType(strToRegionType(type))
@@ -62,6 +62,15 @@ petabricks::Region::Region(const char* fromMatrix, const FormulaList& version, c
   }
 }
 
+petabricks::Region::Region(const MatrixDefPtr fromMatrix, const FormulaPtr version, const RegionType type, const FormulaList& bounds)
+  : _name(RETURN_VAL_STR)
+  , _fromMatrixName(fromMatrix->name())
+  , _version(version)
+  , _originalType(type)
+  , _originalBounds(bounds)
+  , _fromMatrix(fromMatrix)
+{}
+
 void petabricks::Region::print(std::ostream& o) const {
   o << _fromMatrixName << ".region(" ;
   printStlList(o, _minCoord.begin(), _minCoord.end(), ", ");
@@ -70,26 +79,29 @@ void petabricks::Region::print(std::ostream& o) const {
   o << ") " << _name;
 }
 
-void petabricks::Region::setName(const char* name){ 
-  _name=name; 
+void petabricks::Region::setName(const char* name){
+  _name=name;
   if(_name=="") _name=RETURN_VAL_STR;
 }
 
 void petabricks::Region::initialize(Transform& trans) {
   _originalBounds.normalize();
-   _fromMatrix = trans.lookupMatrix( _fromMatrixName );
+  if (!_fromMatrix) {
+    _fromMatrix = trans.lookupMatrix( _fromMatrixName );
+  }
   JASSERT(_fromMatrix);
 
   JASSERT(!isOptional() || _originalType == REGION_CELL)(_name)(_fromMatrix)
     .Text("optional rule inputs currently only supported for .cell() inputs");
-  
+
   //convert given coordinates to a region
   switch(_originalType){
   case REGION_CELL: {
       //min = max = given
       for(size_t i=0; i<_originalBounds.size(); ++i){
         _minCoord.push_back(_originalBounds[i]);
-//         _maxCoord.push_back(_originalBounds[i]);
+        /* NB: _maxCoord[i]=_originalBounds[i]+1 because the lower bound is
+         * included while the upper bound is excluded */
         _maxCoord.push_back(MaximaWrapper::instance().normalize(
           new FormulaAdd(_originalBounds[i], FormulaInteger::one())));
       }
@@ -155,7 +167,6 @@ void petabricks::Region::initialize(Transform& trans) {
         }
       }
     }
-    if(_version) _originalType = REGION_SLICE;
     break;
   default:
     JASSERT(false).Text("Unreachable");
@@ -171,7 +182,7 @@ void petabricks::Region::initialize(Transform& trans) {
 void petabricks::Region::validate() {
   addAssumptions();
   for(size_t i=0; i<dimensions(); ++i){
-    int isBeginLeqEnd = MAXIMA.tryCompare(_minCoord[i], "<=", _maxCoord[i]); 
+    int isBeginLeqEnd = MAXIMA.tryCompare(_minCoord[i], "<=", _maxCoord[i]);
     JASSERT(isBeginLeqEnd==MaximaWrapper::YES)(_minCoord[i])(_maxCoord[i])
       .Text("Invalid .region().  Syntax is .region(beginCoord, endCoord), for example region(x, y, x+4, y+4).  Begin is inclusive end is exclusive.");
   }
@@ -194,14 +205,154 @@ void petabricks::RegionList::makeRelativeTo(const FormulaList& defs){
   }
 }
 
+void petabricks::RegionList::print(std::ostream& o) const {
+  o << "RegionList:";
+  for(RegionList::const_iterator i=this->begin(), e=this->end(); i!=e; ++i) {
+    RegionPtr region= *i;
+    o << "\n* " << region;
+  }
+}
+
 void petabricks::SimpleRegion::print(std::ostream& o) const {
   o << _minCoord << ", " << _maxCoord;
 }
 
+
+petabricks::FormulaPtr petabricks::SimpleRegion::symbolicSize() const {
+  FormulaPtr p = FormulaInteger::one();
+  for(size_t d=0; d<dimensions(); ++d) {
+    p = new FormulaMultiply(p,
+                            new FormulaSubtract(maxCoord()[d], minCoord()[d]));
+  }
+  return MAXIMA.normalize(p);
+}
+
+std::string petabricks::SimpleRegion::getIterationLowerBounds() const {
+  std::string s = minCoord().toString();
+
+  if(removedDimensions() == 0) {
+    return s;
+  }
+
+  return s + ", " + _removedDimensions.minCoord.toString();
+}
+
+std::string petabricks::SimpleRegion::getIterationUpperBounds() const {
+  std::string s = maxCoord().toString();
+
+  if(removedDimensions() == 0) {
+    return s;
+  }
+
+  return s + ", " + _removedDimensions.maxCoord.toString();
+}
+
+petabricks::CoordinateFormulaPtr petabricks::SimpleRegion::getIterationLowerBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with1, const CoordinateFormula& with2) const {
+  MAXIMA.pushContext();
+
+  for (unsigned int i=0; i<with1.size(); ++i) {
+    MAXIMA.assume(new FormulaLT(with1[i], with2[i]));
+  }
+
+  CoordinateFormulaPtr coord = new CoordinateFormula();
+  for (CoordinateFormula::const_iterator i=minCoord().begin() ; i!=minCoord().end(); ++i) {
+    FormulaPtr formula = *i;
+    for (unsigned int j=0; j<replaceWhat.size(); ++j) {
+      FormulaPtr formula1 = formula->replace(replaceWhat[j], with1[j]);
+      FormulaPtr formula2 = formula->replace(replaceWhat[j], with2[j]);
+      formula = MAXIMA.min(formula1, formula2);
+    }
+    coord->push_back(formula);
+  }
+
+  if(removedDimensions() > 0) {
+    for (CoordinateFormula::const_iterator i=_removedDimensions.minCoord.begin() ; i!=_removedDimensions.minCoord.end(); ++i) {
+      FormulaPtr formula = *i;
+      for (unsigned int j=0; j<replaceWhat.size(); ++j) {
+        FormulaPtr formula1 = formula->replace(replaceWhat[j], with1[j]);
+        FormulaPtr formula2 = formula->replace(replaceWhat[j], with2[j]);
+        formula = MAXIMA.min(formula1, formula2);
+      }
+      coord->push_back(formula);
+    }
+  }
+
+  coord->normalize();
+  MAXIMA.popContext();
+  return coord;
+}
+
+petabricks::CoordinateFormulaPtr petabricks::SimpleRegion::getIterationUpperBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with1, const CoordinateFormula& with2) const {
+  MAXIMA.pushContext();
+
+  for (unsigned int i=0; i<with1.size(); ++i) {
+    MAXIMA.assume(new FormulaLT(with1[i], with2[i]));
+  }
+
+  CoordinateFormulaPtr coord = new CoordinateFormula();
+  for (CoordinateFormula::const_iterator i=maxCoord().begin() ; i!=maxCoord().end(); ++i) {
+    FormulaPtr formula = *i;
+    for (unsigned int j=0; j<replaceWhat.size(); ++j) {
+      FormulaPtr formula1 = formula->replace(replaceWhat[j], with1[j]);
+      FormulaPtr formula2 = formula->replace(replaceWhat[j], with2[j]);
+      formula = MAXIMA.max(formula1, formula2);
+    }
+    coord->push_back(formula);
+  }
+
+  if(removedDimensions() > 0) {
+    for (CoordinateFormula::const_iterator i=_removedDimensions.maxCoord.begin() ; i!=_removedDimensions.maxCoord.end(); ++i) {
+      FormulaPtr formula = *i;
+      for (unsigned int j=0; j<replaceWhat.size(); ++j) {
+        FormulaPtr formula1 = formula->replace(replaceWhat[j], with1[j]);
+        FormulaPtr formula2 = formula->replace(replaceWhat[j], with2[j]);
+        formula = MAXIMA.max(formula1, formula2);
+      }
+      coord->push_back(formula);
+    }
+  }
+
+  coord->normalize();
+  MAXIMA.popContext();
+  return coord;
+}
+
+std::string petabricks::SimpleRegion::getIterationMiddleEnd(std::string& middle) const {
+  std::stringstream os;
+  for(size_t i = 0; i < maxCoord().size() - 1; ++i) {
+    os << maxCoord()[i] << ",";
+  }
+  os << middle;
+
+  std::string s = os.str();
+  
+  if(removedDimensions() == 0) {
+    return s;
+  }
+  
+  return s + ", " + _removedDimensions.maxCoord.toString();
+}
+
+std::string petabricks::SimpleRegion::getIterationMiddleBegin(std::string& middle) const {
+  std::stringstream os;
+  for(int i = 0; i < maxCoord().size() - 1; ++i) {
+    os << minCoord()[i] << ",";
+  }
+  os << middle;
+
+  std::string s = os.str();
+  
+  if(removedDimensions() == 0) {
+    return s;
+  }
+  
+  return s + ", " + _removedDimensions.minCoord.toString();
+}
+  
 petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList&, bool isOutput){
   CoordinateFormula min;
   CoordinateFormula max;
-    
+
   FormulaList offsets = diff(tx,rule);
   FormulaList minDefs /*= _defs*/;
   FormulaList maxDefs /*= _defs*/;
@@ -343,29 +494,38 @@ bool petabricks::SimpleRegion::hasIntersect(const SimpleRegion& that) const {
   return true;
 }
 
-std::string petabricks::Region::genTypeStr(bool isConst) const{
+std::string petabricks::Region::genTypeStr(RuleFlavor rf, bool isConst) const{
   switch(_originalType){
   case REGION_CELL:
-    if(isConst)
-      return "const ElementT";
-    else
-      return "ElementT&";
+    if(isConst){
+      if(rf != RuleFlavor::DISTRIBUTED) {
+        return "const ElementT";
+      }else{
+        return "CellProxy";
+      }
+    }else{
+      if(rf != RuleFlavor::DISTRIBUTED) {
+        return "ElementT&";
+      }else{
+        return "CellProxy";
+      }
+    }
   case REGION_COL:
   case REGION_ROW:
-    return (isConst?MatrixDef::oneD().constMatrixTypeName():MatrixDef::oneD().matrixTypeName());
+    return MatrixDef::oneD().typeName(rf, isConst);
   case REGION_BOX:
   case REGION_ALL:
-    return (isConst?_fromMatrix->constMatrixTypeName():_fromMatrix->matrixTypeName());
+    return _fromMatrix->typeName(rf, isConst);
   case REGION_SLICE:
-    return (isConst?_fromMatrix->constSliceTypeName():_fromMatrix->sliceTypeName());
+    return _fromMatrix->typeName(rf, isConst, 1);
   default:
     JASSERT(false).Text("Unreachable");
     return "";
   }
 }
 
-std::string petabricks::Region::generateSignatureCode(bool isConst) const{
-  return genTypeStr(isConst) + " " + _name;
+std::string petabricks::Region::generateSignatureCode(RuleFlavor rf, bool isConst) const{
+  return genTypeStr(rf, isConst) + " " + _name;
 }
 
 std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
@@ -375,7 +535,7 @@ std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
       std::string s = _fromMatrix->name() + ".cell("+_minCoord.toString()+")";
       if(allowOptional && isOptional())
         return "(" + _fromMatrix->name() + ".contains("+_minCoord.toString()+")"
-                   + " ? " + s + " : " + optionalDefault()->toString() + ")";
+                   + " ? (ElementT)(" + s + ") : (ElementT)(" + optionalDefault()->toString() + "))";
       else
         return s;
     }
@@ -395,32 +555,68 @@ std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
   }
 }
 
-void petabricks::Region::collectDependencies(const Transform& tx, const RuleInterface& rule, MatrixDependencyMap& map) const {
-  //Determine dependency direction
-  DependencyDirection direction(dimensions());
-  for(size_t i=0; i<dimensions(); ++i){
-    MaximaWrapper::tryCompareResult isLeft =MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i),  "<", _maxCoord[i]);
-    MaximaWrapper::tryCompareResult isRight=MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _minCoord[i]);
-    
-    if(isLeft!=MaximaWrapper::YES)
-      direction.addDirection(i, DependencyDirection::D_LT);
+std::string petabricks::Region::generateAccessorCode(const CoordinateFormula& base, bool allowOptional) const{
+  CoordinateFormula minCoord = _minCoord;
+  minCoord.sub(base);
 
-    if(isRight!=MaximaWrapper::YES)
-      direction.addDirection(i, DependencyDirection::D_GT);
+  CoordinateFormula maxCoord = _maxCoord;
+  maxCoord.sub(base);
 
-    if(isLeft==MaximaWrapper::UNKNOWN || isRight==MaximaWrapper::UNKNOWN || isLeft==isRight){
-      direction.addDirection(i, DependencyDirection::D_EQ);
-    }else{
-      if(isLeft){
-        if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), "<",  _minCoord[i])!=MaximaWrapper::YES)
-          direction.addDirection(i, DependencyDirection::D_EQ);
-      }else{//isRight
-        if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _maxCoord[i])!=MaximaWrapper::YES)
-          direction.addDirection(i, DependencyDirection::D_EQ);
-      }
+  switch(_originalType){
+  case REGION_CELL:
+    {
+      std::string s = _fromMatrix->name() + ".cell("+minCoord.toString()+")";
+      if(allowOptional && isOptional())
+        return "(" + _fromMatrix->name() + ".contains("+minCoord.toString()+")"
+                   + " ? (ElementT)(" + s + ") : (ElementT)(" + optionalDefault()->toString() + "))";
+      else
+        return s;
+    }
+  case REGION_COL:
+    return _fromMatrix->name() + ".col("+minCoord[0]->toString()+")";
+  case REGION_ROW:
+    return _fromMatrix->name() + ".row("+minCoord[1]->toString()+")";
+  case REGION_BOX:
+    return _fromMatrix->name() + ".region("+minCoord.toString() +", "+maxCoord.toString()+")";
+  case REGION_SLICE:
+    return _fromMatrix->name() + ".slice("+jalib::XToString(_fromMatrix->numDimensions()-1)+","+jalib::XToString(minCoord.back())+")";
+  case REGION_ALL:
+    return _fromMatrix->name();
+  default:
+    JASSERT(false).Text("Unreachable");
+    return "";
+  }
+}
+
+void petabricks::Region::determineDependencyDirection(const size_t dimension, const RuleInterface& rule, DependencyDirection& direction) const {
+  MaximaWrapper::tryCompareResult isLeft =MaximaWrapper::instance().tryCompare(rule.getOffsetVar(dimension),  "<", _maxCoord[dimension]);
+  MaximaWrapper::tryCompareResult isRight=MaximaWrapper::instance().tryCompare(rule.getOffsetVar(dimension), ">=", _minCoord[dimension]);
+
+  if(isLeft!=MaximaWrapper::YES)
+    direction.addDirection(dimension, DependencyDirection::D_LT);
+
+  if(isRight!=MaximaWrapper::YES)
+    direction.addDirection(dimension, DependencyDirection::D_GT);
+
+  if(isLeft==MaximaWrapper::UNKNOWN || isRight==MaximaWrapper::UNKNOWN || isLeft==isRight){
+    direction.addDirection(dimension, DependencyDirection::D_EQ);
+  }else{
+    if(isLeft){
+      if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(dimension), "<",  _minCoord[dimension])!=MaximaWrapper::YES)
+        direction.addDirection(dimension, DependencyDirection::D_EQ);
+    }else{//isRight
+      if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(dimension), ">=", _maxCoord[dimension])!=MaximaWrapper::YES)
+        direction.addDirection(dimension, DependencyDirection::D_EQ);
     }
   }
-  //JTRACE("compute direction")(_minCoord)(_maxCoord)(direction);
+
+}
+
+void petabricks::Region::collectDependencies(const Transform& tx, const RuleInterface& rule, MatrixDependencyMap& map) const {
+  DependencyDirection direction(dimensions());
+  for(size_t dimension=0; dimension<dimensions(); ++dimension){
+    determineDependencyDirection(dimension, rule, direction);
+  }
   FormulaList offsets = diff(tx,rule);
   SimpleRegion applicable = rule.applicableRegion();
   applicable.maxCoord().subToEach(FormulaInteger::one());
@@ -449,7 +645,7 @@ void petabricks::Region::collectDependencies(const Transform& tx, const RuleInte
     }
   }
   SimpleRegionPtr region = new SimpleRegion(minAbsolute, maxAbsolute);
-      
+
   //Merge with existing entry
   MatrixDependencyPtr dep = new MatrixDependency(direction, region);
   MatrixDependencyPtr& element = map[_fromMatrix];
@@ -464,7 +660,7 @@ void petabricks::Region::addAssumptions() const{
     MAXIMA.assume(new FormulaLE(FormulaInteger::zero(), _maxCoord[i]));
     MAXIMA.assume(new FormulaLE(_minCoord[i], end));
     MAXIMA.assume(new FormulaLE(_maxCoord[i], end));
-  } 
+  }
 }
 
 void petabricks::Region::assertNotInput(){
@@ -475,6 +671,17 @@ void petabricks::Region::assertNotInput(){
 petabricks::FormulaPtr petabricks::Region::getSizeOfRuleIn(int d) const{
   JASSERT((int)dimensions()>d)(dimensions())(d);
   return MaximaWrapper::instance().normalize(new FormulaSubtract(_maxCoord[d], _minCoord[d]));
+}
+
+petabricks::FormulaPtr petabricks::Region::getSizeOfRuleInRemovedDimension(int d) const {
+  JASSERT(isRemovedDimension(d))(d)(dimensions())(removedDimensions());
+
+  size_t removedDimensionIndex= d-dimensions();
+  FormulaPtr maxCoord = _removedDimensions.maxCoord[removedDimensionIndex];
+  FormulaPtr minCoord = _removedDimensions.minCoord[removedDimensionIndex];
+
+  return MaximaWrapper::instance().normalize(new FormulaSubtract(maxCoord,
+                                                                 minCoord));
 }
 
 void  petabricks::Region::addArgToScope(RIRScope& scope) const {
@@ -494,6 +701,15 @@ void  petabricks::Region::addArgToScope(RIRScope& scope) const {
   }
 }
 
+void petabricks::Region::fixTypeIfVersioned() {
+  if(! _version) {
+    //Not versioned. Nothing to do
+    return;
+  }
 
-
-
+  if (_originalType == REGION_ALL && removedDimensions() == 0) {
+    //The versioning is done by adding a dimension to the matrix
+    //Access to a version is done by slicing
+    _originalType = REGION_SLICE;
+  }
+}

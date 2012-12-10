@@ -1,0 +1,259 @@
+#ifndef BINNEDLR_PBCC
+#define BINNEDLR_PBCC
+
+#include "../simple/copy.pbcc"
+#include "../linearsolve/LeastSquares.pbcc"
+#include "utils.pbcc"
+
+// compute the binned linear regression model
+transform BinnedLRTrain
+from DATA[m,n], X[2,p], DIR[2], Y[2], INDICES[l]
+to ALPHA[numBins, p+1]
+{
+    to (ALPHA alpha)
+    from (DATA data, X x, DIR dir, Y y, INDICES indices)
+    {
+        IndexT i, j, k, index, bin, *binIndex;
+        ElementT binWidth;
+        MatrixRegion2D *binnedX, *binnedY;
+
+        // initialize binIndex array
+        binIndex = new IndexT[numBins];
+        for (i = 0; i < numBins; ++i) {
+            binIndex[i] = 0;
+        }
+
+        // count how many points go into each bin
+        binWidth = 360.0 / numBins;
+        for (j = 0; j < l; ++j) {
+            index = indices.cell(j);
+            if (indexIsValid(data, x, dir, y, index)) {
+                bin = (int) (lookup(data, dir, index) / binWidth) % numBins;
+                binIndex[bin]++;
+            }
+        }
+
+        // allocate temporary matrices for each bin
+        binnedX = new MatrixRegion2D[numBins];
+        binnedY = new MatrixRegion2D[numBins];
+        for (i = 0; i < numBins; ++i) {
+            if (binIndex[i] > 0) {
+                binnedX[i] = MatrixRegion2D::allocate(p+1, binIndex[i]);
+                binnedY[i] = MatrixRegion2D::allocate(1  , binIndex[i]);
+                Init1D(binnedX[i].col(p), 1.0);
+                binIndex[i] = 0;
+            }
+        }
+
+        // copy data for each bin into temporary matrices
+        for (j = 0; j < l; ++j) {
+            index = indices.cell(j);
+            if (indexIsValid(data, x, dir, y, index)) {
+                bin = (int) (lookup(data, dir, index) / binWidth) % numBins;
+                binnedY[bin].cell(0, binIndex[bin]) = lookup(data, y, index);
+                for (k = 0; k < p; ++k) {
+                    binnedX[bin].cell(k, binIndex[bin]) =
+                        lookup(data, x.row(k), index);
+                }
+                binIndex[bin]++;
+            }
+        }
+
+        // compute regression for each bin
+        for (i = 0; i < numBins; ++i) {
+            if (binIndex[i] > 0) {
+                spawn LeastSquares(alpha.region(i, 0, i+1, p+1),
+                                   binnedX[i], binnedY[i]);
+            }
+        }
+        sync;
+
+        delete [] binIndex;
+        delete [] binnedX;
+        delete [] binnedY;
+    }
+}
+
+// Apply the regression model (ALPHA) to the passed in test data.
+transform BinnedLREstimate
+from ALPHA[numBins, p+1], DATA[m,n], X[2,p], DIR[2], INDICES[q]
+to RESULT[1,q]
+{
+    to (RESULT.cell(0,i) result)
+    from (ALPHA alpha, DATA data, X x, DIR dir,
+          INDICES.cell(i) index)
+    {
+        if (!indexIsValid(data, x, dir, index)) {
+            result = MYNAN;
+            return;
+        }
+
+        ElementT binWidth = 360.0 / numBins;
+        IndexT bin = (int) (lookup(data, dir, index) / binWidth) % numBins;
+
+        result = 0;
+        for (IndexT i = 0; i < p; ++i) {
+            result += lookup(data, x.row(i), index) * alpha.cell(bin, i);
+        }
+        result += alpha.cell(bin, p);
+    }
+}
+
+// Helper function for BinnedLRCrossValidate.  Evaluates the regression
+// for one of the partitions.
+transform BinnedLRCrossValidateInner
+from DATA[m,n], X[2,p], DIR[2], Y[2], INDICES[l],
+     SPLIT, PART, MASKWIDTH, NUMBINS
+to RESULT[1,l]
+{
+    to (RESULT result)
+    from (DATA data, X x, DIR dir, Y y, INDICES indices,
+          SPLIT split, PART part, MASKWIDTH maskWidth, NUMBINS numBins)
+    {
+        IndexT numIndices, partSize, testStart, testEnd, numTest,
+               i0, i1, numTrain;
+        MatrixRegion1D trainIndices;
+
+        // figure out test set
+        numIndices = indices.count();
+        partSize = ceil((ElementT) numIndices / split);
+        testStart = part * partSize;
+        testEnd = MIN(testStart + partSize, numIndices);
+        numTest = testEnd - testStart;
+
+        // nothing to do (may happen if split doesn't evenly divide numIndices)
+        if (numTest <= 0) {
+            return;
+        }
+
+        // figure out training set
+        i0 = testStart;
+        while (i0 > 0 &&
+               indices.cell(i0-1) > indices.cell(testStart) - maskWidth) {
+            i0--;
+        }
+        i1 = testEnd;
+        while (i1 < numIndices &&
+               indices.cell(i1) < indices.cell(testEnd-1) + maskWidth) {
+            i1++;
+        }
+        // i0 points just after last non-masked index before test set
+        // i1 points to first non-masked index after test set
+        numTrain = i0 + numIndices - i1;
+        trainIndices = MatrixRegion1D::allocate(numTrain);
+        if (i0 > 0) {
+            Copy1D(trainIndices.region(0, i0),
+                   indices.region(0, i0));
+        }
+        if (i1 < numIndices) {
+            Copy1D(trainIndices.region(i0, numTrain),
+                   indices.region(i1, numIndices));
+        }
+
+        // compute regression
+        MatrixRegion2D alpha = MatrixRegion2D::allocate(numBins, p+1);
+        BinnedLRTrain(alpha, data, x, dir, y, trainIndices);
+        BinnedLREstimate(result.region(0, testStart, 1, testEnd), alpha,
+                         data, x, dir, indices.region(testStart, testEnd));
+    }
+}
+
+// Training and test data sets are the same.
+//
+// Use n-way cross validation: split data into n parts.  When testing on each
+// data point in a partition, only use the points in the other n-1 partitions
+// for training.
+//
+// Also only allow indices at least MASKWIDTH away from the current
+// partition for training.
+transform BinnedLRCrossValidate
+from DATA[m,n], X[2,p], DIR[2], Y[2], INDICES[l], SPLIT, MASKWIDTH, NUMBINS
+to RESULT[1,l]
+{
+    to (RESULT result)
+    from (DATA data, X x, DIR dir, Y y, INDICES indices, SPLIT split,
+          MASKWIDTH maskWidth, NUMBINS numBins)
+    {
+        JASSERT(split > 1 && split <= indices.count())
+               (split)(indices.count()).Text("invalid split value");
+        // spawn an instance of helper transform for each partition
+        for (IndexT i = 0; i < split; ++i) {
+            spawn BinnedLRCrossValidateInner(result, data, x, dir, y, indices,
+                                             split, i, maskWidth, numBins);
+        }
+        sync;
+    }
+}
+
+// Leave-N-out cross-validation algorithm, where N is about 2*MASKWIDTH.
+//
+// Training and test data sets are the same.
+// For each index in TESTINDICES use all available indices at least MASKWIDTH
+// distance from the current test index for training.
+//
+// Expensive since it computes a new regression model for every point in the
+// test set.
+transform BinnedLRLNOCV
+from DATA[m,n], X[2,p], DIR[2], Y[2], INDICES[l], MASKWIDTH, NUMBINS
+to RESULT[1,l]
+{
+    to (RESULT.region(0, i, 1, i+1) result)
+    from (DATA data, X x, DIR dir, Y y, INDICES indices,
+          MASKWIDTH maskWidth, NUMBINS numBins)
+    {
+        IndexT j, index, numTrain;
+        ConstMatrixRegion1D testIndex = indices.region(i, i+1);
+        MatrixRegion1D trainIndices = MatrixRegion1D::allocate(l);
+
+        numTrain = 0;
+        for (j = 0; j < l; ++j) {
+            index = indices.cell(j);
+            if ((index <= testIndex.cell(0) - maskWidth ||
+                 index >= testIndex.cell(0) + maskWidth))
+            {
+                trainIndices.cell(numTrain++) = index;
+            }
+        }
+
+        MatrixRegion2D alpha = MatrixRegion2D::allocate(numBins, p+1);
+        BinnedLRTrain(alpha, data, x, dir, y,
+                      trainIndices.region(0, numTrain));
+        BinnedLREstimate(result, alpha, data, x, dir, testIndex);
+    }
+}
+
+// Apply binned linear regression model.  If VALSPLIT is non-zero,
+// apply cross-validation algorithm on training data (ignore test data).
+//
+// TRAININDICES is assumed to be sorted for cross-validation algorithm.
+transform BinnedLR
+from TRAINDATA[m,n], TRAINX[2,p], TRAINDIR[2], TRAINY[2], TRAININDICES[l],
+     TESTDATA[m2,n2], TESTX[2,p], TESTDIR[2], TESTINDICES[q], SPLIT, MASKWIDTH
+to RESULT[1,q]
+tunable NumBins
+{
+    to (RESULT result)
+    from (TRAINDATA trainData, TRAINX trainX, TRAINDIR trainDir,
+          TRAINY trainY, TRAININDICES trainIndices,
+          TESTDATA testData, TESTX testX, TESTDIR testDir,
+          TESTINDICES testIndices, SPLIT split, MASKWIDTH maskWidth)
+    {
+        // make sure numBins is an integer between 1 and 360
+        IndexT numBins = floor(NumBins);
+        if (numBins < 1  ) { numBins = 1;   }
+        if (numBins > 360) { numBins = 360; }
+
+        if (split != 0) {
+            BinnedLRCrossValidate(result, trainData, trainX, trainDir, trainY,
+                                  trainIndices, split, maskWidth, numBins);
+        } else {
+            MatrixRegion2D alpha = MatrixRegion2D::allocate(numBins, p+1);
+            BinnedLRTrain(alpha, trainData, trainX, trainDir, trainY,
+                          trainIndices);
+            BinnedLREstimate(result, alpha, testData, testX, testDir,
+                             testIndices);
+        }
+    }
+}
+
+#endif // BINNEDLR_PBCC

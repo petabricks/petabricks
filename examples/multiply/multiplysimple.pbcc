@@ -1,0 +1,116 @@
+#ifndef MULTIPLYSIMPLE_PBCC
+#define MULTIPLYSIMPLE_PBCC
+
+#include "../simple/transpose.pbcc"
+
+transform MatrixMultiplyBase
+from A[k,h], B[w,k]
+to C[w,h]
+{
+  //compute a cell the straightforward way
+  to   (C.cell(x,y) c)
+  from (A.row(y) a,
+        B.column(x) b)
+  {
+    c = 0;
+    for(IndexT i=0; i<k; ++i)
+      c += a.cell(i)*b.cell(i);
+  }
+#if 0
+  //Usual O(n^3) matrix multiply (JKI)
+  to(C c) from (A a, B b)
+  {
+    #ifdef PRINT
+    printf("MatrixMultiplyBase (serial JKI) (%d, %d, %d)\n", h, w, k);
+    #endif
+
+    ElementT temp;
+    for(IndexT j=0; j<w; ++j) {
+      for(IndexT i=0; i<h; ++i) {
+        c.cell(j,i) = 0;
+      }
+      for(IndexT l=0; l<k; ++l) {
+        if (b.cell(j,l) != 0) {
+          temp = b.cell(j,l);
+          for(IndexT i=0; i<h; ++i) {
+            c.cell(j,i) += temp * a.cell(l,i);
+          }
+        }
+      }
+    }
+  }
+
+  //Usual O(n^3) matrix multiply (JIK)
+  to(C c) from (A a, B b)
+  {
+    #ifdef PRINT
+    printf("MatrixMultiplyBase (serial JIK) (%d, %d, %d)\n", h, w, k);
+    #endif
+
+    ElementT temp;
+    for(IndexT j=0; j<w; ++j) {
+      for(IndexT i=0; i<h; ++i) {
+        temp = 0;
+        for(IndexT l=0; l<k; ++l) {
+          temp += a.cell(l,i) * b.cell(j,l);
+        }
+        c.cell(j,i) = temp;
+      }
+    }
+  }
+
+  //Usual O(n^3) matrix multiply (IJK)
+  to(C c) from (A a, B b)
+  {
+    #ifdef PRINT
+    printf("MatrixMultiplyBase (serial IJK) (%d, %d, %d)\n", h, w, k);
+    #endif
+
+    ElementT temp;
+    for(IndexT i=0; i<h; ++i) {
+      for(IndexT j=0; j<w; ++j) {
+        temp = 0;
+        for(IndexT l=0; l<k; ++l) {
+          temp += a.cell(l,i) * b.cell(j,l);
+        }
+        c.cell(j,i) = temp;
+      }
+    }
+  }
+#endif
+}
+
+// Computes C = A * B.
+transform MatrixMultiply
+from A[k,m], B[n,k]
+to C[n,m]
+{
+
+  // no transpose
+  to (C c)
+  from (A a, B b)
+  {
+    MatrixMultiplyBase(c, a, b);
+  }
+
+  // transpose a
+  to (C c)
+  from (A a, B b)
+  using (t[m,k])
+  {
+    Transpose(t, a);
+    MatrixMultiplyBase(c, t.transposed(), b);
+  }
+
+  // transpose b
+  to (C c)
+  from (A a, B b)
+  using (t[k,n])
+  {
+    Transpose(t, b);
+    JTRACE("transposed");
+    MatrixMultiplyBase(c, a, t.transposed());
+  }
+}
+
+#endif // MULTIPLY_PBCC

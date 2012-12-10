@@ -5,6 +5,9 @@
 #define FIRSTMETHOD
 #define SECONDMETHOD
 
+#define FIRSTMETHOD
+//#define SECONDMETHOD
+
 transform NWKDEBase
 from INPUT[n]
 to RESULT[n]
