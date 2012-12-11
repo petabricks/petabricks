@@ -76,6 +76,8 @@ public:
   void compile();
 
   void print(std::ostream& o) const;
+  
+  void writeCInterface(std::ostream& o) const;
 
   const std::string& name() const { return _name; }
 

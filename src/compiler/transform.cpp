@@ -1190,6 +1190,56 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     o.endFunc();
   }
 
+
+  std::vector<std::string> cargs;
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    std::string n = (*i)->name();
+    cargs.push_back(std::string("")+JASSERT_STRINGIFY(MATRIX_ELEMENT_T) + "* "+n+"_base");
+    cargs.push_back(std::string("const ")+JASSERT_STRINGIFY(MATRIX_INDEX_T) + "* "+n+"_sizes");
+    cargs.push_back(std::string("const ")+JASSERT_STRINGIFY(MATRIX_INDEX_T) + "* "+n+"_strides");
+  }
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    std::string n = (*i)->name();
+    cargs.push_back(std::string("")+JASSERT_STRINGIFY(MATRIX_ELEMENT_T) + "* "+n+"_base");
+    cargs.push_back(std::string("const ")+JASSERT_STRINGIFY(MATRIX_INDEX_T) + "* "+n+"_sizes");
+    cargs.push_back(std::string("const ")+JASSERT_STRINGIFY(MATRIX_INDEX_T) + "* "+n+"_strides");
+  }
+  o.beginFunc("void", "petabricks_"+name(), cargs);
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    std::string n = (*i)->name();
+    std::string t = (*i)->typeName(RuleFlavor::WORKSTEALING);
+    o.write(t+" "+n+"(NULL, "+n+"_base, "+n+"_sizes, "+n+"_strides);");
+  }
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    std::string n = (*i)->name();
+    std::string t = (*i)->typeName(RuleFlavor::WORKSTEALING);
+    o.write(t+" "+n+"(NULL, "+n+"_base, "+n+"_sizes, "+n+"_strides);");
+  }
+  o.write("DynamicTaskPtr p = new NullDynamicTask();");
+  argNames.insert(argNames.begin(), "p");
+  o.call(name()+"_workstealing", argNames);
+  argNames.erase(argNames.begin());
+  o.write("petabricks::enqueue_and_wait(p);");
+  o.endFunc();
+}
+void petabricks::Transform::writeCInterface(std::ostream& o) const{
+  o << "void petabricks_" << name() << "(";
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    std::string n = (*i)->name();
+    if(i!=_to.begin())
+      o << ", ";
+    o << std::string("")+JASSERT_STRINGIFY(MATRIX_ELEMENT_T) + "* "+n+"_base, ";
+    o << std::string("const ")+JASSERT_STRINGIFY(MATRIX_INDEX_T) + "* "+n+"_sizes, ";
+    o << std::string("const ")+JASSERT_STRINGIFY(MATRIX_INDEX_T) + "* "+n+"_strides";
+  }
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    std::string n = (*i)->name();
+    o << ", ";
+    o << std::string("")+JASSERT_STRINGIFY(MATRIX_ELEMENT_T) + "* "+n+"_base, ";
+    o << std::string("const ")+JASSERT_STRINGIFY(MATRIX_INDEX_T) + "* "+n+"_sizes, ";
+    o << std::string("const ")+JASSERT_STRINGIFY(MATRIX_INDEX_T) + "* "+n+"_strides";
+  }
+  o << ");" << std::endl;
 }
 
 std::vector<std::string> petabricks::Transform::maximalArgList(RuleFlavor rf) const{
