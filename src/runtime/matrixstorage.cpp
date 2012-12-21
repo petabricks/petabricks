@@ -391,7 +391,7 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
 #ifdef AMD || INTEL
     // OpenCL on CPU
     // if(input) to make nwkde not segfault
-    if(_count == storage()->count()) {
+    if(_count == storage()->count() && (_dimensions == 0 || _multipliers[0] == 1)) {
       
       // Use host ptr without creating new buffer to avoid extra copy when running on CPU.
       cl_int err;
