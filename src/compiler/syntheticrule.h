@@ -42,6 +42,8 @@ public:
 
   RuleFlags::PriorityT priority() const;
   bool isRecursive() const;
+  bool hasCellAccess() const;
+  bool hasCellAccess(const std::string& matrix) const;
   bool hasWhereClause() const;
   FormulaPtr getWhereClause() const;
 
@@ -66,12 +68,15 @@ public:
 //                      RuleFlavor flavor,
 //                      std::vector<RegionNodeGroup>& regionNodesGroups,
 //                      int nodeID,
-//                      int gpuCopyOut); 
+//                      int gpuCopyOut,
+//                      SpatialCallType spatialCallType);
 //
   void virtual generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor);
   void virtual generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor) = 0;
+  void virtual generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
 
   void markRecursive();
+  void markHasCellAccess(const std::string& matrix);
   const FormulaPtr& recursiveHint() const;
 
   void print(std::ostream& os) const;
@@ -108,7 +113,11 @@ public:
 			bool wrap,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        int gpuCopyOut);
+                        int gpuCopyOut,
+                        SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
+
+  void generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
+
   bool isSingleElement() const;
   int dimensions() const;
   FormulaPtr getSizeOfRuleIn(int d);
@@ -144,7 +153,8 @@ public:
 			bool wrap,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        int gpuCopyOut);
+                        int gpuCopyOut,
+                        SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
 
   bool isSingleElement() const;
 
@@ -185,7 +195,10 @@ public:
 			bool wrap,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        int gpuCopyOut);
+                        int gpuCopyOut,
+                        SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
+
+  void generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 private:
   size_t _dup;
 };
@@ -209,7 +222,8 @@ public:
 			bool wrap,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        int gpuCopyOut);
+                        int gpuCopyOut,
+                        SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
 
   bool isSingleElement() const;
 

@@ -21,18 +21,44 @@ namespace petabricks {
     };
   } PACKED;
 
+  typedef int RegionDataDistribution;
+  struct RegionDataDistributions {
+    enum {
+      LOCAL = 0,
+      ONE_REMOTE,
+      N_BY_ROW,
+      N_BY_COL,
+      N_BY_BLOCK,
+      N_BY_BLOCK_TRANSPOSED
+    };
+  } PACKED;
+
+  typedef int RegionDataMigrationType;
+  struct RegionDataMigrationTypes {
+    enum {
+      NONE = 0,
+      IGNORE,
+      COPY_ENTIRE_DATA
+    };
+  } PACKED;
+
   struct DataHostPidListItem {
     HostPid hostPid;
-    double weight;
+    size_t weight;
   } PACKED;
   typedef std::vector<DataHostPidListItem> DataHostPidList;
+
+  struct RemoteRegionHandler {
+    HostPid hostPid;
+    EncodedPtr remoteHandler;
+  } PACKED;
 
   //
   // RegionDataRemoteMessage
   //
 
   namespace RegionDataRemoteMessage {
-    typedef uint8_t MessageType;
+    typedef int MessageType;
 
     struct MessageTypes {
       enum {
@@ -44,10 +70,12 @@ namespace petabricks {
 	UPDATEHANDLERCHAIN,
         ALLOCDATA,
         RANDOMIZEDATA,
-        CREATEREGIONDATA,
-        CREATEREGIONDATAPART,
-        INITWITHREGIONDATA,
+        CREATEREMOTEREGIONDATA,
+        CREATEREMOTEREGIONDATAREPLY,
         INITWITHREGIONHANDLER,
+        TOSCRATCHSTORAGE,
+        FROMSCRATCHSTORAGE,
+        COPYREGIONDATASPLIT,
       };
     } PACKED;
 
@@ -59,13 +87,8 @@ namespace petabricks {
       MessageType type;
       int dimensions;
       IndexT size[];
-    } PACKED;
-
-    struct CreateRegionDataPartInitialMessage {
-      MessageType type;
-      int dimensions;
-      IndexT size[MAX_DIMENSIONS];
-      IndexT partOffset[MAX_DIMENSIONS];
+    private:
+      CreateRegionDataInitialMessage() {}
     } PACKED;
 
     struct EncodedPtrInitialMessage {
@@ -79,6 +102,8 @@ namespace petabricks {
       size_t contentOffset;
       EncodedPtr responseData;
       EncodedPtr responseLen;
+      EncodedPtr responseType;
+      EncodedPtr responseCounter;
 
       char* content() const { return (char*)this + contentOffset; }
     } PACKED;
@@ -91,6 +116,8 @@ namespace petabricks {
 
       char* content() const { return (char*)this + contentOffset; }
       char* next() const { return (char*)this + sizeof(ForwardMessageHeader); }
+    private:
+      ForwardMessageHeader() {}
     } PACKED;
 
     struct BaseMessageHeader {
@@ -107,26 +134,36 @@ namespace petabricks {
           return (char*)this + sizeof(GeneralMessageHeader);
         }
       }
+    private:
+      BaseMessageHeader() {}
     } PACKED;
 
     struct ReadCellMessage {
       IndexT coord[];
+    private:
+      ReadCellMessage() {}
     } PACKED;
 
     struct WriteCellMessage {
       ElementT value;
       IndexT coord[];
+    private:
+      WriteCellMessage() {}
     } PACKED;
 
     struct ReadCellCacheMessage {
       size_t cacheLineSize;
       IndexT coord[];
+    private:
+      ReadCellCacheMessage() {}
     } PACKED;
 
     struct WriteCellCacheMessage {
       size_t cacheLineSize;
       ElementT value;
       IndexT coord[];
+    private:
+      WriteCellCacheMessage() {}
     } PACKED;
 
     struct GetHostListMessage {
@@ -139,10 +176,60 @@ namespace petabricks {
       int numHops;
     } PACKED;
 
+    struct MatrixRegionMetadata {
+      int dimensions;
+      IndexT startOffset;
+      IndexT multipliers[];
+      IndexT* size() const {
+        return (IndexT*)((char*)this + sizeof(int) +
+                         ((this->dimensions + 1) * sizeof(IndexT)));
+      }
+    private:
+      MatrixRegionMetadata() {}
+    } PACKED;
+
+    struct RegionMatrixMetadata {
+      int dimensions;
+      int numSliceDimensions;
+      IndexT splitOffset[];
+      IndexT* size() const {
+        return (IndexT*)((char*)this + sizeof(int) * 2 +
+                         (sizeof(IndexT) * this->dimensions));
+      }
+      int* sliceDimensions() const {
+        return (int*)((char*)size() +
+                      (sizeof(IndexT) * this->dimensions));
+      }
+      IndexT* slicePositions() const {
+        return (IndexT*)((char*)sliceDimensions() +
+                         (sizeof(int) * this->numSliceDimensions));
+      }
+      static int len(int d, int numSlices) {
+        return sizeof(int) * 2 + sizeof(IndexT) * 2 * d +
+          (sizeof(int) + sizeof(IndexT)) * numSlices;
+      }
+    private:
+      RegionMatrixMetadata() {}
+    } PACKED;
+
+    struct CopyToMatrixStorageMessage {
+      struct RegionMatrixMetadata srcMetadata;
+    } PACKED;
+
+    struct CopyFromMatrixStorageMessage {
+      struct RegionMatrixMetadata srcMetadata;
+      ElementT* storage() const {
+        return (ElementT*)((char*)this + RegionMatrixMetadata::len(srcMetadata.dimensions, srcMetadata.numSliceDimensions));
+      }
+    } PACKED;
+
     struct AllocDataMessage {
     } PACKED;
 
     struct RandomizeDataMessage {
+    } PACKED;
+
+    struct CopyRegionDataSplitMessage {
     } PACKED;
 
     struct ReadCellReplyMessage {
@@ -157,23 +244,40 @@ namespace petabricks {
       IndexT start;
       IndexT end;
       ElementT values[];
+    private:
+      ReadCellCacheReplyMessage() {}
     } PACKED;
 
     struct WriteCellCacheReplyMessage {
       IndexT start;
       IndexT end;
       ElementT values[];
+    private:
+      WriteCellCacheReplyMessage() {}
     } PACKED;
 
     struct GetHostListReplyMessage {
       int numHosts;
       DataHostPidListItem hosts[];
+    private:
+      GetHostListReplyMessage() {}
     } PACKED;
 
     struct UpdateHandlerChainReplyMessage {
       HostPid dataHost;
       int numHops;
-      EncodedPtr encodedPtr; // regiondata or remoteobject
+      EncodedPtr encodedPtr; // regiondata or regionhandler
+      bool isDataSplit;
+    } PACKED;
+
+    struct CopyToMatrixStorageReplyMessage {
+      size_t count;
+      ElementT storage[];
+    private:
+      CopyToMatrixStorageReplyMessage() {}
+    } PACKED;
+
+    struct CopyFromMatrixStorageReplyMessage {
     } PACKED;
 
     struct AllocDataReplyMessage {
@@ -183,6 +287,20 @@ namespace petabricks {
     struct RandomizeDataReplyMessage {
     } PACKED;
 
+    struct CopyRegionDataSplitReplyMessage {
+      int dimensions;
+      IndexT numParts;
+      IndexT splitSize[];
+      RemoteRegionHandler* handlers() const {
+        return (RemoteRegionHandler*)((char*)this + sizeof(int) + sizeof(IndexT) + (dimensions * sizeof(IndexT)));
+      }
+      static int len(int d, int numParts) {
+        return sizeof(int) + sizeof(IndexT) + sizeof(IndexT) * d +
+          sizeof(RemoteRegionHandler) * numParts;
+      }
+    private:
+      CopyRegionDataSplitReplyMessage() {}
+    } PACKED;
   }
 }
 

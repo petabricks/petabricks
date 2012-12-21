@@ -74,8 +74,8 @@ private:
     CoordinateFormula minCoord;
     CoordinateFormula maxCoord;
   };
-  
-public: 
+
+public:
   SimpleRegion(){}
   SimpleRegion(const CoordinateFormula& min, const CoordinateFormula& max)
     :_minCoord(min), _maxCoord(max)
@@ -96,21 +96,22 @@ public:
   bool hasIntersect(const SimpleRegion& that) const;
 
   size_t dimensions() const { return _minCoord.size(); }
-  
-  size_t isExistingDimension(size_t dimension) const { 
+
+  size_t isExistingDimension(size_t dimension) const {
     return dimension < dimensions();
   }
-  
+
   size_t removedDimensions() const { return _removedDimensions.minCoord.size(); }
-  
+  const CoordinateFormula& removedDimensionsMin() const { return _removedDimensions.minCoord; }
+
   size_t totalDimensions() const {return dimensions() + removedDimensions(); }
-  
+
   size_t isRemovedDimension(size_t dim) const {
     size_t existingDimensions = dimensions();
-    
+
     return (existingDimensions <= dim) && (dim < totalDimensions());
   }
-  
+
   const CoordinateFormula& minCoord() const { return _minCoord; }
   const CoordinateFormula& maxCoord() const { return _maxCoord; }
   CoordinateFormula& minCoord() { return _minCoord; }
@@ -121,29 +122,29 @@ public:
     _minCoord.push_back(min);
     _maxCoord.push_back(max);
   }
-  
+
   FormulaPtr symbolicSize() const;
-  
+
   ///Remove the given dimension from the region
   void removeDimension(const size_t dimension) {
     CoordinateFormula& minCoordVector = minCoord();
     CoordinateFormula& maxCoordVector = maxCoord();
-    
+
     //Store the dimension in the removed dimensions data structure
     _removedDimensions.minCoord.push_back(minCoordVector[dimension]);
     _removedDimensions.maxCoord.push_back(maxCoordVector[dimension]);
-    
+
     //Erase the dimension
     minCoordVector.erase(minCoordVector.begin()+dimension);
-    maxCoordVector.erase(maxCoordVector.begin()+dimension);    
+    maxCoordVector.erase(maxCoordVector.begin()+dimension);
   }
-  
+
   void offsetMaxBy(const FormulaPtr& val){
     for(CoordinateFormula::iterator i=_maxCoord.begin(); i!=_maxCoord.end(); ++i)
       *i = new FormulaAdd(*i, val);
     _maxCoord.normalize();
   }
-  
+
   std::vector<std::string> argnames() const {
     std::vector<std::string> args;
     for( CoordinateFormula::const_iterator i=minCoord().begin()
@@ -163,11 +164,15 @@ public:
 
   std::string getIterationLowerBounds() const;
   std::string getIterationUpperBounds() const;
+
+  CoordinateFormulaPtr getIterationLowerBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with1, const CoordinateFormula& with2) const;
+  CoordinateFormulaPtr getIterationUpperBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with1, const CoordinateFormula& with2) const;
+
   std::string getIterationMiddleEnd(std::string& middle) const;
   std::string getIterationMiddleBegin(std::string& middle) const;
   
   size_t size() const { return dimensions(); }
-protected:
+ protected:
   CoordinateFormula _minCoord;
   CoordinateFormula _maxCoord;
   RemovedDimensionsInfo _removedDimensions;
@@ -188,6 +193,7 @@ public:
   };
 
   Region(const char* fromMatrix, const FormulaList& version, const char* type, const FormulaList& bounds);
+  Region(const MatrixDefPtr fromMatrix, const FormulaPtr version, const RegionType type, const FormulaList& bounds);
 
   void print(std::ostream& o) const;
 
@@ -195,7 +201,7 @@ public:
   void initialize(Transform&);
   void validate();
   CoordinateFormula calculateCenter() const;
-  
+
   static RegionType strToRegionType(const std::string& str);
 
   void makeRelativeTo(const FormulaList& defs){
@@ -206,6 +212,7 @@ public:
   std::string genTypeStr(RuleFlavor rf, bool isConst) const;
   std::string generateSignatureCode(RuleFlavor rf, bool isConst) const;
   std::string generateAccessorCode(bool allowOptional=true) const;
+  std::string generateAccessorCode(const CoordinateFormula& base, bool allowOptional=true) const;
 
   SimpleRegionPtr getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList& defs, bool isOutput);
 
@@ -217,25 +224,26 @@ public:
   FormulaPtr getSizeOfRuleInRemovedDimension(int d) const;
 
   MatrixDefPtr matrix() const { return _fromMatrix; }
-  
+
   ///
   /// Get rate of change for this region as rule center moves
   FormulaList diff(const Transform&, const RuleInterface&) const;
 
   bool isSingleElement() const { return _originalType==REGION_CELL && dimensions()>0; }
-  
+
   const std::string& name() const { return _name; }
 
   bool isVersioned() const { return _version; }
-  
+  FormulaPtr version() const { return _version; }
+
   bool isAll() const { return _originalType == REGION_ALL; }
 
   void assertNotInput();
 
   void setOptionalDefault(const FormulaPtr& f){
     if(f->toString()=="OPTIONAL")
-      _optionalDefault = new FormulaVariable("petabricks::the_missing_val()");  
-    else 
+      _optionalDefault = new FormulaVariable("petabricks::the_missing_val()");
+    else
       _optionalDefault = f;
   }
   bool isOptional() const { return _optionalDefault; }
@@ -260,10 +268,15 @@ public:
   const std::string& getArgName() const { return argName; }
 
   void fixTypeIfVersioned();
-  
+
+  void changeMatrix(MatrixDefPtr fromMatrix) {
+    _fromMatrix = fromMatrix;
+    _fromMatrixName = fromMatrix->name();
+  }
+
 private:
-  void determineDependencyDirection(const size_t dimension, 
-                                    const RuleInterface& rule, 
+  void determineDependencyDirection(const size_t dimension,
+                                    const RuleInterface& rule,
                                     DependencyDirection& direction) const;
 private:
   std::string _name;

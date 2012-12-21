@@ -27,24 +27,24 @@ void _petabricksCleanup() {}
 
 bool compareRegion(RegionIPtr r1, RegionRemote<3>* r2) {
   int dim = r1->dimension();
-  
+
   IndexT* coord = new IndexT[dim];
   memset(coord, 0, (sizeof coord) * dim);
-  
+
   while (true) {
     ElementT v1 = r1->readCell(coord);
     ElementT v2 = r2->readCell(coord);
-      
+
     if (v1 != v2) {
       printf("Error: %4.8g %4.8g\n", v1, v2);
       return false;
     }
-    
+
     if (r1->incCoord(coord) == -1) {
       break;
     }
   }
-  
+
   delete(coord);
   return true;
 }
@@ -67,27 +67,27 @@ int main(int argc, const char** argv){
       (local=RegionRemote<3>::genLocal(remoteRegion),
        &RegionRemote<3>::genRemote, filename1, strlen(filename1));
     local->waitUntilCreated();
-    
+
     remoteRegion->setRemoteObject(local);
 
     MatrixIO* matrixio = new MatrixIO(filename2, "r");
     RegionIPtr local = matrixio->readToRegionI();
     delete matrixio;
-    
+
     int dim = local->dimension();
-    
+
     IndexT* coord = new IndexT[dim];
     memset(coord, 0, (sizeof coord) * dim);
-    
+
     while (true) {
       ElementT v = local->readCell(coord);
       remoteRegion->writeCell(coord, v);
-    
+
       if (local->incCoord(coord) == -1) {
 	break;
       }
     }
-    
+
     delete(coord);
 
     if (!compareRegion(local, remoteRegion)) {
@@ -95,7 +95,7 @@ int main(int argc, const char** argv){
       printf("write failed\n");
       return -1;
     }
-    
+
     remoteRegion->markComplete();
     printf("completed\n");
     return 0;

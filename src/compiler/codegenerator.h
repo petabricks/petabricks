@@ -142,6 +142,8 @@ public:
   void elseIf(const std::string& v = "true");
   void endIf();
 
+  void trace(const std::string& str);
+
   void createTunable( bool isTunable
                     , const std::string& category
                     , const std::string& name
@@ -236,6 +238,7 @@ public:
     _defines.clear();
   }
   bool inClass() const { return _curClass.size()>0; }
+  std::string className() const { return _curClass; }
 
   void beginUserCode(RuleFlavor rf) {
     _rf = rf;
@@ -308,7 +311,9 @@ public:
 
 
   void callSpatial(const std::string& methodname, const SimpleRegion& region);
-  void mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region);
+  void mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, SpatialCallType spatialCallType);
+  void mkPartialSpatialTask(const std::string& taskname, const std::string& metadataname, const std::string& methodname, const SimpleRegion& region, SpatialCallType spatialCallType, bool shouldGenerateMetadata);
+  void mkIterationTrampTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const std::string& metadataclass, const std::string& metadata, const CoordinateFormula& coord);
   void mkCreateGpuSpatialMethodCallTask(
     const std::string& transname,
     const std::string& taskname, 

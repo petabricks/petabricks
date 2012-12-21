@@ -58,7 +58,23 @@
 #endif
 
 #ifdef HAVE_CBLAS_H
-# include <cblas.h>
+#  include <cblas.h>
+#endif
+
+#ifdef HAVE_MKL_H
+#  include <mkl.h>
+#endif
+
+#ifdef HAVE_EMMINTRIN_H
+#include <emmintrin.h>
+#endif
+
+#ifdef HAVE_PMMINTRIN_H
+#include <pmmintrin.h>
+#endif
+
+#ifdef HAVE_XMMINTRIN_H
+#include <xmmintrin.h>
 #endif
 
 //these must be declared in the user code
@@ -200,7 +216,7 @@ namespace petabricks {
         return false;
     //big enough to split?
     for(int i=0; i<D; ++i)
-      if(end[i]-begin[i] > thresh)
+      if(end[i]-begin[i] >= thresh)
         return true;
     //i guess not...
     return false;

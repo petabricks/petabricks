@@ -186,17 +186,18 @@ jalib::JAssert& jalib::JAssert::VarName(const char* n){
   return Prefix() << " " << n << " = ";
 }
 
-jalib::JAssert::~JAssert()
+void jalib::JAssert::dtorExit()
 {
-  if ( _exitWhenDone )
-  {
-    Prefix() << "Terminating...";
-    EndLine();
+  Prefix() << "Terminating...";
+  EndLine();
 #ifdef DEBUG
-    jalib::Breakpoint();
+  jalib::Breakpoint();
 #endif
-    _exit ( 1 );
-  }
+  _exit ( 1 );
+}
+
+void jalib::JAssert::dtorUnlock()
+{
   pthread_mutex_unlock(&theMutex);
 }
 

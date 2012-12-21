@@ -27,13 +27,6 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 void _petabricksInit() {}
 void _petabricksCleanup() {}
 
-void print(DataHostPidList list) {
-  printf("(%d) DataHostPidList\n", getpid());
-  for (unsigned int i = 0; i < list.size(); i++) {
-    printf("  %lx/%d ==> %.5g\n", list[i].hostPid.hostid, list[i].hostPid.pid, list[i].weight);
-  }
-}
-
 RemoteObjectPtr step2();
 RemoteObjectPtr step3();
 RemoteObjectPtr step4();
@@ -99,11 +92,10 @@ int main(int argc, const char** argv){
 RemoteObjectPtr step2() {
   class TestRemoteObject : public petabricks::RemoteObject {
   public:
-    void onRecv(const void* data, size_t /*len*/) {
+    void onRecv(const void* data, size_t /*len*/, int) {
       printf("== step2 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
-      regionMatrix.createRegionHandler(*host());
       MatrixIO().write(regionMatrix);
 
       IndexT m11[] = {1,1};
@@ -129,11 +121,10 @@ RemoteObjectPtr step2() {
 RemoteObjectPtr step3() {
   class TestRemoteObject : public petabricks::RemoteObject {
   public:
-    void onRecv(const void* data, size_t /*len*/) {
+    void onRecv(const void* data, size_t /*len*/, int) {
       printf("== step3 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
-      regionMatrix.createRegionHandler(*host());
       MatrixIO().write(regionMatrix);
 
       regionMatrix.updateHandlerChain();
@@ -159,11 +150,10 @@ RemoteObjectPtr step3() {
 RemoteObjectPtr step4() {
   class TestRemoteObject : public petabricks::RemoteObject {
   public:
-    void onRecv(const void* data, size_t /*len*/) {
+    void onRecv(const void* data, size_t /*len*/, int) {
       printf("== step4 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
-      regionMatrix.createRegionHandler(*host());
 
       char* buf = new char[regionMatrix.serialSize()];
       regionMatrix.serialize(buf, *RemoteHostDB::instance().host(0));
@@ -182,11 +172,10 @@ RemoteObjectPtr step4() {
 RemoteObjectPtr step5() {
   class TestRemoteObject : public petabricks::RemoteObject {
   public:
-    void onRecv(const void* data, size_t /*len*/) {
+    void onRecv(const void* data, size_t /*len*/, int) {
       printf("== step5 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
-      regionMatrix.createRegionHandler(*host());
 
       char* buf = new char[regionMatrix.serialSize()];
       regionMatrix.serialize(buf, *RemoteHostDB::instance().host(0));
@@ -205,15 +194,14 @@ RemoteObjectPtr step5() {
 RemoteObjectPtr step6() {
   class TestRemoteObject : public petabricks::RemoteObject {
   public:
-    void onRecv(const void* data, size_t /*len*/) {
+    void onRecv(const void* data, size_t /*len*/, int) {
       printf("== step6 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
-      regionMatrix.createRegionHandler(*host());
       MatrixIO().write(regionMatrix);
 
-      print(regionMatrix.dataHosts());
-      JASSERT(!regionMatrix.regionHandler()->isHandlerChainUpdated());
+      regionMatrix.printDataHosts();
+      //JASSERT(!regionMatrix.regionHandler()->isHandlerChainUpdated());
 
       regionMatrix.updateHandlerChain();
       JASSERT(regionMatrix.regionHandler()->isHandlerChainUpdated());

@@ -434,6 +434,12 @@ int main( int argc, const char ** argv){
   infofile.flush();
   infofile.close();
 
+  {
+    std::ofstream of((theObjDir+"/c_interface.h").c_str());
+    for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
+      (*i)->writeCInterface(of);
+    }
+  }
 
   char olddir[1024];
   memset(olddir, 0, sizeof olddir);
@@ -441,6 +447,7 @@ int main( int argc, const char ** argv){
   JASSERT(chdir(theObjDir.c_str())==0)(theObjDir);
   
   ccfiles.writeMakefile();
+
   
   // COMPILE AND LINK:
   if(shouldCompile)

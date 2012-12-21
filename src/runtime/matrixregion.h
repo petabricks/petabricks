@@ -141,7 +141,10 @@ public:
   const IndexT* multipliers() const { return _multipliers; };
   const StorageT& storage() const { return _storage; }
   const MatrixStorageInfoPtr storageInfo() const {
-    return _storageInfo; 
+#ifdef DEBUG
+    JASSERT(count()>0)(count());
+#endif
+    return _storageInfo;
   }
 
   void randomize(){
@@ -171,7 +174,7 @@ public:
       s*=this->sizes()[i];
     return s;
   }
-  
+
   ///
   /// copy from a more generic container (used in memoization)
   void copyFrom(const MatrixStorageInfo& ms){
@@ -185,7 +188,7 @@ public:
       memcpy(storage()->data(), ms.storage()->data(), storage()->count()*sizeof(ElementT));
     }
   }
-  
+
   IndexT* sizes() { return _sizes; }
   IndexT* multipliers() { return _multipliers; };
 private:
@@ -239,11 +242,13 @@ public:
     for(int i=0; i<s; ++i)
       tmp->data()[i] = -666;
     #endif
-    MatrixRegion m = MatrixRegion(tmp, tmp->data(), sizes);
     #ifdef COLUMN_MAJOR
+    IndexT sizesT[D];
+    for (int i=0; i<D; ++i) sizesT[i] = sizes[D-i-1];
+    MatrixRegion m = MatrixRegion(tmp, tmp->data(), sizesT);
     return m.transposed();
     #else
-    return m;
+    return MatrixRegion(tmp, tmp->data(), sizes);
     #endif
   }
 
@@ -370,7 +375,7 @@ public:
     std::cerr << "size = ";
     for(int i=0; i<D; ++i) {
       std::cerr << size(i) << " ";
-    }    
+    }
     std::cerr << std::endl << "mult = ";
     for(int i=0; i<D; ++i) {
       std::cerr << this->multipliers()[i] << " ";
@@ -396,7 +401,7 @@ public:
       dst.cell(coord) = this->cell(coord);
     } while(this->incCoord(coord)>=0);
   }
-  
+
   ///
   /// Copy data within the boundary c1 and c2 of this to dst
   void copyTo(const MutableMatrixRegion& dst,const IndexT c1[D], const IndexT c2[D])
@@ -696,8 +701,17 @@ protected:
   /// Compute the offset in _base for a given coordinate
   ElementT* coordToPtr(const IndexT coord[D]) const{
     IndexT rv = 0;
-    for(int i=0; i<D; ++i){
-      rv +=  this->multipliers()[i] * coord[i];
+    if (D == 2) {
+      rv = (this->multipliers()[0] * coord[0]) + (this->multipliers()[1] * coord[1]);
+
+    } else {
+      for(int i=0; i<D; ++i){
+#ifdef DEBUG
+        JASSERT(0<=coord[i] && coord[i]<size(i))(coord[i])(size(i))
+          .Text("Out of bounds access");
+#endif
+        rv +=  this->multipliers()[i] * coord[i];
+      }
     }
     return this->base()+rv;
   }

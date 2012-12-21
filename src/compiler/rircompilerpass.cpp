@@ -45,9 +45,9 @@ void petabricks::GpuRenamePass::before(RIRExprCopyRef& e)
   if( RIRNode::EXPR_IDENT == e->type() )
     {
       if( e->isLeaf( "ElementT" ) )
-	e = new RIRIdentExpr( STRINGIFY( MATRIX_ELEMENT_T ) );
+        e = new RIRIdentExpr( STRINGIFY( MATRIX_ELEMENT_T ) );
       else if( e->isLeaf( "IndexT" ) )
-	e = new RIRIdentExpr( STRINGIFY( MATRIX_INDEX_T ) );
+        e = new RIRIdentExpr( STRINGIFY( MATRIX_INDEX_T ) );
     }
 }
 
@@ -104,8 +104,8 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
       }else if(s->type() == RIRNode::STMT_LOOP){
         o.comment("expanded loop statement");
         const RIRLoopStmt& stmt = (const RIRLoopStmt&)*s;
-        std::string jbody = o.nextContName("loopbody_");
-	std::string jinc   = o.nextContName("increment_");
+        std::string jbody  = o.nextContName("loopbody_");
+        std::string jinc   = o.nextContName("increment_");
         std::string jafter = o.nextContName("after_");
         o.write(stmt.declPart()->toString()+";");
         o.continueLabel(jbody);
@@ -117,7 +117,7 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
         stmt.body()->extractBlock()->accept(*this);
         _continueTargets.pop_back();
         _breakTargets.pop_back();
-	o.continueLabel(jinc);
+        o.continueLabel(jinc);
         o.write(stmt.incPart()->toString()+";");
         o.continueJump(jbody);
         o.continueLabel(jafter);
@@ -125,7 +125,7 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
         o.comment("expanded block statement");
         s->extractBlock()->accept(*this);
       }else{
-        UNIMPLEMENTED()(s->toString());
+        UNIMPLEMENTED();
       }
     }else{
       o.write(s->toString());
@@ -362,6 +362,14 @@ void petabricks::AnalysisPass::before(RIRExprCopyRef& e){
       TrainingDeps::addCallgraphEdge(_name, e->toString());
       _rule.markRecursive();
     }
+    if(sym && sym->type() == RIRSymbol::SYM_ARG_ELEMENT){
+      // JTRACE("CELL ACCESS")(e->toString());
+      _rule.markHasCellAccess(e->toString());
+    }
+    if(e->toString() == "RETURN"){
+      // JTRACE("RETURN");
+      _rule.markHasCellAccess(RETURN_VAL_STR);
+    }
   }
 }
 
@@ -461,7 +469,7 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
               std::string y = *i;
               i++;
               std::string x = *i;
-              exprstr = "buff_" + region->matrix()->name() + "[" + y + " + y_local]" 
+              exprstr = "buff_" + region->matrix()->name() + "[" + y + " + y_local]"
                                                            + "[" + x + " + x_local]";
             }
             else {
@@ -534,7 +542,7 @@ bool petabricks::OpenClFunctionRejectPass::isFunctionAllowed( const std::string&
       "sin", "cos", "tan",
       "acos", "asin", "atan",
       "sqrt",
-      "cell", 
+      "cell",
       "", };
 
   const std::string* p = whitelist;

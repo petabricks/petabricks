@@ -80,7 +80,7 @@ public:
        , PRIORITY_DEFAULT   = 1
        , PRIORITY_SECONDARY = 2
        , PRIORITY_MAX = 1024};
-  
+
   typedef int RotationT;
   enum {
     NOROTATE     = 0,
@@ -94,7 +94,7 @@ public:
   };
 
   void print(std::ostream& o) const;
-  
+
   PriorityT  priority;
   RotationT  rotations;
   bool       isRecursive;
@@ -105,8 +105,8 @@ public:
  * Class for describing the data dependencies of various instances of the same
  * matrix inside a rule
  */
-class DataDependencyVectorMap : public jalib::JPrintable, 
-                                public std::multimap<MatrixDefPtr, 
+class DataDependencyVectorMap : public jalib::JPrintable,
+                                public std::multimap<MatrixDefPtr,
                                                 CoordinateFormula> {
   void print(std::ostream& o) const;
 };
@@ -126,6 +126,8 @@ public:
 
   virtual RuleFlags::PriorityT priority() const = 0;
   virtual bool isRecursive() const = 0;
+  virtual bool hasCellAccess() const = 0;
+  virtual bool hasCellAccess(const std::string& matrix) const = 0;
   virtual bool canProvide(const MatrixDefPtr& m) const = 0;
   virtual bool isSingleElement() const = 0;
 
@@ -135,25 +137,37 @@ public:
 
   virtual void collectDependencies(StaticScheduler& scheduler) = 0;
   virtual void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension, const RulePtr&) = 0;
-  
+
   virtual void generateCallCode(const std::string& nodename,
                                 Transform& trans,
                                 CodeGenerator& o,
                                 const SimpleRegionPtr& region,
                                 RuleFlavor flavor,
-				bool wrap, 
+                                bool wrap, 
                                 std::vector<RegionNodeGroup>& regionNodesGroups,
                                 int nodeID,
-                                int gpuCopyOut) = 0;
+                                int gpuCopyOut,
+                                SpatialCallType spatialCallType = SpatialCallTypes::INVALID) = 0;
+
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor,
-			bool wrap) {
+                        bool wrap) {
     std::vector<RegionNodeGroup> empty;
-    generateCallCode(nodename, trans, o, region, flavor, wrap, empty, 0, 0);
+    generateCallCode(nodename, trans, o, region, flavor, wrap, empty, 0, 0, SpatialCallTypes::INVALID);
   }
+  void generateCallCode(const std::string& nodename,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor,
+                        SpatialCallType spatialCallType = SpatialCallTypes::INVALID) {
+    std::vector<RegionNodeGroup> empty;
+    generateCallCode(nodename, trans, o, region, flavor, true, empty, 0, 0, spatialCallType);
+  }
+
   void generateCallCode(const std::string& nodename,
 			Transform& trans,
 			CodeGenerator& o,
@@ -166,44 +180,46 @@ public:
   }
   virtual void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
   virtual void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
-  
+  virtual void generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
+
   virtual void markRecursive() = 0;
+  virtual void markHasCellAccess(const std::string& matrix) = 0;
   virtual const FormulaPtr& recursiveHint() const = 0;
-  
+
   virtual bool hasWhereClause() const = 0;
   virtual FormulaPtr getWhereClause() const = 0;
 
   virtual std::string getLabel() const = 0;
 
   ///
-  /// Remove out-of-bounds solutions from the given formula list 
+  /// Remove out-of-bounds solutions from the given formula list
   FormulaPtr trimImpossible(const FormulaList& l);
 
   ///
   /// Get the offset variable for the "center" of this rule.
-  /// The offset variable is used to represent the location where the rule 
+  /// The offset variable is used to represent the location where the rule
   /// is applied.  All coordinates are rewritten to be relative to the
   /// offset vars.
   FormulaPtr getOffsetVar(int dimension, const char* extra=NULL) const;
-  
+
   ///
   /// invert the above function
   int offsetVarToDimension(const std::string& dimension, const char* extra=NULL) const;
-  
+
   void printIdentifier(std::ostream& o) const { o <<_id << " "; }
   int id() const { return _id; }
   virtual int getAssociatedId() { return _id; }
   virtual bool isEnabledGpuRule() { return false; }
-  
+
   const SimpleRegionPtr& applicableRegion() const { return _applicableRegion; }
-  
-  
+
+
   virtual int dimensions() const = 0;
   virtual FormulaPtr getSizeOfRuleIn(int d) = 0;
   virtual void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor) = 0;
 
   virtual DependencyDirection getSelfDependency() const = 0;
-  
+
   bool isDuplicated() const { return duplicateCount()>1; }
   virtual size_t duplicateCount() const { return 1; }
   /// returns old duplicate number
@@ -213,23 +229,24 @@ public:
 
   bool isDisabled() const { return _isDisabled; }
   void disableRule() { _isDisabled = true; }
-  
+
   DataDependencyVectorMap& getDataDependencyVectorMap() {return _dataDependencyVectorMap; }
-  
-  ///Remove the specified dimension from every reference to the given matrix 
+
+  ///Remove the specified dimension from every reference to the given matrix
   ///that appears inside this rule
   virtual void removeDimensionFromMatrix(const MatrixDefPtr, const size_t) {}
-  
+
   ///Fix the type of all the versioned regions associated with this rule
   virtual void fixVersionedRegionsType() {}
-  
+
   ///Get the list of regions that the rule reads and modifies
   virtual RegionList getSelfDependentRegions() { return RegionList(); }
-  
+
   ///Get the list of regions that the rule only reads or writes
   virtual RegionList getNonSelfDependentRegions() { return RegionList(); }
 
   virtual RegionList getFromRegions( ) const { return RegionList(); }
+
   virtual RegionSet getFromRegionsOnCpu( ) const { return RegionSet(); }
   
 protected:
@@ -238,7 +255,7 @@ protected:
   bool _isDisabled;
   DataDependencyVectorMap _dataDependencyVectorMap; /**< Data dependency vector.
                                                      * It contains only the deps
-                                                     * for regions that come 
+                                                     * for regions that come
                                                      * from "through" matrixes*/
 };
 
@@ -286,7 +303,7 @@ public:
       o << "end";
     o << "_" << _rule->id() << "} ";
   }
-  
+
 private:
   Type          _type;
   RulePtr       _rule;

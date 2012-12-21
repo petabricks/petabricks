@@ -43,6 +43,7 @@ petabricks::RemoteTask::RemoteTask() {
 }
 
 void petabricks::RemoteTask::onCompletedRemotely() {
+  SubRegionCacheManager::incVersion();
   completeTaskDeps(false);
 }
 
@@ -55,31 +56,58 @@ void petabricks::RemoteTask::enqueueLocal() {
 }
 
 void petabricks::RemoteTask::remoteScheduleTask() {
-  //JTRACE("remote schedule");
-#ifdef REGIONMATRIX_TEST
-  RemoteHostPtr toHost = 0;
-  int maxCount = 0;
+  // JTRACE("remote schedule");
 
-  RemoteHostList hosts = getDataHosts();
+  HostPid toHostPid = HostPid::self();
+  size_t maxWeight = 0;
 
-  std::map<RemoteHostPtr, int> map;
-  for (RemoteHostList::iterator it = hosts.begin(); it < hosts.end(); it++) {
-    map[*it] += 1;
-    if (map[*it] > maxCount) {
-      toHost = *it;
-      maxCount = map[*it];
+  DataHostPidList hosts;
+  getDataHosts(hosts);
+
+  // printf("(%d) DataHostPidList\n", getpid());
+  // for (unsigned int i = 0; i < hosts.size(); i++) {
+  //   printf("  %lx/%d ==> %ld\n", hosts[i].hostPid.hostid, hosts[i].hostPid.pid, hosts[i].weight);
+  // }
+
+  if (hosts.size() == 1) {
+    toHostPid = hosts[0].hostPid;
+
+  } else if (hosts.size() > 1) {
+    std::map<HostPid, double> map;
+    for (DataHostPidList::iterator it = hosts.begin(); it < hosts.end(); it++) {
+      map[it->hostPid] += it->weight;
+      if (map[it->hostPid] > maxWeight) {
+        toHostPid = it->hostPid;
+        maxWeight = map[it->hostPid];
+
+      } else if ((map[it->hostPid] == maxWeight) && (it->hostPid == HostPid::self())) {
+        toHostPid = it->hostPid;
+      }
     }
   }
 
-  if (toHost) {
-    //enqueueRemote(*toHost);
+  // JTRACE("force enqueueRemote");
+  // RemoteHostPtr toHost = RemoteHostDB::instance().host(0);
+  // enqueueRemote(*toHost);
+  // return;
+
+  // JTRACE("force enqueueLocal");
+  // enqueueLocal();
+  // return;
+
+  if (toHostPid == HostPid::self()) {
     enqueueLocal();
+
   } else {
+#ifdef REGIONMATRIX_TEST
     enqueueLocal();
-  }
 #else
-  enqueueLocal();
+    RemoteHostPtr toHost = RemoteHostDB::instance().host(toHostPid);
+    JDEBUGASSERT(toHost != 0)(toHostPid);
+    enqueueRemote(*toHost);
+    JTRACE("enqueueRemote")(toHostPid);
 #endif
+  }
 }
 
 

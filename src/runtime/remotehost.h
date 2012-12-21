@@ -42,6 +42,7 @@
 #include <vector>
 #include <set>
 
+//#define COUNT_CONNECTIONS 1
 
 #define REMOTEHOST_DATACHANS 4
 #define REMOTEHOST_THREADS 2
@@ -95,7 +96,8 @@ public:
                           RemoteObjectGenerator remote,
                           const void* data = 0, size_t len = 0);
 
-  void sendData(const RemoteObject* local, const void* data, size_t len);
+  void sendData(const RemoteObject* local, const void* data, size_t len, int arg);
+  void sendData(const RemoteObject* local, const void* data, size_t len, const void* data2, size_t len2, int arg);
   void remoteSignal(const RemoteObject* local);
   void remoteBroadcast(const RemoteObject* local);
   void remoteMarkComplete(const RemoteObject* local);
@@ -114,7 +116,10 @@ public:
 
   void setupLoop(RemoteHostDB& db);
   static void setupRemoteConnection(RemoteHost& a, RemoteHost& b);
+  void setupRemoteConnectionWithMaster(int allocHostNumber);
   void setupEnd();
+
+  bool recv(const RemoteObject* caller = 0);
 protected:
   RemoteHost(const std::string& connectName)
     : _lastchan(0),
@@ -127,11 +132,16 @@ protected:
   {}
   void accept(jalib::JServerSocket& s, int listenPort);
   void connect(const jalib::JSockAddr& a, int port, int listenPort);
-  bool recv();
+  void acceptMasterControl(jalib::JServerSocket& s, int listenPort);
+  void connectMasterControl(const jalib::JSockAddr& a, int port, int listenPort);
+  void acceptMasterData(jalib::JServerSocket& s, int listenPort);
+  void connectMasterData(const jalib::JSockAddr& a, int port, int listenPort);
   int fd() const { return _control.sockfd(); }
-  void handshake(int port);
+  void handshake(int port, bool isConnect);
 
   void sendMsg(_RemoteHostMsgTypes::GeneralMessage* msg, const void* data = NULL, size_t len = 0);
+  void sendMsg(_RemoteHostMsgTypes::GeneralMessage* msg, const void* data, size_t len, const void* data2, size_t len2);
+
   int pickChannel() {
     _lastchan = (_lastchan+2) % REMOTEHOST_DATACHANS;
     return _lastchan;
@@ -145,10 +155,14 @@ protected:
   void addObject(const RemoteObjectPtr& obj);
 
 private:
-  jalib::JMutex _controlmu;
-  jalib::JMutex _datamu[REMOTEHOST_DATACHANS];
+  jalib::JMutex _controlReadmu;
+  jalib::JMutex _controlWritemu;
+  jalib::JMutex _objectsmu;
+  jalib::JMutex _dataReadmu[REMOTEHOST_DATACHANS];
+  jalib::JMutex _dataWritemu[REMOTEHOST_DATACHANS];
   jalib::JSocket _control;
   jalib::JSocket _data[REMOTEHOST_DATACHANS];
+  jalib::JSocket _scratchSockets[REMOTEHOST_DATACHANS + 1];
   HostPid _id;
   int _lastchan;
   RemoteObjectList _objects;
@@ -167,8 +181,8 @@ public:
 
   RemoteHostDB();
 
-  void connect(const char* host, int port);
-  void accept(const char* fromhost);
+  void connect(const char* host, int port, bool isMaster=false);
+  void accept(const char* fromhost, bool isMaster=false);
   void remotefork(const char* host, int argc, const char** argv, const char* slavehost=NULL, const char* slaveport=NULL);
 
   void listenLoop();
@@ -176,12 +190,13 @@ public:
 
   const char* host() const { return _host.c_str(); }
   int port() const { return _port; }
+  jalib::JServerSocket& listener() { return _listener; }
 
   RemoteHostPtr host(int i) const {
     return _hosts[i];
   }
 
-  RemoteHostPtr host(HostPid& id) const {
+  RemoteHostPtr host(const HostPid& id) const {
     for (unsigned int i = 0; i < _hosts.size(); i++) {
       RemoteHostPtr host = _hosts[i];
       if (host->id() == id) {
@@ -200,6 +215,20 @@ public:
 
   void setupConnectAllPairs();
 
+  void setAllocHostNumber(int allocHostNumber) {
+    _allocHostNumber = allocHostNumber;
+  }
+  RemoteHostPtr allocHost(int i) const {
+    if (i < _allocHostNumber) {
+      return _hosts[i];
+    } else if (i == _allocHostNumber) {
+      return NULL;
+    } else {
+      return _hosts[i-1];
+    }
+  }
+  bool isMaster() const { return _allocHostNumber == 0; }
+
 protected:
 
   void regenPollFds();
@@ -212,6 +241,14 @@ private:
   nfds_t _nfds;
   int _ready;
   struct pollfd *_fds;
+
+  int _allocHostNumber;
+
+#ifdef COUNT_CONNECTIONS
+ public:
+  jalib::AtomicT _numSends;
+  jalib::AtomicT _numBytes;
+#endif
 };
 
 

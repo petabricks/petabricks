@@ -66,7 +66,8 @@ class GpuRule : public SyntheticRule {
 			bool wrap,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        int gpuCopyOut);
+                        int gpuCopyOut,
+                        SpatialCallType spatialCallType = SpatialCallTypes::INVALID);
   //TODO: remove this
   void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
   void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
@@ -95,10 +96,10 @@ class GpuRule : public SyntheticRule {
 
   // Helper code copied from UserRule
   std::string trampcodename(Transform& trans) const;
-  
-  
-  
-  
+
+
+
+
   RuleFlags::PriorityT priority() const;
   bool isRecursive() const;
   bool hasWhereClause() const;
@@ -106,7 +107,7 @@ class GpuRule : public SyntheticRule {
 
   bool isEnabledGpuRule() { return !isDisabled(); }
   int getAssociatedId() { return _rule->id(); }
-  
+
   static std::set<int> _done;
  private:
   UserRule* _rule;

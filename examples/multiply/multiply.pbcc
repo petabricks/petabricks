@@ -3,53 +3,7 @@
 
 #include "../simple/add.pbcc"
 #include "../simple/transpose.pbcc"
-//#include "multiplyAdd.pbcc"
-
-%{
-
-template < typename T >
-inline ElementT *toArray(const T&matrix) {
-  ElementT *array;
-
-  IndexT rows = matrix.height();
-  IndexT columns = matrix.width();
-
-  array = new ElementT[rows * columns];
-
-  for(IndexT i=0; i<rows; ++i) {
-    for(IndexT j=0; j<columns; ++j) {
-      array[i*columns + j] = matrix.cell(j,i);
-    }
-  }
-
-  return array;
-}
-
-template < typename T >
-inline void toMatrix(ElementT* array, T&matrix) {
-  IndexT rows = matrix.height();
-  IndexT columns = matrix.width();
-
-  for(IndexT i=0; i<rows; ++i) {
-    for(IndexT j=0; j<columns; ++j) {
-      matrix.cell(j,i) = array[i*columns + j];
-    }
-  }
-
-  return;
-}
-
-void gemm_wrap(const enum CBLAS_ORDER Order, const enum CBLAS_TRANSPOSE TransA, const enum CBLAS_TRANSPOSE TransB, const int M, const int N, const int K, const float alpha, const float * A, const int lda, const float * B, const int ldb, const float beta, float * C, const int ldc) {
-  cblas_sgemm(Order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
-}
-
-void gemm_wrap(const enum CBLAS_ORDER Order, const enum CBLAS_TRANSPOSE TransA, const enum CBLAS_TRANSPOSE TransB, const int M, const int N, const int K, const double alpha, const double * A, const int lda, const double * B, const int ldb, const double beta, double * C, const int ldc) {
-  cblas_dgemm(Order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
-}
-
-%}
-
-
+#include "lapackwrapper.pbcc"
 
 transform MatrixMultiplyBase
 from A[c,h], B[w,c] 

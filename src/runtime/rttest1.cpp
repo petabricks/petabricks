@@ -49,10 +49,10 @@ RemoteObjectPtr gen() {
         markComplete();
       }
     }
-    void onRecv(const void* data, size_t len) {
-      JTRACE("recv")((char*)data)(len);
+    void onRecv(const void* data, size_t len, int arg) {
+      JTRACE("recv")((char*)data)(len)(arg);
     }
-    ~TestRemoteObject() { 
+    ~TestRemoteObject() {
       JTRACE("destructing");
     }
   };
@@ -96,7 +96,7 @@ int main(int argc, const char** argv){
     JTRACE("gcB");
     hdb.host(0)->createRemoteObject(gcb, &DistributedGC::gen);
     gcb->waitUntilComplete();
-    
+
     gca=0;
     gcb=0;
 

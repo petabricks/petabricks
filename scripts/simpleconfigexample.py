@@ -1,4 +1,4 @@
-
+#!/usr/bin/python
 import configtool, traininginfo, pbutil
 import tempfile, os
 

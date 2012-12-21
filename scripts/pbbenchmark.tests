@@ -4,7 +4,7 @@
 
 #binpacking/binpacking             binpacking.cfg      8192     -1.15
 kclustering/kmeans                kmeans.cfg          128      0.2
-matrixapprox/matrixapprox         matrixapprox.cfg    128      0.8
+matrixapprox/matrixapprox         matrixapprox.cfg    128      0.7
 multigrid/Helmholtz3DFMG          Helmholtz3DFMG.cfg  32       7
 multigrid/Poisson2DFMG            Poisson2DFMG.cfg    129      7
 multiply/strassen                 strassen.cfg        512      1

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import numpy
 from numpy import atleast_1d, eye, mgrid, argmin, zeros, shape, empty, \
      squeeze, vectorize, asarray, absolute, sqrt, Inf, asfarray, isinf

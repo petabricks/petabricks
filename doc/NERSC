@@ -1,0 +1,54 @@
+Using NERSC Cluster
+
+== Set up ==
+
+* install clisp, flex, maxima, python stuff
+* I added this in my .cshrc.ext
+
+----
+module load python
+setenv PYTHONPATH $HOME/python_modules/carver/lib/python/
+
+module swap pgi gcc
+module swap openmpi openmpi-gcc
+module load bison
+module load autoconf
+module load mkl
+
+setenv CXXFLAGS "-I/usr/common/usg/mkl/10.2.2.025/include"
+setenv LDFLAGS -L$MKL_LIBDIR
+----
+
+* configure already takes care of these:
+  - Cannot setrlimit in carver
+  - blas is in Intel MKL
+
+== Submitting Jobs ==
+
+* Samples PBS file
+
+#PBS -q debug
+#PBS -l nodes=32:ppn=1
+#PBS -l pvmem=20GB
+#PBS -l walltime=00:30:00
+#PBS -N test-sor-32
+#PBS -e test.$PBS_JOBID.err
+#PBS -o test.$PBS_JOBID.out
+#PBS -V
+
+set CFG=64
+set N=16384
+set CUTOFF=129
+
+pbsdsh -v $PBS_O_WORKDIR/pbsrun.py $PBS_NODEFILE ./examples/multigrid/Poisson2DSOR -n $N --config=cfg/sor-$CUTOFF-$CFG.cfg
+
+* Do not use pbrun.py because it will recompile the programs on worker nodes
+* Submit sgatuner task with `--norecompile`
+
+== Job Queues ==
+
+* Debug queue is fast for up to 16 nodes. For 32 nodes, we have to wait a few minutes.
+* Regular queue is fast during weekends.
+* Requesting 64 nodes on regular queue, sometimes, takes more than a day.
+* http://www.nersc.gov/users/computational-systems/carver/running-jobs/queues-and-policies/
+

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import os
 import pbutil
@@ -25,6 +25,11 @@ check_exclude=[
          "convolution2/ConvFFTRecursion",
          "convolution2/Convolution",
          "convolution2/ConvLinAlg",
+
+         "trisolve/TriSolveLL",           # '0' vs '-0'
+         "trisolve/TriSolveLU",
+         "trisolve/TriSolveRL",
+         "trisolve/TriSolveRU",
 
          "kclustering/kmeans",            # (Variable accuracy)
          "matrixapprox/matrixapprox",     # (Variable accuracy)
@@ -76,16 +81,20 @@ def checkBenchmark(b):
   warnings.simplefilter('ignore', DeprecationWarning)
   warnings.simplefilter('ignore', tunerwarnings.IgnoredTunerWarning)
   warnings.simplefilter('ignore', tunerwarnings.InitialProgramCrash)
+  warnings.simplefilter('ignore', tunerwarnings.SmallInputProgramCrash)
   warnings.simplefilter('ignore', tunerwarnings.ProgramTimeout)
 
   try:
     sgatuner.regression_check(b)
+    subprocess.call(["killall", b.split("/")[-1]], stderr=open("/dev/null", "w"))
     print "check PASSED"
     return True
   except tunerwarnings.TunerWarning, e:
+    subprocess.call(["killall", b.split("/")[-1]], stderr=open("/dev/null", "w"))
     print "check FAILED (%s: %s)" % (e.__class__.__name__, str(e))
     return False
   except:
+    subprocess.call(["killall", b.split("/")[-1]], stderr=open("/dev/null", "w"))
     import traceback
     traceback.print_exc(10)
     return False
@@ -147,7 +156,7 @@ def testBenchmark(b):
       if diffFiles(outfile+ext, outfile+".latest"):
         print "run FAILED (wrong output)"
         return False
-    
+
     print "run PASSED (took %.2fs)" % (t2-t1)
 
     if (not haveOpenCL()) or (not os.path.exists(outfile+".gpucfg")):
@@ -168,7 +177,7 @@ def testBenchmark(b):
       if diffFiles(outfile+ext, outfile+".latest"):
         print "gpu FAILED (wrong output)"
         return False
-    
+
     print "gpu PASSED (took %.2fs)" % (t2-t1)
     return True
 
@@ -179,7 +188,7 @@ def isFloatingPoint():
     if "MATRIX_ELEMENT_T" in line and "float" in line:
        return True
   return False
-	
+
 def haveOpenCL():
   for line in open("./src/config.h"):
     if "HAVE_OPENCL" in line:
@@ -216,7 +225,7 @@ if options.learning:
     print "Using heuristics file: "+ str(options.heuristics)
   else:
     print "Using only heuristics in the database"
-  
+
 t1=time.time()
 results,b=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", args, testBenchmark, postfn=checkBenchmark, learning=options.learning, heuristicSetFileName=options.heuristics, noLearningList=check_exclude)
 t2=time.time()

@@ -32,6 +32,7 @@
 #include "gpumanager.h"
 #include "petabricks.h"
 #include "remotehost.h"
+#include "subregioncachemanager.h"
 #include "testisolation.h"
 
 #include "common/jargs.h"
@@ -107,13 +108,14 @@ static double RACE_ACCURACY_TARGET=jalib::minval<double>();
 static bool TI_REEXEC = true;
 static int REEXECCHILD=-1;
 
-#ifdef REGIONMATRIX_TEST
+#ifndef DISABLE_DISTRIBUTED
 static std::string HOSTS_FILE="hosts.example";
 #else
 static std::string HOSTS_FILE="";
 #endif
 static std::string SLAVE_HOST="";
 static int SLAVE_PORT = -1;
+static bool PBS=false;
 
 #ifdef HAVE_BOOST_RANDOM_HPP
 static boost::lagged_fibonacci607& myRandomGen(){
@@ -265,6 +267,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("accuracy",     ACCURACY).help("print out accuracy of answer");
   args.param("time",         DUMPTIMING).help("print timing results in xml format");
   args.param("hash",         HASH).help("print hash of output");
+  args.param("pbs",          PBS).help("run by PBS");
   args.param("force-output", FORCEOUTPUT).help("also write copies of outputs to stdout");
 
   args.param("threads", worker_threads).help("number of threads to use");
@@ -363,12 +366,14 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
 
   size_t max_memory=0;
   if(args.param("max-memory", max_memory).help("kill the process when it tries to use this much memory")) {
+#ifdef HAVE_SETRLIMIT
     if(max_memory>0) {
       struct rlimit tmp;
       tmp.rlim_cur = max_memory;
       tmp.rlim_max = max_memory;
       JASSERT(setrlimit(RLIMIT_AS, &tmp)==0);
     }
+#endif
   }
 
 
@@ -382,23 +387,32 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
 
   args.finishParsing(txArgs);
 
+#ifndef DISABLE_DISTRIBUTED
+  SubRegionCacheManager::initialize();
+#endif
+
   if(SLAVE_HOST != "" && SLAVE_PORT>0) {
     ISOLATION=false;
     MODE=MODE_DISTRIBUTED_SLAVE;
     JTRACE("slave");
   }else if(HOSTS_FILE!=""){
-    ISOLATION=false;
     JTRACE("parent");
-    spawnDistributedNodes(argc, argv);
+    if (MODE==MODE_RUN_IO ||
+        MODE==MODE_IOGEN_CREATE ||
+        !(ISOLATION && TI_REEXEC && REEXECCHILD<0)) {
+      spawnDistributedNodes(argc, argv);
+    }
   }
 
   switch(MODE){
-    case MODE_RUN_RANDOM:
     case MODE_GRAPH_INPUTSIZE:
     case MODE_GRAPH_PARAM:
     case MODE_GRAPH_THREADS:
     case MODE_GRAPH_TEMPLATE:
     case MODE_AUTOTUNE_PARAM:
+      ISOLATION = false;
+      //fall through
+    case MODE_RUN_RANDOM:
     case MODE_IOGEN_RUN:
       if(ISOLATION)
         break;
@@ -441,20 +455,30 @@ void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char**
   JASSERT(fp.is_open())(HOSTS_FILE).Text("failed to open file");
   std::string line;
   bool hadlocal = false;
+  bool firsthost = true;
   while(getline(fp, line)){
     std::string dat,com;
     jalib::SplitFirst(dat, com, line, '#');
     dat=jalib::StringTrim(dat);
 
+    if (PBS && firsthost) {
+      dat = "localhost";
+      firsthost = false;
+    }
+
     if(dat!="" && dat!="localhost") {
-      db.remotefork(dat.c_str(), argc, argv, "--slave-host", "--slave-port");
-      db.accept(dat.c_str());
+      if (!PBS) {
+        db.remotefork(dat.c_str(), argc, argv, "--slave-host", "--slave-port");
+      }
+      db.accept(dat.c_str(), true);
     }
 
     if(dat == "localhost") {
       if(hadlocal) {
-        db.remotefork(NULL, argc, argv, "--slave-host", "--slave-port");
-        db.accept(dat.c_str());
+        if (!PBS) {
+          db.remotefork(NULL, argc, argv, "--slave-host", "--slave-port");
+        }
+        db.accept(dat.c_str(), true);
       }
       hadlocal=true;
     }
@@ -470,7 +494,7 @@ void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char**
 }
 void petabricks::PetabricksRuntime::distributedSlaveLoop() {
   RemoteHostDB& db = RemoteHostDB::instance();
-  db.connect(SLAVE_HOST.c_str(), SLAVE_PORT);
+  db.connect(SLAVE_HOST.c_str(), SLAVE_PORT, true);
   db.host(0)->setupLoop(db);
   for(int i=REMOTEHOST_THREADS; i>0; --i) {
     db.spawnListenThread();
@@ -854,6 +878,7 @@ void petabricks::PetabricksRuntime::loadTestInput(int n, const std::vector<std::
     _main->deallocate();
     _main->reallocate(n);
     _main->randomize();
+    JTRACE("done generating input");
   }else if(files!=NULL){
     _main->readInputs(*files);
     _main->readOutputs(*files);

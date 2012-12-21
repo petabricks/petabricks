@@ -38,7 +38,7 @@ to C[w,h,d]
 }
 
 transform MatrixSub
-from A[w,h], B[w,h] 
+from A[w,h], B[w,h]
 to AB[w,h]
 {
   rule SimpleSub
@@ -49,7 +49,7 @@ to AB[w,h]
 
 //return A+B+C-D
 transform MatrixAddAddSub
-from A[w,h], B[w,h], C[w,h], MinusD[w,h] 
+from A[w,h], B[w,h], C[w,h], MinusD[w,h]
 to OUT[w,h]
 {
   rule SimpleAddAddSub
@@ -64,7 +64,7 @@ to OUT[w,h]
 
 //last for regression tests
 transform MatrixAdd
-from A[w,h], B[w,h] 
+from A[w,h], B[w,h]
 to AB[w,h]
 {
   rule SimpleAdd

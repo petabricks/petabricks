@@ -10,8 +10,8 @@ namespace petabricks {
   public:
     virtual ~IRegionReplyProxy() {}
 
-    virtual void processReplyMsg(const BaseMessageHeader* base, size_t baseLen) = 0;
-    virtual void sendReply(const void* data, size_t len, const BaseMessageHeader* base) = 0;
+    virtual void processReplyMsg(const BaseMessageHeader* base, size_t baseLen, int replyType) = 0;
+    virtual void sendReply(const void* data, size_t len, const BaseMessageHeader* base, int replyType=0) = 0;
   };
 
 }

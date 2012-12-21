@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import errno
 import getopt
@@ -16,7 +16,6 @@ from xml.dom.minidom import parse,parseString
 from xml.dom import DOMException
 from pprint import pprint
 from configtool import getConfigVal, setConfigVal
-from learningcompiler import LearningCompiler
 
 try:
   import numpy
@@ -133,7 +132,8 @@ def parallelRunJobs(jobs, nParallelJobs=None):
 
   startline = progress.currentline()
   if nParallelJobs is None:
-    nParallelJobs=max(1, cpuCount()/2)
+#    nParallelJobs=cpuCount()
+    nParallelJobs=max(1, cpuCount()/4)
   exitval="!EXIT!"
   maxprinted=[0]
 
@@ -286,10 +286,10 @@ def normalizeBenchmarkName(orig, search=True):
 def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=None):
     if not os.path.isfile(src):
       raise IOError()
-    
+
     #Build the command
     cmd=[pbc]
-    
+
     if binary is not None:
       cmd.append("--output="+binary)
     if info is not None:
@@ -298,19 +298,19 @@ def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=Non
       cmd.append("--jobs="+str(jobs))
     if heuristics is not None:
       cmd.append("--heuristics="+heuristics)
-      
+
     cmd.append(src)
-    
+
     #Remove the output file (if it exists)
     if os.path.isfile(binary):
       os.unlink(binary)
-      
+
     #Execute the compiler
     p = subprocess.Popen(cmd, stdout=NULL, stderr=NULL)
     status = p.wait()
     return status
-  
-  
+
+
 def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noLearningList=[]):
   NULL=open("/dev/null","w")
   pbc="./src/pbc"
@@ -318,22 +318,23 @@ def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noL
   assert os.path.isfile(pbc)
   benchmarkMaxLen=0
   jobs_per_pbc=max(1, 2*cpuCount() / len(benchmarks))
-  compiler = LearningCompiler(pbc, heuristicSetFileName, jobs=jobs_per_pbc)
+  #from learningcompiler import LearningCompiler
+  #compiler = LearningCompiler(pbc, heuristicSetFileName, jobs=jobs_per_pbc)
 
   def innerCompileBenchmark(name):
     print name.ljust(benchmarkMaxLen)
     src=benchmarkToSrc(name)
     binary=benchmarkToBin(name)
-    
+
     srcModTime=max(os.path.getmtime(src), reduce(max, map(os.path.getmtime, libdepends)))
     if os.path.isfile(binary) and os.path.getmtime(binary) > srcModTime:
       print "compile SKIPPED"
-      return True  
+      return True
     try:
-      if learning and (name not in noLearningList):
-        status=compiler.compileLearningHeuristics(src, finalBinary=binary)
-      else:
-        status=compileBenchmark(pbc, src, binary=binary, jobs=jobs_per_pbc)
+     #if learning and (name not in noLearningList):
+     #  status=compiler.compileLearningHeuristics(src, finalBinary=binary)
+     #else:
+      status=compileBenchmark(pbc, src, binary=binary, jobs=jobs_per_pbc)
       if status == 0:
         print "compile PASSED"
         return True
@@ -343,8 +344,7 @@ def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noL
     except IOError:
       print "invalid benchmark"
       return False
-      
-      
+
   newjob = lambda name, fn: lambda: innerCompileBenchmark(name) and fn()
   mergejob = lambda oldfn, fn: lambda: oldfn() and fn()
 
@@ -365,7 +365,7 @@ def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noL
   jobs = map(lambda n: mergejob(*jobsdata[n]), jobs)
 
   if learning:
-    #Cannot run multiple jobs in parallel: the autotuning results 
+    #Cannot run multiple jobs in parallel: the autotuning results
     #would be affected
     return parallelRunJobs(jobs, nParallelJobs=1)
   else:

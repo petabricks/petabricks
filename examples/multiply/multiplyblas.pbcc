@@ -1,0 +1,293 @@
+#ifndef MULTIPLYSIMPLE_PBCC
+#define MULTIPLYSIMPLE_PBCC
+
+#include "../simple/transpose.pbcc"
+
+//#define PRINT
+
+%{
+
+#ifdef PRINT
+inline void printArray(int height, int width, ElementT *array){
+  int i, j;
+
+  for(i=0; i<height; ++i) {
+    for(j=0; j<width; ++j) {
+      printf("%2.1lf ", array[i*width+ j]);
+    }
+    printf("\n");
+  }
+}
+#endif
+
+inline ElementT *toArray(const workstealing::ConstMatrixRegion2D&matrix) {
+  ElementT *array;
+
+  IndexT rows = matrix.height();
+  IndexT columns = matrix.width();
+
+#ifdef PRINT
+  printf("Matrix size: %d rows, %d columns\n", rows, columns);
+#endif
+
+  array = new ElementT[rows * columns];
+
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      array[i*columns + j] = matrix.cell(j,i);
+    }
+  }
+
+  return array;
+}
+
+inline ElementT *toArray(const distributed::MatrixRegion2D& matrixdist) {
+  workstealing::MatrixRegion2D matrix = matrixdist.toScratchRegion();
+
+  ElementT *array;
+
+  IndexT rows = matrix.height();
+  IndexT columns = matrix.width();
+
+#ifdef PRINT
+  printf("Matrix size: %d rows, %d columns\n", rows, columns);
+#endif
+
+  array = new ElementT[rows * columns];
+
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      array[i*columns + j] = matrix.cell(j,i);
+    }
+  }
+
+  return array;
+}
+
+inline void toMatrix(ElementT* array, workstealing::MatrixRegion2D& matrix) {
+  IndexT rows = matrix.height();
+  IndexT columns = matrix.width();
+
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      matrix.cell(j,i) = array[i*columns + j];
+    }
+  }
+  return;
+}
+
+inline void toMatrix(ElementT* array, distributed::MatrixRegion2D& matrixdist) {
+  distributed::MatrixRegion2D matrixlocal = matrixdist.localCopy();
+  workstealing::MatrixRegion2D matrix = CONVERT_TO_LOCAL(matrixlocal);
+
+  IndexT rows = matrix.height();
+  IndexT columns = matrix.width();
+
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      matrix.cell(j,i) = array[i*columns + j];
+    }
+  }
+
+  matrixdist.fromScratchRegion(matrixlocal);
+  return;
+}
+
+void gemm_wrap(const int M, const int N, const int K, const float alpha, const float * A, const int lda, const float * B, const int ldb, const float beta, float * C, const int ldc) {
+  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+}
+
+void gemm_wrap(const int M, const int N, const int K, const double alpha, const double * A, const int lda, const double * B, const int ldb, const double beta, double * C, const int ldc) {
+  // printf("%d %d %d \n", M, N, K);
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+}
+%}
+
+
+transform MatrixMultiplyBase
+from A[k,h], B[w,k]
+to C[w,h]
+{
+#if 0
+  //compute a cell the straightforward way
+  to   (C.cell(x,y) c)
+  from (A.row(y) a,
+        B.column(x) b)
+  {
+    c = 0;
+    for(IndexT i=0; i<k; ++i)
+      c += a.cell(i)*b.cell(i);
+  }
+#endif
+  // call BLAS
+  to(C c) from (A a, B b)
+  {
+    int rowA=a.height();
+    int colA=a.width();
+
+    int rowB=b.height();
+    int colB=b.width();
+
+    int rowC=c.height();
+    int colC=c.width();
+
+    JTRACE("blas")(rowC)(colC);
+
+    if(colA != rowB) {
+      fprintf(stderr, "Unable to perform a matrix multiplication. Wrong input size.\n"
+	      "#columns of matrix A = %d\n"
+	      "#rows of matrix B = %d\n"
+	      "They should be equal!\n", colA, rowB);
+      exit(4);
+    }
+
+    // fast return if possible
+    if (h == 0 || k == 0 || w == 0) {
+        return;
+    }
+
+    ElementT* arrayA = toArray(a);
+    ElementT* arrayB = toArray(b);
+    ElementT* arrayC = toArray(c);
+
+    #ifdef PRINT
+    printArray(rowA, colA, arrayA);
+    printArray(rowB, colB, arrayB);
+    printArray(rowC, colC, arrayC);
+    #endif
+
+    gemm_wrap(rowA, colB, rowB, 1, arrayA, colA, arrayB, colB, 0, arrayC, colC);
+
+    #ifdef PRINT
+    printArray(rowC, colC, arrayC);
+    #endif
+
+    toMatrix(arrayC, c);
+
+    delete [] arrayA;
+    delete [] arrayB;
+    delete [] arrayC;
+  }
+
+#if 0
+  //Usual O(n^3) matrix multiply (JKI)
+  to(C c) from (A a, B b)
+  {
+    #ifdef PRINT
+    printf("MatrixMultiplyBase (serial JKI) (%d, %d, %d)\n", h, w, k);
+    #endif
+
+    ElementT temp;
+    for(IndexT j=0; j<w; ++j) {
+      for(IndexT i=0; i<h; ++i) {
+        c.cell(j,i) = 0;
+      }
+      for(IndexT l=0; l<k; ++l) {
+        if (b.cell(j,l) != 0) {
+          temp = b.cell(j,l);
+          for(IndexT i=0; i<h; ++i) {
+            c.cell(j,i) += temp * a.cell(l,i);
+          }
+        }
+      }
+    }
+  }
+
+  //Usual O(n^3) matrix multiply (JIK)
+  to(C c) from (A a, B b)
+  {
+    #ifdef PRINT
+    printf("MatrixMultiplyBase (serial JIK) (%d, %d, %d)\n", h, w, k);
+    #endif
+
+    ElementT temp;
+    for(IndexT j=0; j<w; ++j) {
+      for(IndexT i=0; i<h; ++i) {
+        temp = 0;
+        for(IndexT l=0; l<k; ++l) {
+          temp += a.cell(l,i) * b.cell(j,l);
+        }
+        c.cell(j,i) = temp;
+      }
+    }
+  }
+
+  //Usual O(n^3) matrix multiply (IJK)
+  to(C c) from (A a, B b)
+  {
+    #ifdef PRINT
+    printf("MatrixMultiplyBase (serial IJK) (%d, %d, %d)\n", h, w, k);
+    #endif
+
+    ElementT temp;
+    for(IndexT i=0; i<h; ++i) {
+      for(IndexT j=0; j<w; ++j) {
+        temp = 0;
+        for(IndexT l=0; l<k; ++l) {
+          temp += a.cell(l,i) * b.cell(j,l);
+        }
+        c.cell(j,i) = temp;
+      }
+    }
+  }
+#endif
+}
+
+transform MatrixMultiplyInner
+from A[k,h], B[w,k]
+to C[w,h]
+tunable blasBlockCutoff (1, 1, 99999)
+{
+  to(C c)
+  from( A a, B b )
+  {
+    if (w > blasBlockCutoff) {
+      spawn MatrixMultiplyInner(c.region(0,0,w/2,h/2), a.region(0,0,k,h/2), b.region(0,0,w/2,k));
+      spawn MatrixMultiplyInner(c.region(w/2,0,w,h/2), a.region(0,0,k,h/2), b.region(w/2,0,w,k));
+      spawn MatrixMultiplyInner(c.region(0,h/2,w/2,h), a.region(0,h/2,k,h), b.region(0,0,w/2,k));
+      MatrixMultiplyInner(c.region(w/2,h/2,w,h), a.region(0,h/2,k,h), b.region(w/2,0,w,k));
+
+    } else {
+      spawn MatrixMultiplyBase(c.region(0,0,w/2,h/2), a.region(0,0,k,h/2), b.region(0,0,w/2,k));
+      spawn MatrixMultiplyBase(c.region(w/2,0,w,h/2), a.region(0,0,k,h/2), b.region(w/2,0,w,k));
+      spawn MatrixMultiplyBase(c.region(0,h/2,w/2,h), a.region(0,h/2,k,h), b.region(0,0,w/2,k));
+      MatrixMultiplyBase(c.region(w/2,h/2,w,h), a.region(0,h/2,k,h), b.region(w/2,0,w,k));
+
+    }
+  }
+}
+
+// Computes C = A * B.
+transform MatrixMultiply
+from A[k,m], B[n,k]
+to C[n,m]
+{
+
+  // no transpose
+  to (C c)
+  from (A a, B b)
+  {
+    MatrixMultiplyInner(c, a, b);
+  }
+
+  // transpose a
+  to (C c)
+  from (A a, B b)
+  using (t[m,k])
+  {
+    Transpose(t, a);
+    MatrixMultiplyInner(c, t.transposed(), b);
+  }
+
+  // transpose b
+  to (C c)
+  from (A a, B b)
+  using (t[k,n])
+  {
+    Transpose(t, b);
+    JTRACE("transposed");
+    MatrixMultiplyInner(c, a, t.transposed());
+  }
+}
+
+#endif // MULTIPLY_PBCC

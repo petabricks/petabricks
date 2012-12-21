@@ -1,4 +1,5 @@
 import warnings
+import sys
 from tunerconfig import config
 
 class TunerWarning(UserWarning):
@@ -106,6 +107,10 @@ class ExistingProgramCrash(ProgramCrash):
   pass
 
 class NewProgramCrash(ProgramCrash):
+  '''a mutated child algorithm crashed'''
+  pass
+
+class SmallInputProgramCrash(ProgramCrash):
   '''a mutated child algorithm crashed'''
   pass
 

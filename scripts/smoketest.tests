@@ -38,6 +38,7 @@ linearsolve/LinearSolvePosDef      Rand2DPosDef Rand2Db
 matrixapprox/matrixapprox  MatApproxRand2D
 multiply/multiply          Rand2Da Rand2Db
 multiply/strassen          Rand2Da Rand2Db
+multiply/multiplysimple    Rand2Da Rand2Db
 multiply/triMultiply       Zero0D Zero0D Rand2Da Rand2Db
 multiply/triMultiply       Zero0D  One0D Rand2Da Rand2Db
 multiply/triMultiply        One0D Zero0D Rand2Da Rand2Db
@@ -45,8 +46,7 @@ multiply/triMultiply        One0D  One0D Rand2Da Rand2Db
 multigrid/Poisson2DDirect  Rand2Da Rand2Db
 multigrid/Poisson2DJacobi  Rand2Da Rand2Db One0D
 multigrid/Poisson2DJacobi  Rand2Da Rand2Db Ten0D
-multigrid/Poisson2DSOR     Rand2Da Rand2Db MinusOne0D One0D
-multigrid/Poisson2DSOR     Rand2Da Rand2Db MinusOne0D Ten0D
+multigrid/Poisson2DSOR     Rand2Da Rand2Db MinusOne0D
 multigrid/Restrict3D       Rand3D
 multigrid/Interpolate3D    Rand3D
 multigrid/Helmholtz3DDirect        Helmholtz3DA Helmholtz3DB0 Helmholtz3DB1 Helmholtz3DB2 Helmholtz3DRHS One0D Two0D One0D
@@ -64,8 +64,9 @@ QR/QRTest                  Rand2Da
 QR/QRTest                  Rand2DLong
 QR/QRTest                  Rand2DWide
 simple/add                 Rand2Da Rand2Db
-simple/bufferrotate        Rand1D
-simple/bufferrotate2       Rand1D
+# preprocessor problems
+#simple/bufferrotate        Rand1D
+#simple/bufferrotate2       Rand1D
 simple/cholesky            Rand2DPosDef
 simple/copy                Rand2Da
 simple/matrixrotate        Rand2Da
@@ -77,10 +78,6 @@ sort2/Quicksort2             Rand1Dodd
 sort2/Selectionsort         Rand1Dodd
 sort2/Sort2                  Rand1D
 sort2/Sort2                  Rand1Dodd
-#sort/Mergesort             Rand1Dodd
-#sort/Radixsort             Rand1Dodd
-#sort2/Bitonicsort          Rand1D
-#sort2/Bitonicsort          Rand1Dodd
 regression/accuracymetric  Rand1D
 regression/assign0d
 regression/backwards       Rand1D
@@ -111,7 +108,7 @@ regression/throughclause   Rand2Da
 regression/tunoutputn      Rand1D
 regression/txconstants     Rand2Da Rand0D
 regression/upleftdep       Rand2Da
-regression/whereclause     Rand2Da
+#regression/whereclause     Rand2Da
 #regression/whereclause2    Rand2Da
 versions/1_noDeps.pbcc     Small1D
 versions/2bis_tempDep.pbcc Small1D

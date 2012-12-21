@@ -186,6 +186,11 @@ void petabricks::CodeGenerator::endIf(){
   os() << "}\n";
 }
 
+void petabricks::CodeGenerator::trace(const std::string& str){
+  indent();
+  os() << "JTRACE(\"" << str << "\");\n";
+}
+
 namespace{//file local
   void _splitTypeArgs(std::string& type, std::string& name, const std::string& str){
     const char* begin=str.c_str();
@@ -265,7 +270,6 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   CodeGenerator& out = forkhelper();
   CodeGenerator& size = forkhelper();
   CodeGenerator& migrateRegion = forkhelper();
-  CodeGenerator& invalidateCache = forkhelper();
   CodeGenerator& getDataHosts = forkhelper();
 
   std::vector<std::string> args;
@@ -282,10 +286,10 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   std::vector<std::string> args2;
   args2.push_back("RemoteHost& sender");
   migrateRegion.beginFunc("void", "migrateRegions", args2);
-  invalidateCache.beginFunc("void", "invalidateCache");
 
-  getDataHosts.beginFunc("RemoteHostList", "getDataHosts");
-  getDataHosts.write("RemoteHostList list;");
+  std::vector<std::string> args3;
+  args3.push_back("DataHostPidList& list");
+  getDataHosts.beginFunc("void", "getDataHosts", args3);
 
   for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
     if(jalib::StartsWith(i->type, "distributed::")) {
@@ -294,10 +298,8 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
       in.write(i->name + ".unserialize(_buf, _host);");
       in.write("_buf += " + i->name + ".serialSize();");
       size.write("_sz += " + i->name + ".serialSize();");
-      migrateRegion.write(i->name + ".createRegionHandler(sender);");
-      migrateRegion.write(i->name + ".updateHandlerChain();");
-      invalidateCache.write(i->name + ".invalidateCache();");
-      getDataHosts.write("list.push_back(" + i->name + ".dataHost());");
+      migrateRegion.comment(i->name + ".updateHandlerChain();");
+      getDataHosts.write(i->name + ".dataHosts(list);");
 
     }else if(i->type == "IndexT" || i->type == "int" || i->type == "double") {
       out.write("*reinterpret_cast<"+i->type+"*>(_buf) = "+i->name+";");
@@ -305,6 +307,10 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
       size.write("_sz  += sizeof("+i->type+");");
       in  .write("_buf += sizeof("+i->type+");");
       out .write("_buf += sizeof("+i->type+");");
+    }else if(jalib::StartsWith(i->type, "std::vector<")) {
+      out.write("_serialize_vector(_buf, "+i->name+");");
+      in.write("_unserialize_vector(_buf, "+i->name+");");
+      size.write("_sz += _serialSize_vector("+i->name+");");
     }else if(i->type == "DynamicTaskPtr") {
       if(i->initializer != "") {
         in.write(i->name+" = "+i->initializer+";");
@@ -317,19 +323,20 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   size.write("return _sz;");
   in.write("_sender = &_host;");
 
-  getDataHosts.write("return list;");
-
   in.endFunc();
   out.endFunc();
   size.endFunc();
   migrateRegion.endFunc();
-  invalidateCache.endFunc();
   getDataHosts.endFunc();
 
-  hos() << _curClass << "(const char*, RemoteHost&);\n";
-  os() << _curClass << "::" << _curClass << "(const char* _buf, RemoteHost& _host){\n";
+  hos() << _curClass << "(const char*, RemoteHost&, bool=false);\n";
+  os() << _curClass << "::" << _curClass << "(const char* _buf, RemoteHost& _host, bool shouldInit){\n";
+  incIndent();
   write("unserialize(_buf, _host);");
+  beginIf("shouldInit");
   write(_curConstructorBody);
+  endIf();
+  decIndent();
   os() << "\n}\n";
 
   beginFunc(_curClass+"*", "_new_constructor", std::vector<std::string>(1,"const char* _buf, RemoteHost& _host"), true);
@@ -411,11 +418,19 @@ void petabricks::CodeGenerator::callSpatial(const std::string& methodname, const
   write("}");
 }
 
-void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& /*objname*/, const std::string& methodname, const SimpleRegion& region) {
-  std::string taskclass = "petabricks::SpatialMethodCallTask<CLASS"
-                          ", " + jalib::XToString(region.dimensions() + region.removedDimensions())
-                        + ", &CLASS::" + methodname
-                        + ">";
+
+void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& /*objname*/, const std::string& methodname, const SimpleRegion& region, SpatialCallType spatialCallType) {
+  JASSERT(spatialCallType != SpatialCallTypes::WORKSTEALING_PARTIAL);
+  // apply_ruleX
+  std::string suffix = (spatialCallType == SpatialCallTypes::DISTRIBUTED) ? "_distributed" : "";
+  std::string taskclass = "petabricks::SpatialMethodCallTask" + suffix
+    + "<CLASS, " + jalib::XToString(region.dimensions() + region.removedDimensions())
+    + ", &CLASS::" + methodname;
+  if (spatialCallType == SpatialCallTypes::DISTRIBUTED) {
+    taskclass += ", &CLASS::" + methodname + "_getDataHosts";
+  }
+  taskclass += ">";
+
   write("{");
   incIndent();
   comment("MARKER 6");
@@ -424,6 +439,40 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
   write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end);");
   decIndent();
   write("}");
+}
+
+void petabricks::CodeGenerator::mkPartialSpatialTask(const std::string& taskname, const std::string& metadataname, const std::string& methodname, const SimpleRegion& region, SpatialCallType spatialCallType, bool shouldGenerateMetadata) {
+  JASSERT(spatialCallType == SpatialCallTypes::WORKSTEALING_PARTIAL);
+  JASSERT(!shouldGenerateMetadata);
+  // apply_ruleX_partial
+  std::string taskclass = "petabricks::SpatialMethodCallTask_partial<"
+    + metadataname + ", " + jalib::XToString(region.dimensions() + region.removedDimensions())
+    + ", &::" + methodname + ">";
+
+  write("{");
+  incIndent();
+  comment("MARKER 11");
+  write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
+  write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
+  write(taskname+" = new "+taskclass+"(_tmp_begin, _tmp_end, metadata);");
+  decIndent();
+  write("}");
+}
+
+
+void petabricks::CodeGenerator::mkIterationTrampTask(const std::string& taskname, const std::string& /*objname*/, const std::string& methodname, const std::string& metadataclass, const std::string& metadata, const CoordinateFormula& coord) {
+  std::string taskclass = "petabricks::IterationTrampMethodCallTask<CLASS"
+                          ", " + metadataclass
+                        + ", " + jalib::XToString(coord.size())
+                        + ", &CLASS::" + methodname
+                        + ">";
+  write("{");
+  incIndent();
+  write("IndexT _tmp_coord[] = {" + coord.toString() + "};");
+  write(taskname+" = new "+taskclass+"(this, " + metadata + ", _tmp_coord);");
+  decIndent();
+  write("}");
+
 }
 
 #ifdef HAVE_OPENCL
@@ -541,6 +590,10 @@ void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(
   
   helper.write("return _fini;");
   helper.endFunc();
+}
+
+void petabricks::CodeGenerator::cout(const std::string& s) {
+  write("std::cout << \"" + s + "\" << std::endl;");
 }
 
 void petabricks::CodeGenerator::cout(const std::string& s) {

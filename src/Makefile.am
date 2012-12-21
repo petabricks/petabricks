@@ -5,7 +5,7 @@ AM_LFLAGS =
 OBJDIR=obj
 
 noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
-noinst_PROGRAMS = pbc rttest1 rttest2 regiondatatest regionmatrixtest migrationtest
+noinst_PROGRAMS = pbc rttest1 rttest2 rttestmm regionmatrixtest migrationtest
 
 noinst_HEADERS = \
   compiler/choicedepgraph.h \
@@ -35,9 +35,7 @@ noinst_HEADERS = \
   compiler/heuristicmanager.h \
   compiler/dbmanager.h \
   compiler/tinyxml.h \
-  compiler/tinystr.h
-
-pkglib_HEADERS=  \
+  compiler/tinystr.h \
   common/hash.h \
   common/jalloc.h \
   common/jargs.h \
@@ -89,6 +87,7 @@ pkglib_HEADERS=  \
   runtime/specializeddynamictasks.h \
   runtime/testisolation.h \
   runtime/transforminstance.h \
+  runtime/subregioncachemanager.h \
   runtime/workerthread.h
 
 libpbcommon_a_CXXFLAGS = -I$(srcdir)/common
@@ -174,6 +173,7 @@ libpbruntime_a_SOURCES =  \
   runtime/remotetask.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \
+  runtime/subregioncachemanager.cpp \
   runtime/testisolation.cpp \
   runtime/transforminstance.cpp \
   runtime/workerthread.cpp
@@ -193,9 +193,9 @@ rttest2_CXXFLAGS = -Iruntime
 rttest2_SOURCES  = runtime/rttest2.cpp
 rttest2_LDADD    = libpbruntime.a libpbcommon.a
 
-regiondatatest_CXXFLAGS = -Iruntime
-regiondatatest_SOURCES  = runtime/tests/regiondatatest.cpp
-regiondatatest_LDADD    = libpbruntime.a libpbcommon.a
+rttestmm_CXXFLAGS = -Iruntime
+rttestmm_SOURCES  = runtime/tests/rttestmm.cpp
+rttestmm_LDADD    = libpbruntime.a libpbcommon.a
 
 regionmatrixtest_CXXFLAGS = -Iruntime
 regionmatrixtest_SOURCES  = runtime/tests/regionmatrixtest.cpp

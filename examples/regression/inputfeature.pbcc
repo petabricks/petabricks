@@ -1,0 +1,26 @@
+transform Add 
+input_feature Foo
+input_feature Bar
+from A[w,h], B[w,h]
+to OUT[w,h] 
+{
+  OUT.cell(x,y) from(A.cell(x,y) a, B.cell(x,y) b){
+    return a+b;
+  }
+}
+
+function Foo
+from A[w,h], B[w,h]
+to x
+{
+  x = 1.5;
+}
+
+function Bar
+from A[w,h], B[w,h]
+to x
+{
+  x = 2.5;
+}
+
+

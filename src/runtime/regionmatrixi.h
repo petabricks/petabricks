@@ -8,10 +8,7 @@
 #include "regionhandler.h"
 
 namespace petabricks {
-  class RegionMatrixI;
-  typedef jalib::JRef<RegionMatrixI> RegionMatrixIPtr;
-
-  class RegionMatrixI : public jalib::JRefCounted {
+  class RegionMatrixI {
   protected:
     int _D;
     RegionHandlerPtr _regionHandler;

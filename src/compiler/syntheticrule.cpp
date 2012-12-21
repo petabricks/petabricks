@@ -40,6 +40,14 @@ petabricks::RuleFlags::PriorityT petabricks::SyntheticRule::priority() const {
 bool petabricks::SyntheticRule::isRecursive() const {
   return true;
 }
+bool petabricks::SyntheticRule::hasCellAccess() const {
+  UNIMPLEMENTED();
+  return true;
+}
+bool petabricks::SyntheticRule::hasCellAccess(const std::string&) const {
+  UNIMPLEMENTED();
+  return true;
+}
 bool petabricks::SyntheticRule::hasWhereClause() const {
   return false;
 }
@@ -66,14 +74,18 @@ void petabricks::SyntheticRule::getApplicableRegionDescriptors(RuleDescriptorLis
 //                                                  const SimpleRegionPtr&,
 //                                                  RuleFlavor,
 //                                                  std::vector<RegionNodeGroup>&,
-//                                                  int, int){
+//                                                  int, int, bool){
 //   o.comment("synthetic generateCallCode");
 // }
 //
 void petabricks::SyntheticRule::generateDeclCode(Transform&, CodeGenerator&, RuleFlavor) {}
 //void petabricks::SyntheticRule::generateTrampCode(Transform&, CodeGenerator&, RuleFlavor) {}
+void petabricks::SyntheticRule::generatePartialTrampCode(Transform&, CodeGenerator&, RuleFlavor) {}
 
 void petabricks::SyntheticRule::markRecursive() {
+  UNIMPLEMENTED();
+}
+void petabricks::SyntheticRule::markHasCellAccess(const std::string&) {
   UNIMPLEMENTED();
 }
 const petabricks::FormulaPtr& petabricks::SyntheticRule::recursiveHint() const {
@@ -95,17 +107,21 @@ void petabricks::WrapperSyntheticRule::generateCallCode(const std::string& name,
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor,
-							bool wrap,
+                                            bool wrap,
                                             std::vector<RegionNodeGroup>& regionNodesGroups,
                                             int nodeID,
-                                            int gpuCopyOut){
-  _rule->generateCallCode(name, trans, o, region, flavor, wrap, regionNodesGroups, nodeID, gpuCopyOut);
+                                            int gpuCopyOut,
+                                            SpatialCallType spatialCallType){
+  _rule->generateCallCode(name, trans, o, region, flavor, wrap, regionNodesGroups, nodeID, gpuCopyOut, spatialCallType);
 }
 
 void petabricks::WrapperSyntheticRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
   _rule->generateTrampCode(trans, o, rf);
 }
 
+void petabricks::WrapperSyntheticRule::generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
+  _rule->generatePartialTrampCode(trans, o, rf);
+}
 
 bool petabricks::WrapperSyntheticRule::isSingleElement() const {
   return _rule->isSingleElement();
@@ -164,7 +180,8 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
 						      bool,
                                             std::vector<RegionNodeGroup>&,
                                             int,
-                                            int){
+                                            int,
+                                            SpatialCallType){
   SRCPOSSCOPE();
   switch(flavor) {
   case RuleFlavor::SEQUENTIAL:
@@ -172,7 +189,7 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
     break;
   case RuleFlavor::WORKSTEALING:
   case RuleFlavor::DISTRIBUTED:
-    o.mkSpatialTask(name, trans.instClassName(), codename()+"_"+flavor.str(), region);
+    o.mkSpatialTask(name, trans.instClassName(), codename()+"_"+flavor.str(), region, false);
     break;
   default:
     UNIMPLEMENTED();
@@ -180,6 +197,9 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
 }
 
 void petabricks::WhereExpansionRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
+  // TODO: This should create IterationTrampTask like in UserRule::generateTrampCode
+  UNIMPLEMENTED();
+
   IterationDefinition iterdef(*this, getSelfDependency() , false);
   std::vector<std::string> packedargs = iterdef.packedargs();
   o.beginFunc("petabricks::DynamicTaskPtr", codename()+"_"+flavor.str(), packedargs);
@@ -286,16 +306,23 @@ void petabricks::DuplicateExpansionRule::generateCallCode(const std::string& nam
 							  bool wrap,
                                             std::vector<RegionNodeGroup>& regionNodesGroups,
                                             int nodeID,
-                                            int gpuCopyOut){
+                                            int gpuCopyOut,
+                                            SpatialCallType spatialCallType){
   SRCPOSSCOPE();
   size_t old = _rule->setDuplicateNumber(_dup);
-  WrapperSyntheticRule::generateCallCode(name, trans, o, region, flavor, wrap, regionNodesGroups, nodeID, gpuCopyOut);
+  WrapperSyntheticRule::generateCallCode(name, trans, o, region, flavor, wrap ,regionNodesGroups, nodeID, gpuCopyOut, spatialCallType);
   _rule->setDuplicateNumber(old);
 }
 
 void petabricks::DuplicateExpansionRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
   size_t old = _rule->setDuplicateNumber(_dup);
   WrapperSyntheticRule::generateTrampCode(trans, o, rf);
+  _rule->setDuplicateNumber(old);
+}
+
+void petabricks::DuplicateExpansionRule::generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
+  size_t old = _rule->setDuplicateNumber(_dup);
+  WrapperSyntheticRule::generatePartialTrampCode(trans, o, rf);
   _rule->setDuplicateNumber(old);
 }
 
@@ -309,20 +336,21 @@ void petabricks::DuplicateExpansionRule::generateTrampCode(Transform& trans, Cod
 
 
 void petabricks::CallInSequenceRule::generateCallCode(const std::string& name,
-						      Transform& trans,
-						      CodeGenerator& o,
-						      const SimpleRegionPtr& region,
-						      RuleFlavor flavor,
-						      bool wrap,
-						      std::vector<RegionNodeGroup>& regionNodesGroups,
-						      int nodeID,
-						      int gpuCopyOut){
+                                            Transform& trans,
+                                            CodeGenerator& o,
+                                            const SimpleRegionPtr& region,
+                                            RuleFlavor flavor,
+                                            bool wrap,
+                                            std::vector<RegionNodeGroup>& regionNodesGroups,
+                                            int nodeID,
+                                            int gpuCopyOut,
+                                            SpatialCallType spatialCallType){
   SRCPOSSCOPE();
   if(flavor != RuleFlavor::SEQUENTIAL)
     o.write("{ DynamicTaskPtr __last;");
   RuleList::iterator i;
   for(i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->generateCallCode(name, trans, o, region, flavor, wrap, regionNodesGroups, nodeID, gpuCopyOut);
+    (*i)->generateCallCode(name, trans, o, region, flavor, wrap, regionNodesGroups, nodeID, gpuCopyOut, spatialCallType);
     if(flavor != RuleFlavor::SEQUENTIAL) {
       if(i!=_rules.begin()) {
         o.write(name+"->dependsOn(__last);");

@@ -28,7 +28,7 @@ namespace petabricks {
     }
 
     CellProxy(ElementT val) {
-      _handler = new RegionHandler(new RegionData0D());
+      _handler = new RegionHandler(new RegionData0D(), false);
       _handler->writeCell(NULL, val);
       _index = new IndexT[0];
     }
@@ -61,6 +61,36 @@ namespace petabricks {
       return *this;
     }
 
+    CellProxy operator-=(const CellProxy& val) {
+      *this = (double)*this - (double)val;
+      return *this;
+    }
+
+    CellProxy operator-=(const double val) {
+      *this = (double)*this - val;
+      return *this;
+    }
+
+    CellProxy operator*=(const CellProxy& val) {
+      *this = (double)*this * (double)val;
+      return *this;
+    }
+
+    CellProxy operator*=(const double val) {
+      *this = (double)*this * val;
+      return *this;
+    }
+
+    CellProxy operator/=(const CellProxy& val) {
+      *this = (double)*this / (double)val;
+      return *this;
+    }
+
+    CellProxy operator/=(const double val) {
+      *this = (double)*this / val;
+      return *this;
+    }
+
     CellProxy operator-() const {
       return (-1) * (double)*this;
     }
@@ -87,6 +117,27 @@ namespace petabricks {
       return a + (double)b;
     }
 
+    friend double operator-(const CellProxy& a, const CellProxy& b) {
+      return (double)a - (double)b;
+    }
+    friend double operator-(const CellProxy& a,  const double b) {
+      return (double)a - b;
+    }
+    friend double operator-(const double a,  const CellProxy& b) {
+      return a - (double)b;
+    }
+    friend double operator-(const CellProxy& a,  const long int b) {
+      return (double)a - (double)b;
+    }
+    friend double operator-(const long int a,  const CellProxy& b) {
+      return (double)a - (double)b;
+    }
+    friend double operator-(const CellProxy& a,  const int b) {
+      return (double)a - b;
+    }
+    friend double operator-(const int a,  const CellProxy& b) {
+      return a - (double)b;
+    }
 
     friend double operator*(const CellProxy& a,  const CellProxy& b) {
       return (double)a * (double)b;
@@ -104,6 +155,22 @@ namespace petabricks {
       return a * (double)b;
     }
 
+    friend double operator/(const CellProxy& a,  const CellProxy& b) {
+      return (double)a / (double)b;
+    }
+    friend double operator/(const CellProxy& a,  const double b) {
+      return (double)a / b;
+    }
+    friend double operator/(const double a,  const CellProxy& b) {
+      return a / (double)b;
+    }
+    friend double operator/(const CellProxy& a,  const int b) {
+      return (double)a / b;
+    }
+    friend double operator/(const int a,  const CellProxy& b) {
+      return a / (double)b;
+    }
+
     void print(std::ostream& o) const {
       o << "{" << _index[0];
       for (int i = 1; i < _handler->dimensions(); i++) {
@@ -114,6 +181,20 @@ namespace petabricks {
     void print() const { print(std::cout); }
     std::string toString() const;
   };
+
+  inline
+  void swap(petabricks::CellProxy a, petabricks::CellProxy b) {
+    double c = a;
+    a = (double) b;
+    b = c;
+  }
+
+  inline
+  void swap(double& a, double& b) {
+    double c = a;
+    a = b;
+    b = c;
+  }
 }
 
 std::ostream& operator<< (std::ostream& o, const petabricks::CellProxy& cell);

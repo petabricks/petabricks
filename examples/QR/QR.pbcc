@@ -7,6 +7,7 @@
 #include "../simple/norm.pbcc"
 #include "../simple/scale.pbcc"
 #include "../multiply/multiply.pbcc"
+#include "../multiply/multiplyAdd.pbcc"
 #include "../multiply/triMultiply.pbcc"
 #include "../kernel/utils.pbcc"
 #include "QRLAPACK.pbcc"

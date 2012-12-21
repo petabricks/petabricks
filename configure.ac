@@ -104,9 +104,9 @@ AC_CHECK_HEADERS([openssl/sha.h],  [], [])
 AC_CHECK_HEADERS([cxxabi.h execinfo.h poll.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h])
 AC_CHECK_HEADERS([boost/random.hpp], [], [AC_MSG_WARN([missing boost/random, falling back to slower random number generation])])
 AC_CHECK_HEADERS([cblas.h],  [], [])
+AC_CHECK_HEADERS([mkl.h],  [], [])
 AC_CHECK_HEADERS([Accelerate/Accelerate.h], [], [])
 AC_CHECK_HEADERS([sqlite3.h],      [], [AC_MSG_ERROR([failed to find sqlite3.h header file])])
-
 
 AC_CHECK_LIB([fftw3],      [fftw_malloc],    [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
 AC_CHECK_LIB([m],          [cos],            [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
@@ -117,10 +117,32 @@ AC_CHECK_LIB([rt],         [clock_gettime],  [],
 AC_CHECK_LIB([dl],	   [dlopen],   [], [])
 AC_CHECK_LIB([sqlite3],	   [sqlite3_open],   [], [AC_MSG_ERROR([failed to find -lsqlite3, unable to compile the long term learning for heuristics])])
 
-
 AC_SEARCH_LIBS([MD5_Init], [crypto ssl], [], [AC_MSG_ERROR([missing package libssl-dev])])
-AC_SEARCH_LIBS([cblas_dgemm], [blas])
-AC_SEARCH_LIBS([dposv_], [lapack])
+AC_CHECK_LIB([mkl_intel_lp64], [cblas_dgemm], [LIBS="$LIBS -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -liomp5 -lpthread"], [], [-lmkl_sequential -lmkl_core -liomp5 -lpthread])
+AC_SEARCH_LIBS([cblas_dgemm], [blas cblas])
+AC_SEARCH_LIBS([dposv_],      [lapack])
+AC_SEARCH_LIBS([dtrsm_],      [blas cblas lapack])
+
+AC_MSG_CHECKING([if system supports setrlimit])
+AC_RUN_IFELSE([AC_LANG_PROGRAM([
+                #include <sys/time.h>
+                #include <sys/resource.h>
+                ], [[
+                struct rlimit tmp;
+                tmp.rlim_cur = 108318507008;
+                tmp.rlim_max = 108318507008;
+                if (setrlimit(RLIMIT_AS, &tmp) != 0) {
+                  return 1;
+                }
+                return 0;
+                ]])],
+              [
+                AC_MSG_RESULT([yes]);
+                AC_DEFINE([HAVE_SETRLIMIT],1,[define if setrlimit works with this system])
+              ],
+              [
+                AC_MSG_RESULT([no]);
+              ])
 
 ################################################################################
 # COMPILER PROPERTIES ##########################################################
@@ -138,10 +160,21 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__thread int x;]])],
                     has_threadlocal=no;
                   ])
 
-AC_MSG_CHECKING([if compiler supports forced inlining])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((flatten)) void foo(){}]])],
+
+AC_MSG_CHECKING([if compiler supports __builtin_expect])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[int foo() { int x = __builtin_expect(0,0); }]])],
                   [
-                    AC_DEFINE([INLINE],[inline __attribute__((flatten))], [keyword to force inlining])
+                    AC_DEFINE([HAVE_BUILTIN_EXPECT],1,[define __builtin_expect_works])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [
+                    AC_MSG_RESULT([no]);
+                  ])
+
+AC_MSG_CHECKING([if compiler supports forced inlining])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((flatten)) __attribute__((always_inline)) void foo(){}]])],
+                  [
+                    AC_DEFINE([INLINE],[inline __attribute__((flatten)) __attribute__((always_inline))], [keyword to force inlining])
                     AC_MSG_RESULT([yes]);
                   ],
                   [
@@ -291,14 +324,14 @@ elif ! test "$with_intelopencl" = "no"; then
    LIBS="$LIBS -L/usr/lib64/OpenCL/vendors/intel"
 
    AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
-   
+
    AC_CHECK_HEADERS([opencl.h], [], [])
 
 elif ! test "$with_macopencl" = "no"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
    AC_DEFINE([MATRIX_ELEMENT_T], [double], [type for elements in the matrix])
    AC_DEFINE([MAC],[1],[MAC OS])
-   
+
    LDFLAGS="$LDFLAGS -framework OpenCL"
 
    AC_CHECK_HEADERS([OpenCL/opencl.h], [], [])
@@ -321,6 +354,17 @@ if test "$with_amdopencl" = "no"; then
 fi
 
 
+AC_ARG_ENABLE([distributed],
+            [AS_HELP_STRING([--enable-distributed],
+                            [generate distributed code])],
+            [use_distributed=$enableval],
+            [use_distributed='no'],])
+
+if test "$use_distributed" = "no"; then
+  AC_DEFINE([DISABLE_DISTRIBUTED], [1], [dont generate distributed code])
+fi
+
+
 AC_DEFINE([ACCTARGET_STR],       ["accuracyTarget"], [var name in output code for target accuracy])
 AC_DEFINE([BIN_TMPFILE],         ["bin"],     [generated file name])
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
@@ -328,7 +372,6 @@ AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for b
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
 AC_DEFINE([DEFAULT_ACCURACY],    [1], [accuracy stand-in for fixed-accuracy rules])
 AC_DEFINE([DEVNULL],             ["/dev/null"], [null sync device path])
-AC_DEFINE([DISABLE_DISTRIBUTED], [1], [dont generate distributed code])
 AC_DEFINE([DISTRIBUTED_GC_FREQ], [1000], [after how many allocations to invoke distributed gc])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
@@ -336,6 +379,7 @@ AC_DEFINE([GENHEADER],           ["_pbhdr.h"], [generated file name])
 AC_DEFINE([GENMISC],             ["_pbmisc"], [generated file name])
 AC_DEFINE([HASH_USE_SHA1],       [0], [set to 1 to use SHA1 instead of MD5])
 AC_DEFINE([INLINE_NULL_TASKS],   [], [run null tasks immediately when they are enqueued])
+AC_DEFINE([JASSERT_FAST],        [], [skip some copies in debug printing, conflicts with JASSERT_LOG])
 AC_DEFINE([JASSERT_USE_SRCPOS],  [],[include source line numbers in error messages])
 AC_DEFINE([LISTEN_PORT_FIRST],   [22550], [first port to try to use to listen])
 AC_DEFINE([MATRIX_INDEX_T],      [int], [type for indices into the matrix])
@@ -347,6 +391,7 @@ AC_DEFINE([MIN_NUM_WORKERS],     [1], [min number of workers supported])
 AC_DEFINE([OPT_LOWLEVEL],        [1], [enable low level optimization such as specializations and prefetching])
 AC_DEFINE([RETURN_VAL_STR],      ["_pb_rv"], [var name in output code for rule output variable])
 AC_DEFINE([SINGLE_SEQ_CUTOFF],   [1], [define to use a global sequential cutoff instead of a per-transform one])
+AC_DEFINE([SPLIT_CHUNK_SIZE_DISTRIBUTED],    ["TRANSFORM_LOCAL(splitsize_distributed)"], [var name in output code])
 AC_DEFINE([SPLIT_CHUNK_SIZE],    ["TRANSFORM_LOCAL(splitsize)"], [var name in output code])
 AC_DEFINE([STEAL_ATTEMPTS_MAINLOOP], [16], [number of times to attempt to steal in mainLoop])
 AC_DEFINE([STEAL_ATTEMPTS_WAITING],  [8], [number of times to attempt to steal in waitUntilComplete])
@@ -363,8 +408,6 @@ AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files i
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
-AC_DEFINE([JASSERT_FAST],        [], [skip some copies in debug printing, conflicts with JASSERT_LOG])
-
 AC_DEFINE_UNQUOTED([MAXIMA_PATH],    ["$MAXIMA"], [path to maxima program])
 AC_DEFINE_UNQUOTED([REVISION_LONG],  ["$rev_long"], [git revision for HEAD at the time ./configure was run])
 AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at the time ./configure was run])
@@ -372,6 +415,7 @@ AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at t
 if false; then
   #disabled by default:
   AC_DEFINE([DISABLE_CONTINUATIONS], [], [dont generate continuation code after SPAWN/enqueue])
+  AC_DEFINE([DISTRIBUTED_CACHE],   [], [use cache in distributed code])
   AC_DEFINE([INPUT_PERIMETER_STR], ["input_perimeter"], [define to add a system var to transform scope])
   AC_DEFINE([INPUT_SIZE_STR],      ["input_count"],      [define to add a system var to transform scope])
   AC_DEFINE([JALIB_USE_MALLOC],    [1],[Cause the custom allocator to call malloc instead of mmap])
@@ -381,7 +425,6 @@ if false; then
   AC_DEFINE([OUTPUT_SIZE_STR],     ["output_count"],     [define to add a system var to transform scope])
   AC_DEFINE([PBCC_SEQUENTIAL],     [], [define to run tasks inline instead of enqueuing them])
   AC_DEFINE([REGIONMATRIX_TEST],   [1], [always use RegionMatrix code])
-  AC_DEFINE([DISTRIBUTED_CACHE],   [], [use cache in distributed code])
 fi
 
 ################################################################################
@@ -428,6 +471,10 @@ do
                  [AC_MSG_RESULT([yes])],
                  [AC_MSG_RESULT([no]);      LDFLAGS="$save_LDFLAGS"])
 done
+
+
+#check these headers down here since the depend on march=native
+AC_CHECK_HEADERS([emmintrin.h pmmintrin.h xmmintrin.h])
 
 ################################################################################
 ################################################################################

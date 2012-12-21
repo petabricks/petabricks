@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import pbutil, progress, tunerconfig, sgatuner, tunerwarnings
 import math 
 import os
@@ -180,6 +180,7 @@ class Benchmark:
 
 def main():
   warnings.simplefilter('ignore', tunerwarnings.NewProgramCrash)
+  warnings.simplefilter('ignore', tunerwarnings.SmallInputProgramCrash)
   warnings.simplefilter('ignore', tunerwarnings.TargetNotMet)
   warnings.simplefilter('ignore', tunerwarnings.NanAccuracy)
 
@@ -208,9 +209,12 @@ def main():
   pbutil.compilePetabricks()
 
   global REV
-  REV=pbutil.gitRevision()
+  try:
+    REV=pbutil.getRevision()
+  except:
+    pass
 
-  r, lines = pbutil.loadAndCompileBenchmarks("./scripts/pbbenchmark.tests", learning=options.learning, heuristicSetFileName=options.heuristics)
+  r, lines = pbutil.loadAndCompileBenchmarks("./scripts/pbbenchmark.tests", searchterms=sys.argv[1:], learning=options.learning, heuristicSetFileName=options.heuristics)
 
   if filter(lambda x: x.rv!=0, r):
     print "compile failed"
@@ -294,7 +298,7 @@ def main():
     
   writelog(expandLog('scores.log'), {
       'version'             : VERSION,
-      'score_fixed'         : score_fixed,
+      'score_fixed'         : -1,#score_fixed,
       'score_tuned'         : score_tuned,
       'score_training_time' : score_training_time,
       'hostname'            : socket.gethostname(),

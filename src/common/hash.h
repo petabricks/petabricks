@@ -57,12 +57,15 @@
 #  define HASH_CTX_FINAL  MD5_Final
 #endif
 
-namespace jalib { 
+namespace jalib {
 
   class Hash {
   public:
     friend bool operator==(const Hash& a, const Hash& b){
       return memcmp(a._buf, b._buf, HASH_LEN)==0;
+    }
+    friend bool operator<(const Hash& a, const Hash& b){
+      return memcmp(a._buf, b._buf, HASH_LEN)<0;
     }
     Hash(){
       memset(_buf, 0, sizeof _buf);
@@ -78,7 +81,7 @@ namespace jalib {
       char str[HASH_LEN*2+1] = {0};
       for(int i=0; i<HASH_LEN; ++i)
         sprintf(str+2*i, "%02x", h._buf[i]);
-      return o<<"0x"<<str;
+      return o<<str;
     }
   private:
     unsigned char _buf[HASH_LEN];

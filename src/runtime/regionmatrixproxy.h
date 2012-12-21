@@ -12,52 +12,27 @@ namespace petabricks {
   class RegionMatrixProxy;
   typedef jalib::JRef<RegionMatrixProxy> RegionMatrixProxyPtr;
 
-  class RegionMatrixProxyRemoteObject;
-  typedef jalib::JRef<RegionMatrixProxyRemoteObject> RegionMatrixProxyRemoteObjectPtr;
-
-  class RegionMatrixProxy : public RegionMatrixI, public IRegionReplyProxy {
-    RegionMatrixProxyRemoteObject* _remoteObject;
+  class RegionMatrixProxy : public RegionMatrixI, public IRegionReplyProxy, public RemoteObject {
 
   public:
+    RegionMatrixProxy() {}
     RegionMatrixProxy(RegionHandlerPtr regionHandler);
-    RegionMatrixProxy(RegionHandlerPtr regionHandler, RegionMatrixProxyRemoteObjectPtr remoteObject);
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
 
-    void onRecv(const void* data, size_t len);
+    void onRecv(const void* data, size_t len, int arg);
+    void onRecvInitial(const void* buf, size_t len);
 
-    RegionMatrixProxyRemoteObjectPtr genLocal();
     static RemoteObjectPtr genRemote();
 
     // IRegionReplyProxy
-    void processReplyMsg(const BaseMessageHeader* base, size_t baseLen);
-    void sendReply(const void* data, size_t len, const BaseMessageHeader* base);
+    void processReplyMsg(const BaseMessageHeader* base, size_t baseLen, int replyType);
+    void sendReply(const void* data, size_t len, const BaseMessageHeader* base, int replyType=0);
 
   private:
-    void forwardReplyMsg(const BaseMessageHeader* base, size_t baseLen);
+    void forwardReplyMsg(const BaseMessageHeader* base, size_t baseLen, int replyType);
   };
-
-  class RegionMatrixProxyRemoteObject : public RemoteObject {
-  protected:
-    RegionMatrixProxyPtr _regionMatrix;
-  public:
-    RegionMatrixProxyRemoteObject() {};
-    RegionMatrixProxyRemoteObject(RegionMatrixProxyPtr regionMatrix) {
-      _regionMatrix = regionMatrix;
-    }
-
-    void onRecv(const void* data, size_t len) {
-      _regionMatrix->onRecv(data, len);
-    }
-
-    void onRecvInitial(const void* buf, size_t len);
-
-    EncodedPtr remoteObjPtr() {
-      return remoteObj();
-    }
-  };
-
 }
 
 #endif

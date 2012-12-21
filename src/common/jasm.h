@@ -42,15 +42,34 @@
 #define _PADDING(n, l) __PADDING(n, l)
 #define PADDING(n) _PADDING(n, __LINE__)
 
+#define USE(x) (void)(x)
+
+#ifdef HAVE_BUILTIN_EXPECT
+#define LIKELY(x)       __builtin_expect((x),1)
+#define UNLIKELY(x)     __builtin_expect((x),0)
+#else
+#define LIKELY(x)       (x)
+#define UNLIKELY(x)     (x)
+#endif
+
 namespace jalib {
 
+
 typedef volatile long AtomicT;
+
+INLINE ATTRIBUTE(cold) void cold(){}
 
 #if defined(__i386__) || defined(__x86_64__)
 /**
  * Thread safe add, returns new value
  */
 template<long v> long atomicAdd(AtomicT *p){
+  long r;
+  asm volatile ("lock; xadd %0, %1" : "=r"(r), "=m"(*p) : "0"(v), "m"(*p) : "memory");
+  return r+v;
+}
+
+inline long atomicAdd(AtomicT *p, long v){
   long r;
   asm volatile ("lock; xadd %0, %1" : "=r"(r), "=m"(*p) : "0"(v), "m"(*p) : "memory");
   return r+v;
@@ -147,14 +166,15 @@ inline bool compareAndSwap(volatile T* ptr, T oldVal, T newVal){
 inline long fetchAndStore(long *p, long val)
 {
   long ret;
-  asm volatile("lock; xchg %0, %1" : "=r"(ret), "=m"(*p) : "0"(val), "m"(*p) : "memory");
+  asm volatile("xchg %0, %1" : "=r"(ret), "=m"(*p) : "0"(val), "m"(*p) : "memory");
   return ret;
 }
 
 #elif defined(__sparc__)
 
+template<typename T>
 inline bool
-cas(volatile long *m, long old_val, long new_val)
+compareAndSwap(volatile T *m, T old_val, T new_val)
 {
 	asm volatile("cas [%2], %3, %0\n\t"
 			     : "=&r" (new_val)
@@ -170,7 +190,7 @@ template<long v> long atomicAdd(AtomicT *p)
   do {
     old_val = *p;
     new_val = old_val + v;
-  } while (!cas(p, old_val, new_val));
+  } while (!compareAndSwap(p, old_val, new_val));
 
   return new_val;
 }

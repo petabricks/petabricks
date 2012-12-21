@@ -19,6 +19,7 @@ to UNITFLAG, T[n,n], B[n,n]
     to (UNITFLAG unitFlag, T t, B b)
     from ()
     {
+        t.randomize();
         TriSolveGenerator(unitFlag, t, b, 0);
     }
 }
@@ -29,6 +30,7 @@ to UNITFLAG, T[n,n], B[n,n]
     to (UNITFLAG unitFlag, T t, B b)
     from ()
     {
+        t.randomize();
         TriSolveGenerator(unitFlag, t, b, 1);
     }
 }

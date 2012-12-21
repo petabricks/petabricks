@@ -62,7 +62,7 @@ void petabricks::MatrixDef::initialize(Transform& ){
   if(_version.size()>0){
     //TODO support for min region size
     JASSERT(_version.size()<=2);
-    if(_version.size()==1){ 
+    if(_version.size()==1){
       _version.insert(_version.begin(), FormulaInteger::zero());
     }
     JASSERT(_version[0]->getFreeVariables()->size()==0)(_version)
@@ -112,7 +112,7 @@ void petabricks::MatrixDef::extractDefines(FreeVars& defined, CodeGenerator& o){
         l = *MaximaWrapper::instance().solve(l, var);
         JASSERT(l.size()==1)(*i)(var).Text("Failed to solve");
         o.addMember("IndexT", var, "");
-        o.write(var + " = " 
+        o.write(var + " = "
                 + (*l.begin())->rhs()->replace(tmp, new FormulaVariable(_name+".size("+jalib::XToString(d)+")"))->toString()
                 + ";");
       }
@@ -135,7 +135,7 @@ void petabricks::MatrixDef::extractCLDefines(FreeVars& defined, CLCodeGenerator&
         l.push_back(new FormulaEQ(tmp, *i));
         l = *MaximaWrapper::instance().solve(l, var);
         JASSERT(l.size()==1)(*i)(var).Text("Failed to solve");
-        clo.os() << "unsigned int " << var << " = " 
+        clo.os() << "unsigned int " << var << " = "
                << (*l.begin())->rhs()->replace(tmp, new FormulaVariable("dim_"+map[_name]+"_d"+jalib::XToString(d)))->toString() << ";\n";
       }
     }
@@ -156,7 +156,25 @@ void petabricks::MatrixDef::allocateTemporary(CodeGenerator& o, RuleFlavor rf, b
   if(reallocAllowed)
     o.beginIf("!"+name()+".isSize("+_size.toString()+")");
 
-  o.write(name()+" = "+allocateStr(rf)+";");
+  if (rf == RuleFlavor::DISTRIBUTED && numDimensions() > 0) {
+    std::string distributionType = o.className() + "_" + name() + "_distribution_type";
+    std::string distributionSize = o.className() + "_" + name() + "_distribution_size";
+    std::string migrationType = o.className() + "_" + name() + "_migration_type";
+
+    o.createTunable(true, "system.data.distribution.type", distributionType, 0, 0, 5);
+    o.createTunable(true, "system.data.distribution.size", distributionSize, jalib::maxval<int>(), 2, jalib::maxval<int>());
+    o.createTunable(true, "system.data.migration.type", migrationType, 0, 0, 1);
+
+    o.write("{");
+    o.incIndent();
+    o.write("IndexT size[] = {"+_size.toString()+"};");
+    o.write(name()+" = "+typeName(rf)+"::allocate(size, distributedcutoff, "+distributionType+", "+distributionSize+", "+migrationType+");");
+    o.decIndent();
+    o.write("}");
+  } else {
+    o.write(name()+" = "+allocateStr(rf)+";");
+
+  }
 
   if(reallocAllowed)
     o.endIf();
@@ -170,10 +188,35 @@ std::string petabricks::MatrixDef::genericAllocateStr() const{
 }
 
 void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn, RuleFlavor rf){
-  o.varDecl(name()+" = petabricks::MatrixIO("+fn+",\"r\").read_"+rf.str()+"<"+jalib::XToString(numDimensions())+">()");
+  if (rf == RuleFlavor::DISTRIBUTED && numDimensions() > 0) {
+    // read to tmp then copy to real matrix
+    o.write(typeName(rf, false) + " tmp_" + name()+" = petabricks::MatrixIOGeneral("+fn+",\"r\").read_"+rf.str()+"<"+jalib::XToString(numDimensions())+">();");
+
+    // allocate
+    std::string distributionType = o.className() + "_" + name() + "_distribution_type";
+    std::string distributionSize = o.className() + "_" + name() + "_distribution_size";
+    std::string migrationType = o.className() + "_" + name() + "_migration_type";
+    o.createTunable(true, "system.data.distribution.type", distributionType, 0, 0, 5);
+    o.createTunable(true, "system.data.distribution.size", distributionSize, jalib::maxval<int>(), 2, jalib::maxval<int>());
+    o.createTunable(true, "system.data.migration.type", migrationType, 0, 0, 1);
+
+    o.write(name()+" = "+typeName(rf)+"::allocate(tmp_"+name()+".size(), distributedcutoff, "+distributionType+", "+distributionSize+", "+migrationType+");");
+
+    // copy
+    o.beginIf(name()+".isRegionDataRaw()");
+    o.write(name()+" = tmp_"+name()+";");
+    o.elseIf();
+    o.write(name()+".fromScratchRegion(tmp_"+name()+");");
+    o.endIf();
+
+    // o.write("petabricks::MatrixIOGeneral().write("+name()+");");
+
+  } else {
+    o.varDecl(name()+" = petabricks::MatrixIOGeneral("+fn+",\"r\").read_"+rf.str()+"<"+jalib::XToString(numDimensions())+">()");
+  }
 }
 void petabricks::MatrixDef::writeToFileCode(CodeGenerator& o, const std::string& fn){
-  o.write("petabricks::MatrixIO("+fn+",\"w\").write("+name()+");");
+  o.write("petabricks::MatrixIOGeneral("+fn+",\"w\").write("+name()+");");
 }
 void petabricks::MatrixDef::varDeclCode(CodeGenerator& o, RuleFlavor rf, bool isConst){
   o.addMember(typeName(rf, isConst), name(), "");

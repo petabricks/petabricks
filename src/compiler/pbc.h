@@ -69,6 +69,8 @@ public:
     SEQUENTIAL_OPENCL,
     WORKSTEALING_OPENCL,
     DISTRIBUTED_OPENCL,
+    DISTRIBUTED_SCRATCH,
+    WORKSTEALING_PARTIAL,
     INVALID,
   };
 
@@ -88,13 +90,14 @@ public:
       case RuleFlavor::SEQUENTIAL_OPENCL:
       case RuleFlavor::WORKSTEALING_OPENCL:
       case RuleFlavor::DISTRIBUTED_OPENCL:       return "opencl";
-      case RuleFlavor::DISTRIBUTED:  return "distributed";
+      case RuleFlavor::DISTRIBUTED:
+      case RuleFlavor::DISTRIBUTED_SCRATCH: return "distributed";
       default:
         UNIMPLEMENTED();
         return "";
     }
   }
-  
+
   std::string string() const { return str(); }
 
   friend std::ostream& operator<<(std::ostream& o, const RuleFlavor& fv) {
@@ -103,6 +106,17 @@ public:
 
 private:
   RuleFlavorEnum _val;
+};
+
+
+typedef uint8_t SpatialCallType;
+struct SpatialCallTypes {
+  enum {
+    NORMAL,
+    DISTRIBUTED,
+    WORKSTEALING_PARTIAL,
+    INVALID,
+  };
 };
 
 }
