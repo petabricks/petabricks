@@ -596,10 +596,6 @@ void petabricks::CodeGenerator::cout(const std::string& s) {
   write("std::cout << \"" + s + "\" << std::endl;");
 }
 
-void petabricks::CodeGenerator::cout(const std::string& s) {
-  write("std::cout << \"" + s + "\" << std::endl;");
-}
-
 #endif
 
 

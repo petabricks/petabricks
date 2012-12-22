@@ -813,8 +813,7 @@ namespace petabricks {
         scratch.computeRegionMatrixMetadata(*scratchMetadata);
 
 	#ifdef HAVE_OPENCL
-	// TODO: check if this works
-	scratch.storage()->updateDataFromGpu();
+	scratch.storage()->updateDataFromGpu(scratch.storageInfo(), 0);
 	#endif
         _regionHandler->copyFromScratchMatrixStorage(msg, len, scratch.storage(), scratchMetadata, scratch.regionHandler()->size());
         delete [] buf;
