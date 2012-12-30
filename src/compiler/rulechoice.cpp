@@ -125,7 +125,7 @@ void petabricks::RuleChoiceCollection::generateDecisionTree(std::string& pfx, si
 
   for(int lvl = 1; lvl<=MAX_REC_LEVELS; ++lvl) {
     std::string rule   = pfx + "lvl" + jalib::XToString(lvl) + "_rule";
-    o.createTunable(true, "algchoice.alg", rule, 0, 0, (int)choiceCount);
+    o.createTunable(true, "algchoice.alg", rule, 0, 0, (int)choiceCount-1);
 
     if(lvl<MAX_REC_LEVELS) {
       std::string cutoff = pfx + "lvl" + jalib::XToString(lvl+1) + "_cutoff";
