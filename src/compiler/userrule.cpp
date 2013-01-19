@@ -365,6 +365,7 @@ void petabricks::UserRule::collectGpuLocalMemoryData() {
   //exit(1);
 }
 
+
 bool petabricks::UserRule::passBuildGpuProgram(Transform& trans) {
   TrainingDeps* tmp = new TrainingDeps();
   CLCodeGenerator clcodegen(tmp);
@@ -379,9 +380,24 @@ bool petabricks::UserRule::passBuildGpuProgram(Transform& trans) {
   std::cout << clsrc << std::endl;
   cl_context ctx = OpenCLUtil::getContext( );
   cl_program clprog  = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );
-  if(err != CL_SUCCESS)
+  if(err != CL_SUCCESS) {
     return false;
+  }
+
   err = clBuildProgram( clprog, 0, NULL, NULL, NULL, NULL);
+  if(err != CL_SUCCESS) {
+    std::cerr << "clBuildProgram error = " << err << std::endl;
+    std::cerr << "CL_INVALID_PROGRAM = " << CL_INVALID_PROGRAM << std::endl;
+    std::cerr << "CL_INVALID_VALUE = " << CL_INVALID_VALUE << std::endl;
+    std::cerr << "CL_INVALID_DEVICE = " << CL_INVALID_DEVICE << std::endl;
+    std::cerr << "CL_INVALID_BINARY = " << CL_INVALID_BINARY << std::endl;
+    std::cerr << "CL_INVALID_BUILD_OPTIONS = " << CL_INVALID_BUILD_OPTIONS << std::endl;
+    std::cerr << "CL_INVALID_OPERATION = " << CL_INVALID_OPERATION << std::endl;
+    std::cerr << "CL_COMPILER_NOT_AVAILABLE = " << CL_COMPILER_NOT_AVAILABLE << std::endl;
+    std::cerr << "CL_BUILD_PROGRAM_FAILURE = " << CL_BUILD_PROGRAM_FAILURE << std::endl;
+    std::cerr << "CL_INVALID_OPERATION = " << CL_INVALID_OPERATION << std::endl;
+    std::cerr << "CL_OUT_OF_HOST_MEMORY = " << CL_OUT_OF_HOST_MEMORY << std::endl;
+  }
   return (err == CL_SUCCESS);
 }
 #endif

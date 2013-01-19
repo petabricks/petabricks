@@ -173,8 +173,12 @@ OpenCLUtil::init( )
 
   cl_platform_id platform = getPlatform();
 
-  if(platform == NULL)
+  if(platform == NULL) {
+#if OPENCL_TRACE
+      std::cerr << "Failed to get plateform ID" << std::endl;
+#endif
     return -1;
+  }
 
   // Get device count.
   cl_uint device_count;
@@ -187,18 +191,32 @@ OpenCLUtil::init( )
   if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, device_count, device_ids, &device_count ) )
     return -2;
 #else
-  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) )
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) ) {
+#if OPENCL_TRACE
+    std::cerr << "Failed to get device count" << std::endl;
+#endif
     return -1;
+  }
 
   // Get device IDs.
   cl_device_id* device_ids = new cl_device_id[ device_count ];
-  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) )
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) ) {
+#if OPENCL_TRACE
+    std::cerr << "Failed to get device ID" << std::endl;
+#endif
+
     return -2;
+  }
+
 #endif
 
   // Create context.
-  if( (cl_context)0 == ( context = clCreateContext(0, device_count, device_ids, &pfn_notify, NULL, &err) ) )
+  if( (cl_context)0 == ( context = clCreateContext(0, 1/*device_count*/, device_ids, &pfn_notify, NULL, &err) ) ) {
+#if OPENCL_TRACE
+    std::cerr << "Failed to create context" << std::endl;
+#endif
     return -3;
+  }
   if( CL_SUCCESS != err )
     return -5;
 
@@ -206,8 +224,10 @@ OpenCLUtil::init( )
   std::cerr << "Created context: " << context << "\n";
   #endif
 
+  
+
   // Get device-specific information.
-  for( cl_uint i = 0; i < device_count; ++i )
+  for( cl_uint i = 0; i < 1/*device_count*/; ++i )
     {
       devices.push_back( OpenCLDevice( device_ids[i] ) );
       #if OPENCL_TRACE
@@ -234,7 +254,7 @@ OpenCLUtil::init( )
 		       sizeof(dev_info->max_workitem_size), &dev_info->max_workitem_size, NULL );
       std::cerr << "work-group" << std::endl;
       clGetDeviceInfo( device_ids[i], CL_DEVICE_MAX_WORK_GROUP_SIZE,
-		       sizeof(dev_info->max_workgroup_size), &dev_info->max_workgroup_size, NULL );*/
+      sizeof(dev_info->max_workgroup_size), &dev_info->max_workgroup_size, NULL );*/
 
       // Memory properties
       clGetDeviceInfo( device_ids[i], CL_DEVICE_GLOBAL_MEM_SIZE,
@@ -242,7 +262,6 @@ OpenCLUtil::init( )
       clGetDeviceInfo( device_ids[i], CL_DEVICE_LOCAL_MEM_SIZE,
 		       sizeof(dev_info->local_mem_size), &dev_info->local_mem_size, NULL );
 
-      //std::cout << "local mem size = " << dev_info->local_mem_size << std::endl;
       // Queue properties
       cl_command_queue_properties queue_props;
       clGetDeviceInfo( device_ids[i], CL_DEVICE_QUEUE_PROPERTIES,
@@ -252,16 +271,20 @@ OpenCLUtil::init( )
 
       // Create queue
       if( (cl_command_queue)0 == ( dev_info->queue =
-				clCreateCommandQueue( context, device_ids[i], 0, &err ) ) )
-	      return -4;
+				   clCreateCommandQueue( context, device_ids[i], 0, &err ) ) ) {
+#ifdef OPENCL_TRACE
+	std::cerr << "Failed to create command queue" << std::endl;
+#endif
+	return -4;
+      }
       if( CL_SUCCESS != err )
-	      return -6;
+	return -6;
 
       #if OPENCL_TRACE
       std::cerr << "Created command queue: " << dev_info->queue << "\n";
       #endif
-    }
-
+      }
+  
   // Clean up.
   delete[] device_ids;
 
@@ -289,8 +312,12 @@ OpenCLUtil::deinit( )
 cl_context
 OpenCLUtil::getContext( )
 {
-  if( false == has_init )
+  if( false == has_init ) {
+    #ifdef OPENCL_TRACE
+    std::cerr << "OpenCLUTIL::getContext()" << std::endl;
+    #endif
     init( );
+  }
 
   return context;
 }
@@ -516,7 +543,11 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
   cl_context ctx = OpenCLUtil::getContext();
 
 #ifndef MAC
+#ifdef EXPERIMENT 
   if(jalib::Filesystem::FileExists(cachefile + "_0")) {
+    #ifdef DEBUG
+    std::cerr << "Exist Cache file for OpenCL binary : " << cachefile << "_0" << std::endl;
+    #endif
     cl_platform_id platform = getPlatform();
     JASSERT(platform != NULL);
     
@@ -530,7 +561,7 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
     num_devices = device_count;
     JASSERT(num_devices < MAX_DEVICES);
 
-    for(int i=0; i<num_devices; ++i) { 
+    for(int i=0; i<0/*num_devices*/; ++i) { 
       FILE* binfile = fopen((cachefile+"_"+jalib::XToString(i)).c_str(), "rb");
       JASSERT(binfile!=NULL)(cachefile).Text("failed to open file");
       JASSERT(fread(&binSize[i], sizeof(size_t), 1, binfile)>0);
@@ -543,7 +574,7 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
     const unsigned char** binary_c = (const unsigned char**)binary;
 
     cl_int binary_status, errcode_ret;
-    clprog = clCreateProgramWithBinary( ctx, num_devices, device_ids, binSize, binary_c, &binary_status, &errcode_ret);
+    clprog = clCreateProgramWithBinary( ctx, 1/*num_devices*/, device_ids, binSize, binary_c, &binary_status, &errcode_ret);
     //JASSERT( CL_SUCCESS == errcode_ret).Text( "Failed to create program." );
 
     err = clBuildProgram( clprog, 0, NULL, NULL, NULL, NULL);
@@ -561,6 +592,7 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
     return true;
   }
 #endif
+#endif
 
   // Build program.
   clprog = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );
@@ -574,6 +606,7 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
   JASSERT( CL_SUCCESS == err ).Text( "Failed to create kernel." );
 
 #ifndef MAC
+#ifdef EXPERIMENT
   err = clGetProgramInfo(clprog, CL_PROGRAM_BINARY_SIZES, sizeof(binSize), binSize, &num_devices);
   JASSERT( CL_SUCCESS == err ).Text( "Failed to extract binary sizes." );
   JASSERT((num_devices % sizeof(size_t)) == 0);
@@ -600,6 +633,7 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
   for(int i=0; i<num_devices; ++i) { 
     delete [] (binary[i]);
   }
+#endif
 #endif
 
   return true;
