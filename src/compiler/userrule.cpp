@@ -2037,7 +2037,8 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
       o.os() << "if(use_localmem == 1 && opencl_blocksize > 0 && worksize[0] % opencl_blocksize*opencl_blocksize == 0) {";
     }
     else {
-      o.os() << "if(use_localmem == 1 && opencl_blocksize > 0 && worksize[0] % opencl_blocksize == 0 && worksize[1] % opencl_blocksize == 0) {";
+      o.os() << "if(use_localmem == 1 && opencl_blocksize > 0 && worksize[0] % opencl_blocksize == 0 && worksize[1] % opencl_blocksize == 0) {";      
+      //o.os() << "if(use_localmem == 1 && opencl_blocksize > 0) {";
     }
     o.os() << "clkern = " << "get_kernel_" << id() << "_local();\n";
 #ifdef GPU_TRACE
@@ -2129,12 +2130,12 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
 
   if(canUseLocalMemory() && iterdef.dimensions() >= 1 && iterdef.dimensions() <= 2) {
     if(iterdef.dimensions( ) == 1) {
-      o.os() << "if(opencl_blocksize > 0 && worksize[0] % opencl_blocksize*opencl_blocksize == 0) {\n";
+      o.os() << "if(use_localmem == 1 && opencl_blocksize > 0 && worksize[0] % opencl_blocksize*opencl_blocksize == 0) {\n";
       o.os( ) << "size_t localdim[] = {opencl_blocksize*opencl_blocksize};\n";
       o.os( ) << "int blocksize = opencl_blocksize*opencl_blocksize;\n";
     }
     else {
-      o.os() << "if(opencl_blocksize > 0 && worksize[0] % opencl_blocksize == 0 && worksize[1] % opencl_blocksize == 0) {\n";
+      o.os() << "if(use_localmem == 1 && opencl_blocksize > 0 && worksize[0] % opencl_blocksize == 0 && worksize[1] % opencl_blocksize == 0) {\n";
       o.os( ) << "size_t localdim[] = {opencl_blocksize, opencl_blocksize};\n";
       o.os( ) << "int blocksize = opencl_blocksize;\n";
     }
