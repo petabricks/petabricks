@@ -389,6 +389,7 @@ int main( int argc, const char ** argv){
   o.cg().addTunable(true, "system.runtime.threads", "worker_threads", 8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
 #ifdef HAVE_OPENCL
   o.createTunable(true, "system.flag.localmem",  "use_localmem", 1, 0, 1);
+  o.createTunable(true, "system.flag.gpudevice",  "device_id", 0, 0, 1);
   o.createTunable(true, "system.size.blocksize",  "opencl_blocksize", 16, 0, 25); // 0 means not using local memory
 #endif
   o.cg().endGlobal();

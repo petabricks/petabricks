@@ -69,6 +69,7 @@ public:
   ///
   /// an opencl command queue that gpu manager is currently using
   static cl_command_queue _queue;
+  static std::vector<OpenCLDevice> _devices;
 
 private:
   /** Class is a singleton. **/

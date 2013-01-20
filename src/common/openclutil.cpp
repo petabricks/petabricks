@@ -210,8 +210,12 @@ OpenCLUtil::init( )
 
 #endif
 
+  //TODO(mangpo): change this back before committing.
+  device_ids[1] = device_ids[3];
+  device_count = 2;
+
   // Create context.
-  if( (cl_context)0 == ( context = clCreateContext(0, 1/*device_count*/, device_ids, &pfn_notify, NULL, &err) ) ) {
+  if( (cl_context)0 == ( context = clCreateContext(0, device_count, device_ids, &pfn_notify, NULL, &err) ) ) {
 #if GPU_TRACE
     std::cerr << "Failed to create context" << std::endl;
 #endif
@@ -227,7 +231,7 @@ OpenCLUtil::init( )
   
 
   // Get device-specific information.
-  for( cl_uint i = 0; i < 1/*device_count*/; ++i )
+  for( cl_uint i = 0; i < device_count; ++i )
     {
       devices.push_back( OpenCLDevice( device_ids[i] ) );
       #if GPU_TRACE
@@ -561,7 +565,7 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
     num_devices = device_count;
     JASSERT(num_devices < MAX_DEVICES);
 
-    for(int i=0; i<0/*num_devices*/; ++i) { 
+    for(int i=0; i<num_devices; ++i) { 
       FILE* binfile = fopen((cachefile+"_"+jalib::XToString(i)).c_str(), "rb");
       JASSERT(binfile!=NULL)(cachefile).Text("failed to open file");
       JASSERT(fread(&binSize[i], sizeof(size_t), 1, binfile)>0);

@@ -55,8 +55,9 @@ GpuTaskInfoPtr GpuManager::_currenttaskinfo;
 cl_kernel GpuManager::_kernel;
 
 #ifdef HAVE_OPENCL
-cl_command_queue GpuManager::_queue = OpenCLUtil::getQueue(0);
+cl_command_queue GpuManager::_queue;
 cl_context GpuManager::_context = OpenCLUtil::getContext();
+std::vector<OpenCLDevice> GpuManager::_devices = OpenCLUtil::getDevices();
 #else
 cl_command_queue GpuManager::_queue = -1;
 cl_context GpuManager::_context = -1;
@@ -107,6 +108,12 @@ void GpuManager::mainLoop() {
       #endif
       GpuDynamicTaskPtr task = _readytasks.front();
       _currenttaskinfo = task->taskinfo();
+      _queue = _devices[_currenttaskinfo->device()].queue;
+      #ifdef GPU_TRACE
+      std::cout << "DEVICE =  " << _currenttaskinfo->device() << std::endl;
+      #endif
+
+      
       int done = true;
       switch(task->tasktype()) {
         case GpuDynamicTask::PREPARE: prepare(task);        break;

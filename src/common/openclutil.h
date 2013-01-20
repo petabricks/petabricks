@@ -118,6 +118,10 @@ namespace petabricks
 				    bool verbose = true );
     static cl_context getContext( );
     static cl_command_queue getQueue( unsigned int dev_idx );
+    static std::vector<OpenCLDevice> getDevices() {
+      return devices;
+    }
+
     static cl_int buildProgram( cl_program &program );
     static std::string errorString( cl_int error );
 
