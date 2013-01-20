@@ -2034,10 +2034,10 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
     o.write("std::cout << \"opencl_blocksize \" << opencl_blocksize << std::endl;");
 #endif
     if(iterdef.dimensions( ) == 1) {
-      o.os() << "if(opencl_blocksize > 0 && worksize[0] % opencl_blocksize*opencl_blocksize == 0) {";
+      o.os() << "if(use_localmem == 1 && opencl_blocksize > 0 && worksize[0] % opencl_blocksize*opencl_blocksize == 0) {";
     }
     else {
-      o.os() << "if(opencl_blocksize > 0 && worksize[0] % opencl_blocksize == 0 && worksize[1] % opencl_blocksize == 0) {";
+      o.os() << "if(use_localmem == 1 && opencl_blocksize > 0 && worksize[0] % opencl_blocksize == 0 && worksize[1] % opencl_blocksize == 0) {";
     }
     o.os() << "clkern = " << "get_kernel_" << id() << "_local();\n";
 #ifdef GPU_TRACE
