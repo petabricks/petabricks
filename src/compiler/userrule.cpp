@@ -2122,6 +2122,11 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
   // Invoke kernel.
   o.comment( "Invoke kernel." );
 
+  #ifdef GPU_TIME
+  o.write("clFinish(GpuManager::_queue);"); 
+  o.write("struct timeval start, end;");
+  #endif
+
   if(canUseLocalMemory() && iterdef.dimensions() >= 1 && iterdef.dimensions() <= 2) {
     if(iterdef.dimensions( ) == 1) {
       o.os() << "if(opencl_blocksize > 0 && worksize[0] % opencl_blocksize*opencl_blocksize == 0) {\n";
@@ -2136,15 +2141,33 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
 
     o.os( ) << "err = clSetKernelArg(clkern, " << arg_pos++ << ", sizeof(int), &blocksize);\n";
     o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
+
+    #ifdef GPU_TIME
+    o.write("gettimeofday(&start, NULL);");
+    #endif
     o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, workdim, 0, worksize, localdim, 0, NULL, NULL );\n";
     o.os() << "} else {\n";
+    
+    #ifdef GPU_TIME
+    o.write("gettimeofday(&start, NULL);");
+    #endif
     o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, workdim, 0, worksize, NULL, 0, NULL, NULL );\n";
     o.os() << "}\n";
   }
   else {
+    #ifdef GPU_TIME
+    o.write("gettimeofday(&start, NULL);");
+    #endif
     o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, workdim, 0, worksize, NULL, 0, NULL, NULL );\n";
   }
-  o.write("clFinish(GpuManager::_queue);"); //TODO:clFlush but need to make sure we don't change kernel args before it runs
+  //TODO:clFlush but need to make sure we don't change kernel args before it runs
+  o.write("clFinish(GpuManager::_queue);"); 
+  #ifdef GPU_TIME
+  o.write("gettimeofday(&end, NULL);");
+  o.write("long seconds = end.tv_sec - start.tv_sec;");
+  o.write("long useconds = end.tv_usec - start.tv_usec;");
+  o.write("std::cout << seconds + useconds/1000000.0 << std::endl;");
+  #endif
 
 #ifdef GPU_TRACE
   o.os( ) << "std::cout << \"Kernel execution error #\" << err << \": \" << OpenCLUtil::errorString(err) << std::endl;\n";

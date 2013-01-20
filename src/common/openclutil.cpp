@@ -108,7 +108,7 @@ bool OpenCLUtil::buildKernel(cl_program& , cl_kernel& , const char* ) {
 
 
 #else
-//#define OPENCL_TRACE 1
+//#define GPU_TRACE 1
 
 
 bool OpenCLUtil::has_init = false;
@@ -161,7 +161,7 @@ cl_platform_id OpenCLUtil::getPlatform( )
 int
 OpenCLUtil::init( )
 {
-  #if OPENCL_TRACE
+  #if GPU_TRACE
   std::cerr << "OpenCLUtil::init() begins...\n";
   #endif
 
@@ -174,7 +174,7 @@ OpenCLUtil::init( )
   cl_platform_id platform = getPlatform();
 
   if(platform == NULL) {
-#if OPENCL_TRACE
+#if GPU_TRACE
       std::cerr << "Failed to get plateform ID" << std::endl;
 #endif
     return -1;
@@ -192,7 +192,7 @@ OpenCLUtil::init( )
     return -2;
 #else
   if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) ) {
-#if OPENCL_TRACE
+#if GPU_TRACE
     std::cerr << "Failed to get device count" << std::endl;
 #endif
     return -1;
@@ -201,7 +201,7 @@ OpenCLUtil::init( )
   // Get device IDs.
   cl_device_id* device_ids = new cl_device_id[ device_count ];
   if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) ) {
-#if OPENCL_TRACE
+#if GPU_TRACE
     std::cerr << "Failed to get device ID" << std::endl;
 #endif
 
@@ -212,7 +212,7 @@ OpenCLUtil::init( )
 
   // Create context.
   if( (cl_context)0 == ( context = clCreateContext(0, 1/*device_count*/, device_ids, &pfn_notify, NULL, &err) ) ) {
-#if OPENCL_TRACE
+#if GPU_TRACE
     std::cerr << "Failed to create context" << std::endl;
 #endif
     return -3;
@@ -220,7 +220,7 @@ OpenCLUtil::init( )
   if( CL_SUCCESS != err )
     return -5;
 
-  #if OPENCL_TRACE
+  #if GPU_TRACE
   std::cerr << "Created context: " << context << "\n";
   #endif
 
@@ -230,7 +230,7 @@ OpenCLUtil::init( )
   for( cl_uint i = 0; i < 1/*device_count*/; ++i )
     {
       devices.push_back( OpenCLDevice( device_ids[i] ) );
-      #if OPENCL_TRACE
+      #if GPU_TRACE
       std::cerr << "Loading device ID: " << device_ids[i] << "\n";
       #endif
       OpenCLDevice* dev_info = &devices.back( );
@@ -272,7 +272,7 @@ OpenCLUtil::init( )
       // Create queue
       if( (cl_command_queue)0 == ( dev_info->queue =
 				   clCreateCommandQueue( context, device_ids[i], 0, &err ) ) ) {
-#ifdef OPENCL_TRACE
+#ifdef GPU_TRACE
 	std::cerr << "Failed to create command queue" << std::endl;
 #endif
 	return -4;
@@ -280,7 +280,7 @@ OpenCLUtil::init( )
       if( CL_SUCCESS != err )
 	return -6;
 
-      #if OPENCL_TRACE
+      #if GPU_TRACE
       std::cerr << "Created command queue: " << dev_info->queue << "\n";
       #endif
       }
@@ -289,7 +289,7 @@ OpenCLUtil::init( )
   delete[] device_ids;
 
   has_init = true;
-  #if OPENCL_TRACE
+  #if GPU_TRACE
   std::cerr << "OpenCLUtil::init() finishes...\n";
   #endif
   return 0;
@@ -304,7 +304,7 @@ OpenCLUtil::deinit( )
 
   // Release context.
   clReleaseContext( context );
-  #if OPENCL_TRACE
+  #if GPU_TRACE
   std::cerr << "OpenCLUtil::deinit()\n";
   #endif
 }
@@ -313,7 +313,7 @@ cl_context
 OpenCLUtil::getContext( )
 {
   if( false == has_init ) {
-    #ifdef OPENCL_TRACE
+    #ifdef GPU_TRACE
     std::cerr << "OpenCLUTIL::getContext()" << std::endl;
     #endif
     init( );
@@ -392,7 +392,7 @@ OpenCLUtil::printDeviceDetails( unsigned int dev_idx, bool verbose )
 cl_int
 OpenCLUtil::buildProgram( cl_program &program )
 {
-  #if OPENCL_TRACE
+  #if GPU_TRACE
   std::cout << "OpenCLUtil::buildProgram() begins...\n";
   #endif
 
