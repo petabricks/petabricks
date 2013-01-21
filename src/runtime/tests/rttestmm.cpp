@@ -37,6 +37,7 @@ using namespace petabricks;
 
 int n = 512;
 
+#ifndef USE_FLOAT
 void niave(sequential::MatrixRegion2D a, sequential::MatrixRegion2D b, sequential::MatrixRegion2D c) {
   for(int i=0; i<n; ++i) {
     for(int j=0; j<n; ++j) {
@@ -363,8 +364,10 @@ void test(const char* name, testfn f) {
   printf("%20s %.4f\n", name, t2-t1);
   }
 }
+#endif
 
 int main(int /*argc*/, const char** /*argv*/){
+#ifndef USE_FLOAT
   test("niave", &niave);
   test("transposed", &transposed);
   test("sse_setr", &sse_v0);
@@ -374,6 +377,7 @@ int main(int /*argc*/, const char** /*argv*/){
   test("sse_setr_2blocked", &sse_v4);
   test("sse_setr_4blocked", &sse_v5);
   test("x", &x);
+#endif
   return 0;
 }
 
