@@ -67,7 +67,12 @@ public:
   /// Run a command and assert a single output
   FormulaPtr runCommandSingleOutput(const std::string& cmd){
     FormulaListPtr rslt = runCommand(cmd);
-    JASSERT(rslt->size()==1)(rslt);
+    if(rslt->size() == 0) {
+      JWARNING(rslt->size()==1)(cmd)(rslt)
+        .Text("possible bug in maxima -- no output from cmd, retrying");
+      rslt = runCommand(cmd);
+    }
+    JASSERT(rslt->size()==1)(cmd)(rslt);
     return rslt->front();
   }
 
