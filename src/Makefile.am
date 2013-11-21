@@ -220,13 +220,6 @@ pbparser.h:		 libpbcompiler_a-pbparser.h
 ruleirparser.h: libpbcompiler_a-ruleirparser.h
 	test -h $@ || $(LN_S) $< $@
 
-libpbcompiler_a-maximaparser.h: libpbcompiler_a-maximaparser.hpp
-	test -e $@ || $(LN_S) $< $@
-libpbcompiler_a-pbparser.h: libpbcompiler_a-pbparser.hpp
-	test -e $@ || $(LN_S) $< $@
-libpbcompiler_a-ruleirparser.h: libpbcompiler_a-ruleirparser.hpp
-	test -e $@ || $(LN_S) $< $@
-
 #make sure the output of flex/bison has the latest version of the header
 $(srcdir)/compiler/maximalexer.lpp: maximaparser.h
 $(srcdir)/compiler/pblexer.lpp:     pbparser.h
