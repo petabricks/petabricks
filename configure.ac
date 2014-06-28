@@ -4,7 +4,7 @@ AC_CONFIG_SRCDIR([src/compiler/pbc.cpp])
 AC_CANONICAL_TARGET
 
 AM_CONFIG_HEADER([src/config.h])
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([subdir-objects] [foreign])
 
 default_cxxflags=no
 if test "x$CXXFLAGS" = "x"; then

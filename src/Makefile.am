@@ -1,4 +1,4 @@
-INCLUDES =
+#INCLUDES =
 METASOURCES = AUTO
 AM_YFLAGS =
 AM_LFLAGS =
@@ -219,6 +219,14 @@ pbparser.h:		 libpbcompiler_a-pbparser.h
 	test -h $@ || $(LN_S) $< $@
 ruleirparser.h: libpbcompiler_a-ruleirparser.h
 	test -h $@ || $(LN_S) $< $@
+
+#for new versions of bison
+#libpbcompiler_a-maximaparser.h: libpbcompiler_a-maximaparser.hpp
+#	test -h $@ || $(LN_S) $< $@
+#libpbcompiler_a-pbparser.h: libpbcompiler_a-pbparser.hpp
+#	test -h $@ || $(LN_S) $< $@
+#libpbcompiler_a-ruleirparser.h: libpbcompiler_a-ruleirparser.hpp
+#	test -h $@ || $(LN_S) $< $@
 
 #make sure the output of flex/bison has the latest version of the header
 $(srcdir)/compiler/maximalexer.lpp: maximaparser.h
