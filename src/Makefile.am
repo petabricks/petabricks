@@ -120,10 +120,7 @@ libpbcompiler_a_SOURCES = \
   compiler/matrixdef.cpp \
   compiler/matrixdependency.cpp \
   compiler/maximalexer.lpp \
-  compiler/maximaparser.ypp \
   compiler/maximawrapper.cpp \
-  compiler/pblexer.lpp \
-  compiler/pbparser.ypp \
   compiler/region.cpp \
   compiler/rircompilerpass.cpp \
   compiler/rirscope.cpp \
@@ -131,7 +128,6 @@ libpbcompiler_a_SOURCES = \
   compiler/rule.cpp \
   compiler/ruleir.cpp \
   compiler/ruleirlexer.lpp \
-  compiler/ruleirparser.ypp \
   compiler/scheduler.cpp \
   compiler/syntheticrule.cpp \
   compiler/trainingdeps.cpp \
@@ -143,7 +139,17 @@ libpbcompiler_a_SOURCES = \
   compiler/tinyxml.cpp \
   compiler/tinyxmlerror.cpp \
   compiler/tinyxmlparser.cpp \
-  compiler/tinystr.cpp
+  compiler/tinystr.cpp \
+  libpbcompiler_a-maximalexer.cpp \
+  libpbcompiler_a-maximaparser.cpp \
+  libpbcompiler_a-pblexer.cpp \
+  libpbcompiler_a-pbparser.cpp \
+  libpbcompiler_a-ruleirlexer.cpp \
+  libpbcompiler_a-ruleirparser.cpp
+# compiler/ruleirparser.ypp
+# compiler/pblexer.lpp
+# compiler/pbparser.ypp
+# compiler/maximaparser.ypp
 
 libpbruntime_a_LFLAGS =
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
@@ -156,7 +162,6 @@ libpbruntime_a_SOURCES =  \
   runtime/gpumanager.cpp \
   runtime/gputaskinfo.cpp \
   runtime/matrixio.cpp \
-  runtime/matrixreader.lpp \
   runtime/matrixstorage.cpp \
   runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
@@ -176,7 +181,9 @@ libpbruntime_a_SOURCES =  \
   runtime/subregioncachemanager.cpp \
   runtime/testisolation.cpp \
   runtime/transforminstance.cpp \
-  runtime/workerthread.cpp
+  runtime/workerthread.cpp \
+  libpbruntime_a-matrixreader.cpp
+#  runtime/matrixreader.lpp
 
 libpbmain_a_CXXFLAGS = -Iruntime
 libpbmain_a_SOURCES = runtime/redirectmain.cpp
@@ -213,12 +220,12 @@ CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp li
              libpbruntime_a-matrixreader.cpp
 
 #copy bison headers
-maximaparser.h: libpbcompiler_a-maximaparser.h
-	test -h $@ || $(LN_S) $< $@
-pbparser.h:		 libpbcompiler_a-pbparser.h
-	test -h $@ || $(LN_S) $< $@
-ruleirparser.h: libpbcompiler_a-ruleirparser.h
-	test -h $@ || $(LN_S) $< $@
+# maximaparser.h: libpbcompiler_a-maximaparser.h
+# 	test -h $@ || $(LN_S) $< $@
+# pbparser.h:		 libpbcompiler_a-pbparser.h
+# 	test -h $@ || $(LN_S) $< $@
+# ruleirparser.h: libpbcompiler_a-ruleirparser.h
+# 	test -h $@ || $(LN_S) $< $@
 
 #for new versions of bison
 #libpbcompiler_a-maximaparser.h: libpbcompiler_a-maximaparser.hpp
@@ -229,7 +236,7 @@ ruleirparser.h: libpbcompiler_a-ruleirparser.h
 #	test -h $@ || $(LN_S) $< $@
 
 #make sure the output of flex/bison has the latest version of the header
-$(srcdir)/compiler/maximalexer.lpp: maximaparser.h
-$(srcdir)/compiler/pblexer.lpp:     pbparser.h
-$(srcdir)/compiler/ruleirlexer.lpp: ruleirparser.h
+# $(srcdir)/compiler/maximalexer.lpp: maximaparser.h
+# $(srcdir)/compiler/pblexer.lpp:     pbparser.h
+# $(srcdir)/compiler/ruleirlexer.lpp: ruleirparser.h
 
